@@ -117,10 +117,8 @@
                                     <tbody class="bg-white divide-y divide-gray-200">
                                         @forelse ($clients as $client)
                                             <tr>
-                                                <td  class="sticky left-0 bg-white px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    <a href="{{ route('clients.show', $client) }}" class="text-indigo-600 hover:text-indigo-900">
-                                                        {{ $client->name }}
-                                                    </a>
+                                                <td class="sticky left-0 bg-white px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    {{ $client->name }}
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                                                     {{ $client->mykad_companyno }}

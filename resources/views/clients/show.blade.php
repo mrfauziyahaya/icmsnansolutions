@@ -145,7 +145,7 @@
                                     <p class="text-sm text-gray-500">Document Name</p>
                                     <p class="text-sm font-medium text-gray-900">{{ $client->document_name }}</p>
                                 </div>
-                                <div>
+                                <!-- <div>
                                     <p class="text-sm text-gray-500">Uploaded At</p>
                                     <p class="text-sm font-medium text-gray-900">
                                         @if($client->document_uploaded_at)
@@ -154,7 +154,7 @@
                                             -
                                         @endif
                                     </p>
-                                </div>
+                                </div> -->
                                 <div>
                                     <p class="text-sm text-gray-500">Download</p>
                                     <a href="{{ asset('storage/' . $client->document_path) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900">

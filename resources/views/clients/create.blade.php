@@ -112,7 +112,7 @@
                                 <div class="bg-white p-6 rounded-lg shadow-sm">
                                     <h3 class="text-lg font-medium text-gray-900 mb-4">Insurance Information</h3>
                                     <div class="grid grid-cols-12 gap-6">
-                                        <div class="col-span-12 md:col-span-4">
+                                        <div class="col-span-12 md:col-span-6">
                                             <div>
                                                 <x-input-label for="category" :value="__('Category')" />
                                                 <select id="category" name="category" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
@@ -131,7 +131,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-span-12 md:col-span-4">
+                                        <div class="col-span-12 md:col-span-6">
                                             <div>
                                                 <x-input-label for="insurance_company" :value="__('Insurance Company')" />
                                                 <select id="insurance_company" name="insurance_company" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
@@ -165,7 +165,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-span-12 md:col-span-4">
+                                        <div class="col-span-12 md:col-span-6">
                                             <div>
                                                 <x-input-label for="nettpremium" :value="__('Nett Premium')" />
                                                 <x-text-input id="nettpremium" name="nettpremium" type="number" step="0.01" class="mt-1 block w-full" :value="old('nettpremium')" onchange="calculatePremium()" />
@@ -173,7 +173,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-span-12 md:col-span-4">
+                                        <div class="col-span-12 md:col-span-6">
                                             <div>
                                                 <x-input-label for="premium" :value="__('Premium')" />
                                                 <x-text-input id="premium" name="premium" type="number" step="0.01" class="mt-1 block w-full bg-gray-100" readonly />
@@ -295,7 +295,7 @@ function calculateDates() {
 
 function calculatePremium() {
     const nettpremium = parseFloat(document.getElementById('nettpremium').value) || 0;
-    const premium = nettpremium + (Math.round(nettpremium * 0.08)) + 10;
+    const premium = nettpremium + (nettpremium * 0.08) + 10;
     document.getElementById('premium').value = premium.toFixed(2);
 }
 
