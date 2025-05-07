@@ -44,7 +44,7 @@
 
                                         <div class="col-span-12 md:col-span-6">
                                             <x-input-label for="status" :value="__('Status')" />
-                                            <select id="status" name="status" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                            <select id="status" name="status" class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm">
                                                 <option value="Active" {{ old('status', $client->status) == 'Active' ? 'selected' : '' }}>Active</option>
                                                 <option value="Expiring" {{ old('status', $client->status) == 'Expiring' ? 'selected' : '' }}>Expiring</option>
                                                 <option value="Done" {{ old('status', $client->status) == 'Done' ? 'selected' : '' }}>Done</option>
@@ -80,7 +80,7 @@
 
                                         <div class="col-span-12 md:col-span-4">
                                             <x-input-label for="state" :value="__('State')" />
-                                            <select id="state" name="state" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                            <select id="state" name="state" class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm">
                                             <option value="">Select State</option>
                                                 <option value="WP KUALA LUMPUR" {{ old('state', $client->state) == 'WP KUALA LUMPUR' ? 'selected' : '' }}>WP KUALA LUMPUR</option>
                                                 <option value="WP LABUAN" {{ old('state', $client->state) == 'WP LABUAN' ? 'selected' : '' }}>WP LABUAN</option>
@@ -118,7 +118,7 @@
                                     <div class="grid grid-cols-12 gap-6">
                                         <div class="col-span-12 md:col-span-6">
                                         <x-input-label for="category" :value="__('Category')" />
-                                        <select id="category" name="category" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                        <select id="category" name="category" class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm">
                                         <option value="">Select Category</option>
                                             <option value="KERETA" {{ old('category', $client->category) == 'KERETA' ? 'selected' : '' }}>KERETA</option>
                                             <option value="MOTOR" {{ old('category', $client->category) == 'MOTOR' ? 'selected' : '' }}>MOTOR</option>
@@ -135,7 +135,7 @@
 
                                         <div class="col-span-12 md:col-span-6">
                                         <x-input-label for="insurance_company" :value="__('Insurance Company')" />
-                                        <select id="insurance_company" name="insurance_company" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                        <select id="insurance_company" name="insurance_company" class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm">
                                             <option value="">Select Insurance Company</option>
                                             <option value="AIA" {{ old('insurance_company', $client->insurance_company) == 'AIA' ? 'selected' : '' }}>AIA GENERAL BERHAD</option>
                                             <option value="AIG" {{ old('insurance_company', $client->insurance_company) == 'AIG' ? 'selected' : '' }}>AIG MALAYSIA INSURANCE BERHAD</option>
@@ -239,7 +239,7 @@
                                             <div class="flex items-center justify-between">
                                                 <div>
                                                     <p class="text-sm font-medium text-gray-900">{{ $client->document_name }}</p>
-                                                    <a href="{{ asset('storage/' . $client->document_path) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 text-sm">
+                                                    <a href="{{ asset('storage/' . $client->document_path) }}" target="_blank" class="text-orange-600 hover:text-orange-900 text-sm">
                                                         View Current Document
                                                     </a>
                                                 </div>
