@@ -16,7 +16,7 @@
                             Delete Client
                         </button>
                     </form>
-                    <a href="{{ route('clients.edit', $client) }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                    <a href="{{ route('clients.edit', $client) }}" class="inline-flex items-center px-4 py-2 bg-orange-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-orange-700 focus:bg-orange-700 active:bg-orange-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">
                         Edit Client
                     </a>
                     <a href="{{ route('clients.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
@@ -157,7 +157,7 @@
                                 </div> -->
                                 <div>
                                     <p class="text-sm text-gray-500">Download</p>
-                                    <a href="{{ asset('storage/' . $client->document_path) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900">
+                                    <a href="{{ asset('storage/' . $client->document_path) }}" target="_blank" class="text-orange-600 hover:text-orange-900">
                                         Download Document
                                     </a>
                                 </div>
