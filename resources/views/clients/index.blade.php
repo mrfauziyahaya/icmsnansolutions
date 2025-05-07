@@ -4,7 +4,7 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Clients') }}
             </h2>
-            <a href="{{ route('clients.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+            <a href="{{ route('clients.create') }}" class="inline-flex items-center px-4 py-2 bg-orange-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-orange-700 focus:bg-orange-700 active:bg-orange-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">
                 Add New Client
             </a>
         </div>
@@ -50,7 +50,7 @@
                                 <select name="perPage" 
                                         id="perPage" 
                                         onchange="this.form.submit()"
-                                        class="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                        class="rounded-md border-gray-300 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50">
                                     <option value="20" {{ request('perPage', 20) == 20 ? 'selected' : '' }}>20</option>
                                     <option value="50" {{ request('perPage', 20) == 50 ? 'selected' : '' }}>50</option>
                                     <option value="100" {{ request('perPage', 20) == 100 ? 'selected' : '' }}>100</option>
@@ -64,7 +64,7 @@
                                            name="search" 
                                            x-model="search"
                                            @input.debounce.500ms="$el.form.submit()"
-                                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50"
                                            placeholder="Search by name, phone, plate, insurance company, MyKad/SSM, or vehicle model...">
                                     @if(request('search'))
                                         <a href="{{ route('clients.index', ['perPage' => request('perPage', 20)]) }}" class="ml-2 inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
@@ -189,7 +189,7 @@
                                                     @endif
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                    <a href="{{ route('clients.show', $client) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">View</a>
+                                                    <a href="{{ route('clients.show', $client) }}" class="text-orange-600 hover:text-orange-900 mr-3">View</a>
                                                     <a href="{{ route('clients.edit', $client) }}" class="text-yellow-600 hover:text-yellow-900 mr-3">Edit</a>
                                                     <form action="{{ route('clients.destroy', $client) }}" method="POST" class="inline">
                                                         @csrf

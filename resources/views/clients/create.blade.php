@@ -75,7 +75,7 @@
 
                                         <div class="col-span-12 md:col-span-4">
                                             <x-input-label for="state" :value="__('State')" />
-                                            <select id="state" name="state" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                            <select id="state" name="state" class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm">
                                                 <option value="">Select State</option>
                                                 <option value="WP KUALA LUMPUR" {{ old('state') == 'WP KUALA LUMPUR' ? 'selected' : '' }}>WP KUALA LUMPUR</option>
                                                 <option value="WP LABUAN" {{ old('state') == 'WP LABUAN' ? 'selected' : '' }}>WP LABUAN</option>
@@ -115,7 +115,7 @@
                                         <div class="col-span-12 md:col-span-6">
                                             <div>
                                                 <x-input-label for="category" :value="__('Category')" />
-                                                <select id="category" name="category" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                                <select id="category" name="category" class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm">
                                                     <option value="">Select Category</option>
                                                     <option value="KERETA" {{ old('category') == 'KERETA' ? 'selected' : '' }}>KERETA</option>
                                                     <option value="MOTOR" {{ old('category') == 'MOTOR' ? 'selected' : '' }}>MOTOR</option>
@@ -134,7 +134,7 @@
                                         <div class="col-span-12 md:col-span-6">
                                             <div>
                                                 <x-input-label for="insurance_company" :value="__('Insurance Company')" />
-                                                <select id="insurance_company" name="insurance_company" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                                <select id="insurance_company" name="insurance_company" class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm">
                                                     <option value="">Select Insurance Company</option>
                                                     <option value="AIA" {{ old('insurance_company') == 'AIA' ? 'selected' : '' }}>AIA General Berhad</option>
                                                     <option value="AIG" {{ old('insurance_company') == 'AIG' ? 'selected' : '' }}>AIG Malaysia Insurance Berhad</option>
