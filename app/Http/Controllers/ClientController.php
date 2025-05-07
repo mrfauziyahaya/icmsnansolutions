@@ -58,7 +58,7 @@ class ClientController extends Controller
             'premium' => 'nullable|numeric',
             'expiry_date' => 'nullable|date',
             'renewal_date' => 'nullable|date',
-            'status' => 'nullable|in:Active,Expiring,Done',
+            'status' => 'nullable|in:Active,Expiring,Expired',
             'address2' => 'nullable|string',
             'city' => 'nullable|string|max:255',
             'state' => 'nullable|string|max:255',
@@ -98,7 +98,7 @@ class ClientController extends Controller
 
         $client->save();
 
-        return redirect()->route('clients.show', $client)
+        return redirect()->route('clients.index')
             ->with('success', 'Client created successfully.');
     }
 
