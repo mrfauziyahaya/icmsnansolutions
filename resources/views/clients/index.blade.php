@@ -58,6 +58,7 @@
                                 <span class="text-sm text-gray-700">entries</span>
                             </div>
 
+                            <!-- Search Bar -->
                             <div class="w-4/12" x-data="{ search: '{{ request('search') }}' }">
                                 <div class="flex items-center">
                                     <input type="text" 
@@ -118,7 +119,9 @@
                                         @forelse ($clients as $client)
                                             <tr>
                                                 <td class="sticky left-0 bg-white px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    {{ $client->name }}
+                                                    <a href="{{ route('clients.show', $client) }}" class="text-orange-600 hover:text-orange-900">
+                                                        {{ $client->name }}
+                                                    </a>
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                                                     {{ $client->mykad_companyno }}
