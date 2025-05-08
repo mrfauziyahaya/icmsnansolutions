@@ -10,7 +10,7 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
-                        <!-- Quick Stats Section -->
+                        <!-- Quick Stats Section! -->
                         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                             <h3 class="text-lg font-medium text-gray-900">Quick Stats</h3>
                             <div class="mt-4 grid grid-cols-3 gap-4">
@@ -63,6 +63,7 @@
                                         
                                         // Get data from the controller
                                         const forecastData = @json($forecastData);
+                                        console.log('Forecast Data in JS:', forecastData);
                                         
                                         // Format number with thousand separator
                                         const formatNumber = (num) => {
@@ -296,6 +297,7 @@
                                         
                                         // Get data from the controller
                                         const inceptionData = @json($inceptionPremiumData);
+                                        console.log('Inception Data in JS:', inceptionData);
                                         
                                         // Format number with thousand separator
                                         const formatNumber = (num) => {
@@ -387,6 +389,7 @@
                                         
                                         // Get data from the controller
                                         const yearlyData = @json($inceptionPremiumYearlyData);
+                                        console.log('Yearly Data in JS:', yearlyData);
                                         
                                         // Format number with thousand separator
                                         const formatNumber = (num) => {

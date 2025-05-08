@@ -56,6 +56,9 @@ class DashboardController extends Controller
             ->orderBy('month')
             ->get();
 
+        // Debug: Check the premium data!
+        \Log::info('Premium Data:', $premiumData->toArray());
+
         // Merge actual data with forecast data
         foreach ($premiumData as $data) {
             $monthDate = Carbon::createFromFormat('Y-m', $data->month);
@@ -64,6 +67,9 @@ class DashboardController extends Controller
                 $forecastData[$index]['total_premium'] = $data->total_premium;
             }
         }
+
+        // Debug: Check the forecast data
+        \Log::info('Forecast Data:', $forecastData);
 
         // Get premium data by inception date
         $inceptionPremiumData = Client::select(
@@ -75,6 +81,9 @@ class DashboardController extends Controller
             ->orderBy('month')
             ->get();
 
+        // Debug: Check the inception premium data
+        \Log::info('Inception Premium Data:', $inceptionPremiumData->toArray());
+
         // Get premium data by inception date (yearly)
         $inceptionPremiumYearlyData = Client::select(
             DB::raw('YEAR(inception_date) as year'),
@@ -84,6 +93,9 @@ class DashboardController extends Controller
             ->groupBy('year')
             ->orderBy('year')
             ->get();
+
+        // Debug: Check the yearly premium data
+        \Log::info('Yearly Premium Data:', $inceptionPremiumYearlyData->toArray());
 
         // Get unique insurance companies for dropdown
         $insuranceCompanies = Client::select('insurance_company')
