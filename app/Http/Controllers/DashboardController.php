@@ -56,7 +56,7 @@ class DashboardController extends Controller
             ->orderBy('month')
             ->get();
 
-        // Debug: Check the premium data
+        // Debug: Check the premium data!
         \Log::info('Premium Data:', $premiumData->toArray());
 
         // Merge actual data with forecast data
