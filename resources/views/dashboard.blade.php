@@ -63,6 +63,7 @@
                                         
                                         // Get data from the controller
                                         const forecastData = @json($forecastData);
+                                        console.log('Forecast Data in JS:', forecastData);
                                         
                                         // Format number with thousand separator
                                         const formatNumber = (num) => {
@@ -296,6 +297,7 @@
                                         
                                         // Get data from the controller
                                         const inceptionData = @json($inceptionPremiumData);
+                                        console.log('Inception Data in JS:', inceptionData);
                                         
                                         // Format number with thousand separator
                                         const formatNumber = (num) => {
@@ -387,6 +389,7 @@
                                         
                                         // Get data from the controller
                                         const yearlyData = @json($inceptionPremiumYearlyData);
+                                        console.log('Yearly Data in JS:', yearlyData);
                                         
                                         // Format number with thousand separator
                                         const formatNumber = (num) => {
