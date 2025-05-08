@@ -58,6 +58,7 @@
                                 <span class="text-sm text-gray-700">entries</span>
                             </div>
 
+                            <!-- Search Bar -->
                             <div class="w-4/12" x-data="{ search: '{{ request('search') }}' }">
                                 <div class="flex items-center">
                                     <input type="text" 
