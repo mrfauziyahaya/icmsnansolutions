@@ -91,6 +91,10 @@
                                     <p class="text-sm font-medium text-gray-900">RM {{ number_format($client->premium, 2) }}</p>
                                 </div>
                                 <div>
+                                    <p class="text-sm text-gray-500">Road Tax Price</p>
+                                    <p class="text-sm font-medium text-gray-900">RM {{ number_format($client->road_tax_price ?? 0, 2) }}</p>
+                                </div>
+                                <div>
                                     <p class="text-sm text-gray-500">Inception Date</p>
                                     <p class="text-sm font-medium text-gray-900">{{ $client->inception_date->format('d/m/Y') }}</p>
                                 </div>
@@ -167,6 +171,56 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Invoice History -->
+            @php $invoices = $client->invoices; @endphp
+            @if($invoices->count())
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
+                <div class="p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Invoice History</h3>
+                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Invoice No.</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Premium</th>
+                                <th class="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Road Tax</th>
+                                <th class="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                <th class="px-4 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-100">
+                            @foreach($invoices as $invoice)
+                            <tr>
+                                <td class="px-4 py-3 font-mono font-medium text-gray-900">{{ $invoice->invoice_number }}</td>
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-0.5 rounded text-xs font-semibold
+                                        @if($invoice->type === 'new_policy') bg-green-100 text-green-800
+                                        @elseif($invoice->type === 'renewal') bg-blue-100 text-blue-800
+                                        @else bg-yellow-100 text-yellow-800 @endif">
+                                        {{ $invoice->type === 'new_policy' ? 'New Policy' : ($invoice->type === 'renewal' ? 'Renewal' : 'Update') }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-gray-600">{{ $invoice->issued_at->format('d/m/Y') }}</td>
+                                <td class="px-4 py-3 text-right">RM {{ number_format($invoice->premium, 2) }}</td>
+                                <td class="px-4 py-3 text-right">RM {{ number_format($invoice->road_tax_price, 2) }}</td>
+                                <td class="px-4 py-3 text-right font-semibold text-orange-600">RM {{ number_format($invoice->total_amount, 2) }}</td>
+                                <td class="px-4 py-3 text-right">
+                                    @if($invoice->pdf_path)
+                                    <a href="{{ route('invoices.download', $invoice) }}"
+                                       class="text-orange-600 hover:text-orange-800 font-medium text-xs">
+                                        Download PDF
+                                    </a>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 </x-app-layout> 

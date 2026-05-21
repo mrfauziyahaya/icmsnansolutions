@@ -181,6 +181,14 @@
                                             </div>
                                         </div>
 
+                                        <div class="col-span-12 md:col-span-6">
+                                            <div>
+                                                <x-input-label for="road_tax_price" :value="__('Road Tax Price')" />
+                                                <x-text-input id="road_tax_price" name="road_tax_price" type="number" step="0.01" class="mt-1 block w-full" :value="old('road_tax_price')" placeholder="0.00" />
+                                                <x-input-error class="mt-2" :messages="$errors->get('road_tax_price')" />
+                                            </div>
+                                        </div>
+
                                         <div class="col-span-12 md:col-span-3">
                                             <div>
                                                 <x-input-label for="inception_date" :value="__('Inception Date')" />
