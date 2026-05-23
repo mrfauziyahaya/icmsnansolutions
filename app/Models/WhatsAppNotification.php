@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class WhatsAppNotification extends Model
 {
+    protected $table = 'whatsapp_notifications';
+
     protected $fillable = [
         'client_id',
         'type',
