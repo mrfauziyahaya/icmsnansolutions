@@ -28,18 +28,45 @@ class WhatsAppService
     {
         $params = $this->policyParams($client);
         $this->sendTemplate($client, 'policy_created', 'nan_policy_created', $params);
+
+        $this->sendFreeForm($this->adminNumber,
+            "Polisi baru telah dicipta:\n"
+            . "Nama: {$client->name}\n"
+            . "Telefon: {$client->phone}\n"
+            . "Kenderaan: {$client->plate}\n"
+            . "Syarikat: {$client->insurance_company}\n"
+            . "Tamat Tempoh: " . ($client->expiry_date?->format('d/m/Y') ?? '-')
+        );
     }
 
     public function notifyPolicyUpdated(Client $client): void
     {
         $params = $this->policyParams($client);
         $this->sendTemplate($client, 'policy_updated', 'nan_policy_updated', $params);
+
+        $this->sendFreeForm($this->adminNumber,
+            "Polisi telah dikemaskini:\n"
+            . "Nama: {$client->name}\n"
+            . "Telefon: {$client->phone}\n"
+            . "Kenderaan: {$client->plate}\n"
+            . "Syarikat: {$client->insurance_company}\n"
+            . "Tamat Tempoh: " . ($client->expiry_date?->format('d/m/Y') ?? '-')
+        );
     }
 
     public function notifyPolicyRenewed(Client $client): void
     {
         $params = $this->policyParams($client);
         $this->sendTemplate($client, 'policy_renewed', 'nan_policy_renew', $params);
+
+        $this->sendFreeForm($this->adminNumber,
+            "Polisi telah diperbaharui:\n"
+            . "Nama: {$client->name}\n"
+            . "Telefon: {$client->phone}\n"
+            . "Kenderaan: {$client->plate}\n"
+            . "Syarikat: {$client->insurance_company}\n"
+            . "Tamat Tempoh: " . ($client->expiry_date?->format('d/m/Y') ?? '-')
+        );
     }
 
     // ── Expiry reminders ────────────────────────────────────────────────────
@@ -49,7 +76,6 @@ class WhatsAppService
         $days   = $type === 'expiry_30d' ? '30' : '14';
         $expiry = $client->expiry_date?->format('d/m/Y') ?? '-';
 
-        // {{1}} name, {{2}} days, {{3}} plate, {{4}} insurer, {{5}} expiry
         $params = [
             $client->name,
             $days,
@@ -60,15 +86,14 @@ class WhatsAppService
 
         $this->sendTemplate($client, $type, 'nan_expiry_reminder', $params);
 
-        // Alert admin via free-form (internal use)
-        $adminMsg = "Peringatan telah dihantar kepada:\n"
+        $this->sendFreeForm($this->adminNumber,
+            "Peringatan telah dihantar kepada:\n"
             . "Nama: {$client->name}\n"
             . "Telefon: {$client->phone}\n"
             . "Kenderaan: {$client->plate}\n"
             . "Tamat Tempoh: {$expiry}\n"
-            . "(Peringatan {$days} hari)";
-
-        $this->sendFreeForm($this->adminNumber, $adminMsg);
+            . "(Peringatan {$days} hari)"
+        );
     }
 
     // ── Core send helpers ───────────────────────────────────────────────────
