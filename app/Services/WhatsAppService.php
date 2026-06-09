@@ -28,21 +28,21 @@ class WhatsAppService
     {
         $params = $this->policyParams($client);
         $this->sendTemplate($client, 'policy_created', 'nan_policy_created', $params);
-        $this->sendAdminAlert($client->name, 'Polisi Baru Dicipta');
+        $this->sendAdminAlert($client, 'Polisi Baru');
     }
 
     public function notifyPolicyUpdated(Client $client): void
     {
         $params = $this->policyParams($client);
         $this->sendTemplate($client, 'policy_updated', 'nan_policy_updated', $params);
-        $this->sendAdminAlert($client->name, 'Polisi Dikemaskini');
+        $this->sendAdminAlert($client, 'Polisi Dikemaskini');
     }
 
     public function notifyPolicyRenewed(Client $client): void
     {
         $params = $this->policyParams($client);
         $this->sendTemplate($client, 'policy_renewed', 'nan_policy_renew', $params);
-        $this->sendAdminAlert($client->name, 'Polisi Diperbaharui');
+        $this->sendAdminAlert($client, 'Polisi Diperbaharui');
     }
 
     // ── Expiry reminders ────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ class WhatsAppService
         ];
 
         $this->sendTemplate($client, $type, 'nan_expiry_reminder', $params);
-        $this->sendAdminAlert($client->name, "Peringatan Tamat Tempoh {$days} Hari");
+        $this->sendAdminAlert($client, "Peringatan Tamat Tempoh {$days} Hari");
     }
 
     // ── Core send helpers ───────────────────────────────────────────────────
@@ -148,9 +148,15 @@ class WhatsAppService
         }
     }
 
-    private function sendAdminAlert(string $clientName, string $typeLabel): void
+    private function sendAdminAlert(Client $client, string $typeLabel): void
     {
-        $this->callTemplate($this->adminNumber, 'nan_admin_alert', [$clientName, $typeLabel]);
+        $this->callTemplate($this->adminNumber, 'nan_admin_alert', [
+            $typeLabel,
+            $client->name,
+            $client->plate ?? '-',
+            $client->expiry_date?->format('d M Y') ?? '-',
+            $client->insurance_company ?? '-',
+        ]);
     }
 
     private function normalizePhone(?string $phone): ?string

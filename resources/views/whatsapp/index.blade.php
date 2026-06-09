@@ -14,6 +14,7 @@
                     <tr>
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Date & Time</th>
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Client</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-600">Vehicle No.</th>
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Type</th>
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Client Phone</th>
                         <th class="px-4 py-3 text-center font-semibold text-gray-600">Sent to Client</th>
@@ -44,10 +45,12 @@
                                     <a href="{{ route('clients.show', $n->client) }}" class="font-medium text-orange-600 hover:underline">
                                         {{ $n->client->name }}
                                     </a>
-                                    <div class="text-xs text-gray-400">{{ $n->client->plate }}</div>
                                 @else
                                     <span class="text-gray-400">—</span>
                                 @endif
+                            </td>
+                            <td class="px-4 py-3 text-gray-700 font-medium">
+                                {{ $n->client?->plate ?? '—' }}
                             </td>
                             <td class="px-4 py-3">
                                 <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $type['color'] }}">
@@ -82,7 +85,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-4 py-10 text-center text-gray-400">No notifications sent yet.</td>
+                            <td colspan="9" class="px-4 py-10 text-center text-gray-400">No notifications sent yet.</td>
                         </tr>
                     @endforelse
                 </tbody>
