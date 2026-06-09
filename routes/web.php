@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LookupController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\WhatsAppNotificationController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -27,6 +28,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Invoices
     Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])->name('invoices.download');
+
+    // WhatsApp Notifications Log
+    Route::get('/whatsapp-notifications', [WhatsAppNotificationController::class, 'index'])->name('whatsapp.index');
 
     // Settings
     Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');

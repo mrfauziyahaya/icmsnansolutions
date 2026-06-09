@@ -36,8 +36,8 @@
                                         </div>
 
                                         <div class="col-span-12 md:col-span-6">
-                                            <x-input-label for="mykad_companyno" :value="__('MyKad/Company No. (with -)')" />
-                                            <x-text-input id="mykad_companyno" name="mykad_companyno" type="text" class="mt-1 block w-full" :value="old('mykad_companyno')" placeholder="000000-00-0000" />
+                                            <x-input-label for="mykad_companyno" :value="__('MyKad/Company No. (without -)')" />
+                                            <x-text-input id="mykad_companyno" name="mykad_companyno" type="text" class="mt-1 block w-full" :value="old('mykad_companyno')" placeholder="900101089900" />
                                             <x-input-error class="mt-2" :messages="$errors->get('mykad_companyno')" />
                                         </div>
 

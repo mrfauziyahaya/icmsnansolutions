@@ -16,7 +16,7 @@
                 <div>
                     <label for="ic" class="block text-sm font-medium text-gray-700 mb-1">IC No. / Company Registration No.</label>
                     <input type="text" id="ic" name="ic" value="{{ $ic ?? '' }}"
-                        placeholder="e.g. 900101-01-1234"
+                        placeholder="e.g. 900101011234"
                         class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
                 </div>
 
