@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Services\InvoiceService;
+use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -56,6 +58,7 @@ class ClientController extends Controller
             'insurance_company' => 'nullable|string|max:255',
             'nettpremium' => 'nullable|numeric',
             'premium' => 'nullable|numeric',
+            'road_tax_price' => 'nullable|numeric',
             'expiry_date' => 'nullable|date',
             'renewal_date' => 'nullable|date',
             'status' => 'nullable|in:Active,Expiring,Expired',
@@ -98,6 +101,9 @@ class ClientController extends Controller
 
         $client->save();
 
+        app(InvoiceService::class)->generate($client, 'new_policy');
+        app(WhatsAppService::class)->notifyPolicyCreated($client);
+
         return redirect()->route('clients.index')
             ->with('success', 'Client created successfully.');
     }
@@ -133,6 +139,7 @@ class ClientController extends Controller
             'insurance_company' => 'nullable|string|max:255',
             'nettpremium' => 'nullable|numeric',
             'premium' => 'nullable|numeric',
+            'road_tax_price' => 'nullable|numeric',
             'inception_date' => 'required|date',
             'expiry_date' => 'nullable|date',
             'renewal_date' => 'nullable|date',
@@ -169,7 +176,18 @@ class ClientController extends Controller
             $validated['document_path'] = $documentPath;
         }
 
+        $financialChanged = array_intersect_key($validated, array_flip(['nettpremium', 'premium', 'road_tax_price']))
+            !== $client->only(['nettpremium', 'premium', 'road_tax_price']);
+
         $client->update($validated);
+
+        $fresh = $client->fresh();
+
+        if ($financialChanged) {
+            app(InvoiceService::class)->generate($fresh, 'update');
+        }
+
+        app(WhatsAppService::class)->notifyPolicyUpdated($fresh);
 
         return redirect()->route('clients.show', $client)->with('success', 'Client updated successfully.');
     }
@@ -250,7 +268,6 @@ class ClientController extends Controller
         // Calculate new reminder date (1 month before expiry)
         $newReminderDate = $newExpiryDate->copy()->subMonth();
 
-        // Update client with new dates and status
         $client->update([
             'status' => 'Active',
             'inception_date' => $newInceptionDate,
@@ -258,6 +275,10 @@ class ClientController extends Controller
             'renewal_date' => $newRenewalDate,
             'reminder_date' => $newReminderDate,
         ]);
+
+        $renewed = $client->fresh();
+        app(InvoiceService::class)->generate($renewed, 'renewal');
+        app(WhatsAppService::class)->notifyPolicyRenewed($renewed);
 
         return redirect()->route('clients.expiring')
             ->with('success', 'Client insurance has been renewed successfully.');
@@ -283,8 +304,9 @@ class ClientController extends Controller
                 'Plate',
                 'Vehicle Model',
                 'Insurance Company',
-                'Premium',
                 'Nett Premium',
+                'Premium',
+                'Road Tax Price',
                 'Inception Date',
                 'Expiry Date',
                 'Renewal Date',
@@ -305,8 +327,9 @@ class ClientController extends Controller
                     $client->plate,
                     $client->vehicle_model,
                     $client->insurance_company,
-                    $client->premium,
                     $client->nettpremium,
+                    $client->premium,
+                    $client->road_tax_price,
                     $client->inception_date,
                     $client->expiry_date,
                     $client->renewal_date,

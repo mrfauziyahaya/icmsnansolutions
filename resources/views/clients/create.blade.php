@@ -36,8 +36,8 @@
                                         </div>
 
                                         <div class="col-span-12 md:col-span-6">
-                                            <x-input-label for="mykad_companyno" :value="__('MyKad/Company No. (with -)')" />
-                                            <x-text-input id="mykad_companyno" name="mykad_companyno" type="text" class="mt-1 block w-full" :value="old('mykad_companyno')" placeholder="000000-00-0000" />
+                                            <x-input-label for="mykad_companyno" :value="__('MyKad/Company No. (without -)')" />
+                                            <x-text-input id="mykad_companyno" name="mykad_companyno" type="text" class="mt-1 block w-full" :value="old('mykad_companyno')" placeholder="900101089900" />
                                             <x-input-error class="mt-2" :messages="$errors->get('mykad_companyno')" />
                                         </div>
 
@@ -178,6 +178,14 @@
                                                 <x-input-label for="premium" :value="__('Premium')" />
                                                 <x-text-input id="premium" name="premium" type="number" step="0.01" class="mt-1 block w-full bg-gray-100" readonly />
                                                 <x-input-error class="mt-2" :messages="$errors->get('premium')" />
+                                            </div>
+                                        </div>
+
+                                        <div class="col-span-12 md:col-span-6">
+                                            <div>
+                                                <x-input-label for="road_tax_price" :value="__('Road Tax Price')" />
+                                                <x-text-input id="road_tax_price" name="road_tax_price" type="number" step="0.01" class="mt-1 block w-full" :value="old('road_tax_price')" placeholder="0.00" />
+                                                <x-input-error class="mt-2" :messages="$errors->get('road_tax_price')" />
                                             </div>
                                         </div>
 
