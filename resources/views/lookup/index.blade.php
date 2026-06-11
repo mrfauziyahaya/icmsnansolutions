@@ -3,7 +3,7 @@
     <!-- Search card -->
     <div class="max-w-lg mx-auto">
         <div class="bg-white shadow rounded-xl p-8">
-            <h2 class="text-xl font-bold text-gray-900 mb-1">View Your Policy</h2>
+            <h2 class="text-xl font-bold text-gray-900 mb-1">View Your Cover Note</h2>
             <p class="text-sm text-gray-500 mb-6">Enter your IC / Company No. to look up your insurance policy.</p>
 
             @if(!empty($error))
