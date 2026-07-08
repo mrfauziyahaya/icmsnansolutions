@@ -49,7 +49,12 @@ class WhatsAppService
 
     public function sendExpiryReminder(Client $client, string $type): void
     {
-        $days   = $type === 'expiry_30d' ? '30' : '14';
+        $days = match ($type) {
+            'expiry_30d' => '30',
+            'expiry_14d' => '14',
+            'expiry_3d'  => '3',
+            default      => '14',
+        };
         $expiry = $client->expiry_date?->format('d/m/Y') ?? '-';
 
         $params = [
