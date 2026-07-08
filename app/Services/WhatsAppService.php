@@ -45,6 +45,14 @@ class WhatsAppService
         $this->sendAdminAlert($client, 'Polisi Diperbaharui');
     }
 
+    // ── Quote request ───────────────────────────────────────────────────────
+
+    public function notifyQuoteRequest(string $name, string $phone): void
+    {
+        // Template quote_notify — {{1}} name, {{2}} phone
+        $this->callTemplate($this->adminNumber, 'quote_notify', [$name, $phone]);
+    }
+
     // ── Expiry reminders ────────────────────────────────────────────────────
 
     public function sendExpiryReminder(Client $client, string $type): void
