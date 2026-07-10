@@ -29,7 +29,7 @@
                 <tbody class="divide-y divide-gray-100 bg-white">
                     @forelse ($quotes as $quote)
                         <tr class="hover:bg-gray-50 {{ $quote->is_read ? '' : 'bg-orange-50/40' }}">
-                            <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ $quote->created_at->format('d/m/Y H:i') }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ $quote->created_at->timezone('Asia/Kuala_Lumpur')->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 font-medium text-gray-900 {{ $quote->is_read ? '' : 'font-bold' }}">{{ $quote->nama_pemilik }}</td>
                             <td class="px-4 py-3 text-gray-700">{{ $quote->whatsapp }}</td>
                             <td class="px-4 py-3 text-gray-700 font-medium">{{ $quote->no_plate }}</td>

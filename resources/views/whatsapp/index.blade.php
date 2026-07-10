@@ -39,7 +39,7 @@
                         @endphp
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 whitespace-nowrap text-gray-500">
-                                {{ $n->sent_at?->format('d/m/Y H:i') }}
+                                {{ $n->sent_at?->timezone('Asia/Kuala_Lumpur')->format('d/m/Y H:i') }}
                             </td>
                             <td class="px-4 py-3">
                                 @if ($n->client)
