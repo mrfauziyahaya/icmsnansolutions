@@ -148,10 +148,10 @@
 
                             <!-- Cermin → jumlah -->
                             <div x-show="form.perlindungan_tambahan.includes('Cermin')" x-cloak class="pt-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Perlindungan Cermin Diperlukan (RM)</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Perlindungan Cermin Diperlukan (RM) <span class="text-red-500">*</span></label>
                                 <input type="number" step="0.01" name="jumlah_perlindungan_cermin" x-model="form.jumlah_perlindungan_cermin"
-                                    placeholder="1500"
                                     class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+                                <p class="mt-1 text-xs italic text-gray-500">Masukkan jumlah perlindungan cermin (RM)</p>
                             </div>
                         </div>
                     </template>
