@@ -4,8 +4,23 @@
     </x-slot>
 
     <div class="bg-white shadow rounded-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p class="text-sm text-gray-500">{{ $notifications->total() }} total notifications</p>
+            <form method="GET" action="{{ route('whatsapp.index') }}" class="flex items-center gap-2">
+                <input type="text" name="search" value="{{ $search ?? '' }}"
+                    placeholder="Cari nama, plate, telefon, jenis..."
+                    class="w-full sm:w-64 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm">
+                <button type="submit"
+                    class="inline-flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">
+                    Cari
+                </button>
+                @if(!empty($search))
+                    <a href="{{ route('whatsapp.index') }}"
+                       class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200">
+                        Reset
+                    </a>
+                @endif
+            </form>
         </div>
 
         <div class="overflow-x-auto">
