@@ -45,11 +45,24 @@ class WhatsAppService
         $this->sendAdminAlert($client, 'Polisi Diperbaharui');
     }
 
+    // ── Quote request ───────────────────────────────────────────────────────
+
+    public function notifyQuoteRequest(string $name, string $phone): void
+    {
+        // Template quote_notify — {{1}} name, {{2}} phone
+        $this->callTemplate($this->adminNumber, 'quote_notify', [$name, $phone]);
+    }
+
     // ── Expiry reminders ────────────────────────────────────────────────────
 
     public function sendExpiryReminder(Client $client, string $type): void
     {
-        $days   = $type === 'expiry_30d' ? '30' : '14';
+        $days = match ($type) {
+            'expiry_30d' => '30',
+            'expiry_14d' => '14',
+            'expiry_3d'  => '3',
+            default      => '14',
+        };
         $expiry = $client->expiry_date?->format('d/m/Y') ?? '-';
 
         $params = [

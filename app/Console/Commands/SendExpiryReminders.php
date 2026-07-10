@@ -10,13 +10,14 @@ use Illuminate\Console\Command;
 class SendExpiryReminders extends Command
 {
     protected $signature   = 'whatsapp:send-expiry-reminders';
-    protected $description = 'Send WhatsApp expiry reminders at 30 days and 14 days before policy expiry';
+    protected $description = 'Send WhatsApp expiry reminders at 30 days, 14 days and 3 days before policy expiry';
 
     public function handle(WhatsAppService $wa): void
     {
         $targets = [
             'expiry_30d' => now()->addDays(30)->toDateString(),
             'expiry_14d' => now()->addDays(14)->toDateString(),
+            'expiry_3d'  => now()->addDays(3)->toDateString(),
         ];
 
         foreach ($targets as $type => $date) {

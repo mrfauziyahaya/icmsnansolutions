@@ -8,6 +8,7 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LookupController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\WhatsAppNotificationController;
+use App\Http\Controllers\QuoteRequestController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -15,6 +16,11 @@ Route::get('/', function () {
 
 // Public policy lookup — no auth required
 Route::get('/lookup', [LookupController::class, 'index'])->name('lookup');
+
+// Public quote request form — no auth required
+Route::get('/quote-request', [QuoteRequestController::class, 'create'])->name('quote.create');
+Route::post('/quote-request', [QuoteRequestController::class, 'store'])->name('quote.store');
+Route::get('/quote-request/success', [QuoteRequestController::class, 'success'])->name('quote.success');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -31,6 +37,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // WhatsApp Notifications Log
     Route::get('/whatsapp-notifications', [WhatsAppNotificationController::class, 'index'])->name('whatsapp.index');
+
+    // Quote Requests (Request Sebut Harga)
+    Route::get('/quote-requests', [QuoteRequestController::class, 'index'])->name('quote-requests.index');
+    Route::get('/quote-requests/{quoteRequest}', [QuoteRequestController::class, 'show'])->name('quote-requests.show');
+    Route::patch('/quote-requests/{quoteRequest}/toggle-read', [QuoteRequestController::class, 'toggleRead'])->name('quote-requests.toggle-read');
 
     // Settings
     Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');

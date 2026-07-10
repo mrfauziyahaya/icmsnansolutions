@@ -26,13 +26,14 @@
                 <tbody class="divide-y divide-gray-100 bg-white">
                     @forelse ($notifications as $n)
                         @php
-                            $adminAlso = in_array($n->type, ['expiry_30d', 'expiry_14d', 'policy_created', 'policy_updated', 'policy_renewed']);
+                            $adminAlso = in_array($n->type, ['expiry_30d', 'expiry_14d', 'expiry_3d', 'policy_created', 'policy_updated', 'policy_renewed']);
                             $typeLabels = [
                                 'policy_created' => ['label' => 'Policy Created',  'color' => 'bg-blue-100 text-blue-700'],
                                 'policy_updated' => ['label' => 'Policy Updated',  'color' => 'bg-yellow-100 text-yellow-700'],
                                 'policy_renewed' => ['label' => 'Policy Renewed',  'color' => 'bg-green-100 text-green-700'],
                                 'expiry_30d'     => ['label' => 'Expiry (30 days)', 'color' => 'bg-orange-100 text-orange-700'],
                                 'expiry_14d'     => ['label' => 'Expiry (14 days)', 'color' => 'bg-red-100 text-red-700'],
+                                'expiry_3d'      => ['label' => 'Expiry (3 days)',  'color' => 'bg-red-200 text-red-800'],
                             ];
                             $type = $typeLabels[$n->type] ?? ['label' => $n->type, 'color' => 'bg-gray-100 text-gray-700'];
                         @endphp
