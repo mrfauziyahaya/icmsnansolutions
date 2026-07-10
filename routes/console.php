@@ -8,5 +8,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Send WhatsApp expiry reminders daily at 9am
-Schedule::command('whatsapp:send-expiry-reminders')->dailyAt('09:00');
+// Send WhatsApp expiry reminders daily at 9am Malaysia time
+Schedule::command('whatsapp:send-expiry-reminders')
+    ->dailyAt('09:00')
+    ->timezone('Asia/Kuala_Lumpur');
