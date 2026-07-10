@@ -1,5 +1,5 @@
 <x-public-layout>
-    <div class="max-w-lg mx-auto my-16 sm:my-24" x-data x-init="setTimeout(() => window.location.href = 'https://nansolutions.com.my', 3000)">
+    <div class="max-w-lg mx-auto my-16 sm:my-24" x-data x-init="setTimeout(() => window.location.href = 'https://wa.link/cikhnz', 3000)">
         <div class="bg-white shadow rounded-xl px-8 py-12 flex flex-col items-center text-center">
             <div class="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-6">
                 <svg class="h-9 w-9 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -16,6 +16,6 @@
     </div>
 
     <noscript>
-        <meta http-equiv="refresh" content="3;url=https://nansolutions.com.my">
+        <meta http-equiv="refresh" content="3;url=https://wa.link/cikhnz">
     </noscript>
 </x-public-layout>
