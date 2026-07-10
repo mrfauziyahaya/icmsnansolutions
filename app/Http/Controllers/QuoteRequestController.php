@@ -79,8 +79,12 @@ class QuoteRequestController extends Controller
             Log::error('Quote request WhatsApp failed: ' . $e->getMessage());
         }
 
-        return redirect()->route('quote.create')
-            ->with('success', 'Permohonan sebut harga anda telah dihantar. Kami akan menghubungi anda tidak lama lagi.');
+        return redirect()->route('quote.success');
+    }
+
+    public function success()
+    {
+        return view('quote.success');
     }
 
     // ── Admin ────────────────────────────────────────────────────────────────

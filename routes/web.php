@@ -20,6 +20,7 @@ Route::get('/lookup', [LookupController::class, 'index'])->name('lookup');
 // Public quote request form — no auth required
 Route::get('/quote-request', [QuoteRequestController::class, 'create'])->name('quote.create');
 Route::post('/quote-request', [QuoteRequestController::class, 'store'])->name('quote.store');
+Route::get('/quote-request/success', [QuoteRequestController::class, 'success'])->name('quote.success');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
