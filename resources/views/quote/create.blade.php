@@ -263,6 +263,11 @@
                     }
                     if (this.step === 3) {
                         if (!this.form.jenis_perlindungan) { alert('Sila pilih jenis perlindungan.'); return false; }
+                        if (this.form.jenis_perlindungan === '1st Party Comprehensive'
+                            && this.form.perlindungan_tambahan.includes('Cermin')
+                            && !this.form.jumlah_perlindungan_cermin) {
+                            alert('Sila masukkan jumlah perlindungan cermin diperlukan.'); return false;
+                        }
                     }
                     return true;
                 },

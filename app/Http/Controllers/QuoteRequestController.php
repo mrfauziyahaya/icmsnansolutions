@@ -42,6 +42,13 @@ class QuoteRequestController extends Controller
         }
         $tambahan = array_values(array_filter((array) $tambahan));
 
+        // Jumlah cermin is required when Cermin add-on is selected
+        if (in_array('Cermin', $tambahan) && ! filled($validated['jumlah_perlindungan_cermin'] ?? null)) {
+            return back()->withInput()->withErrors([
+                'jumlah_perlindungan_cermin' => 'Sila masukkan jumlah perlindungan cermin diperlukan.',
+            ]);
+        }
+
         $quote = QuoteRequest::create([
             'nama_pemilik'               => strtoupper($validated['nama_pemilik']),
             'no_ic'                      => $validated['no_ic'],
