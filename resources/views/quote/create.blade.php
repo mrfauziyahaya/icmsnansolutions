@@ -35,7 +35,8 @@
                 </template>
             </div>
 
-            <form method="POST" action="{{ route('quote.store') }}" class="p-6 sm:p-8">
+            <form method="POST" action="{{ route('quote.store') }}" class="p-6 sm:p-8"
+                  @submit="submitting = true">
                 @csrf
 
                 <!-- ── STEP 1: Maklumat Pemilik Kenderaan ──────────────────── -->
@@ -148,10 +149,10 @@
 
                             <!-- Cermin → jumlah -->
                             <div x-show="form.perlindungan_tambahan.includes('Cermin')" x-cloak class="pt-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Perlindungan Cermin Diperlukan (RM)</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Perlindungan Cermin Diperlukan (RM) <span class="text-red-500">*</span></label>
                                 <input type="number" step="0.01" name="jumlah_perlindungan_cermin" x-model="form.jumlah_perlindungan_cermin"
-                                    placeholder="1500"
                                     class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+                                <p class="mt-1 text-xs italic text-gray-500">Masukkan jumlah perlindungan cermin (RM)</p>
                             </div>
                         </div>
                     </template>
@@ -203,8 +204,10 @@
                         Seterusnya
                     </button>
                     <button type="submit" x-show="step === 4" x-cloak
-                        class="rounded-md bg-green-600 px-6 py-2 text-sm font-semibold text-white hover:bg-green-700">
-                        Hantar Permohonan
+                        :disabled="submitting"
+                        class="rounded-md bg-green-600 px-6 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                        <span x-show="!submitting">Hantar Permohonan</span>
+                        <span x-show="submitting" x-cloak>Menghantar&hellip;</span>
                     </button>
                 </div>
             </form>
@@ -215,6 +218,7 @@
         function quoteForm() {
             return {
                 step: 1,
+                submitting: false,
                 steps: ['Pemilik', 'Kenderaan', 'Perlindungan', 'Pembayaran'],
                 perlindunganTypes: [
                     '1st Party Comprehensive',

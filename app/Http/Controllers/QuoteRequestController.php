@@ -49,6 +49,17 @@ class QuoteRequestController extends Controller
             ]);
         }
 
+        // Guard against duplicate submissions (double/triple click, network retry).
+        // Treat an identical IC + plate submitted within the last 2 minutes as the same request.
+        $duplicate = QuoteRequest::where('no_ic', $validated['no_ic'])
+            ->where('no_plate', strtoupper($validated['no_plate']))
+            ->where('created_at', '>=', now()->subMinutes(2))
+            ->exists();
+
+        if ($duplicate) {
+            return redirect()->route('quote.success');
+        }
+
         $quote = QuoteRequest::create([
             'nama_pemilik'               => strtoupper($validated['nama_pemilik']),
             'no_ic'                      => $validated['no_ic'],
