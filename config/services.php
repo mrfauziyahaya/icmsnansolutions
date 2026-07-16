@@ -41,4 +41,51 @@ return [
         'admin_number'    => env('WHATSAPP_ADMIN_NUMBER', '60129379257'),
     ],
 
+    // Cloudflare Turnstile — anti-spam on the public checkout form.
+    // When keys are absent the check is skipped (dev convenience) and a warning is logged.
+    'turnstile' => [
+        'site_key'   => env('TURNSTILE_SITE_KEY'),
+        'secret_key' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
+    'payments' => [
+        // Hard limits on the public custom-amount field (MYR).
+        'min_amount'  => env('PAYMENT_MIN_AMOUNT', 1),
+        'max_amount'  => env('PAYMENT_MAX_AMOUNT', 50000),
+        // BNPL providers won't accept tiny amounts; below this they're hidden.
+        'bnpl_min'    => env('PAYMENT_BNPL_MIN', 30),
+    ],
+
+    'chip' => [
+        'api_key'  => env('CHIP_API_KEY'),
+        'brand_id' => env('CHIP_BRAND_ID'),
+        'base_url' => env('CHIP_BASE_URL', 'https://gate.chip-in.asia/api/v1'),
+    ],
+
+    'fiuu' => [
+        'merchant_id' => env('FIUU_MERCHANT_ID'),
+        'verify_key'  => env('FIUU_VERIFY_KEY'),
+        'secret_key'  => env('FIUU_SECRET_KEY'),
+        'base_url'    => env('FIUU_BASE_URL', 'https://pay.fiuu.com/RMS'),
+        'sandbox'     => env('FIUU_SANDBOX', true),
+    ],
+
+    'atome' => [
+        'partner_id' => env('ATOME_PARTNER_ID'),
+        'secret_key' => env('ATOME_SECRET_KEY'),
+        'base_url'   => env('ATOME_BASE_URL'),
+    ],
+
+    'ahapay' => [
+        'api_key'  => env('AHAPAY_API_KEY'),
+        'base_url' => env('AHAPAY_BASE_URL'),
+    ],
+
+    // senangPay runs on DOKU's API.
+    'senangpay' => [
+        'merchant_id' => env('SENANGPAY_MERCHANT_ID'),
+        'secret_key'  => env('SENANGPAY_SECRET_KEY'),
+        'base_url'    => env('SENANGPAY_BASE_URL'),
+    ],
+
 ];
