@@ -1,10 +1,10 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Expiring Clients') }}
             </h2>
-            <a href="{{ route('clients.create') }}" class="inline-flex items-center px-4 py-2 bg-orange-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-orange-700 focus:bg-orange-700 active:bg-orange-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">
+            <a href="{{ route('clients.create') }}" class="inline-flex justify-center items-center px-4 py-2 bg-orange-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-orange-700 focus:bg-orange-700 active:bg-orange-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">
                 Add New Client
             </a>
         </div>
@@ -32,10 +32,10 @@
         }
     </style>
 
-    <div class="py-12">
-        <div class="max-w-full mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+    <div>
+        <div class="max-w-full mx-auto">
+            <div class="bg-white overflow-hidden shadow-sm rounded-lg">
+                <div class="p-4 sm:p-6 text-gray-900">
                     @if (session('success'))
                         <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
                             <span class="block sm:inline">{{ session('success') }}</span>
@@ -43,14 +43,14 @@
                     @endif
 
                     <!-- Search Bar -->
-                    <div class="mb-4 flex justify-between items-center">
-                        <form action="{{ route('clients.expiring') }}" method="GET" class="w-full flex justify-between items-center">
-                            <div class="flex items-center space-x-2">
+                    <div class="mb-4">
+                        <form action="{{ route('clients.expiring') }}" method="GET" class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                            <div class="flex items-center space-x-2 shrink-0">
                                 <label for="perPage" class="text-sm text-gray-700">Show</label>
-                                <select name="perPage" 
-                                        id="perPage" 
+                                <select name="perPage"
+                                        id="perPage"
                                         onchange="this.form.submit()"
-                                        class="rounded-md border-gray-300 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50">
+                                        class="rounded-md border-gray-300 shadow-sm text-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50">
                                     <option value="20" {{ request('perPage', 20) == 20 ? 'selected' : '' }}>20</option>
                                     <option value="50" {{ request('perPage', 20) == 50 ? 'selected' : '' }}>50</option>
                                     <option value="100" {{ request('perPage', 20) == 100 ? 'selected' : '' }}>100</option>
@@ -58,16 +58,16 @@
                                 <span class="text-sm text-gray-700">entries</span>
                             </div>
 
-                            <div class="w-4/12" x-data="{ search: '{{ request('search') }}' }">
-                                <div class="flex items-center">
-                                    <input type="text" 
-                                           name="search" 
+                            <div class="w-full sm:w-5/12" x-data="{ search: '{{ request('search') }}' }">
+                                <div class="flex items-center gap-2">
+                                    <input type="text"
+                                           name="search"
                                            x-model="search"
                                            @input.debounce.500ms="$el.form.submit()"
-                                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50"
-                                           placeholder="Search by name, phone, plate, insurance company, MyKad/SSM, or vehicle model...">
+                                           class="w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50"
+                                           placeholder="Search name, phone, plate, insurer...">
                                     @if(request('search'))
-                                        <a href="{{ route('clients.expiring', ['perPage' => request('perPage', 20)]) }}" class="ml-2 inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                        <a href="{{ route('clients.expiring', ['perPage' => request('perPage', 20)]) }}" class="shrink-0 inline-flex items-center px-3 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                             Clear
                                         </a>
                                     @endif
@@ -76,8 +76,36 @@
                         </form>
                     </div>
 
-                    <!-- Table Container with Scroll -->
-                    <div class="bg-white rounded-lg shadow">
+                    <!-- Mobile: cards with the same Renew / Remind actions as the table -->
+                    <div class="sm:hidden divide-y divide-gray-100 border-t border-gray-100">
+                        @forelse ($clients as $client)
+                            <div class="py-3">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <a href="{{ route('clients.show', $client) }}" class="font-semibold text-orange-600 truncate block">{{ $client->name }}</a>
+                                        <p class="text-xs text-gray-500 mt-0.5">{{ $client->plate }} &middot; {{ $client->vehicle_model }}</p>
+                                        <p class="text-xs text-gray-500">{{ $client->phone }}</p>
+                                        <p class="text-xs text-gray-400 truncate">{{ $client->insurance_company }}</p>
+                                    </div>
+                                    <div class="text-right shrink-0">
+                                        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800">{{ $client->status }}</span>
+                                        <p class="text-xs text-gray-500 mt-1">Tamat: {{ $client->expiry_date?->format('d/m/Y') ?? '—' }}</p>
+                                    </div>
+                                </div>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    <button type="button" onclick="openRenewModal({{ $client->client_id }})"
+                                            class="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700">Renew</button>
+                                    <a href="https://wa.me/{{ $client->phone }}" target="_blank"
+                                       class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">Remind</a>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="py-10 text-center text-gray-400 text-sm">No clients found.</p>
+                        @endforelse
+                    </div>
+
+                    <!-- Desktop: full table, scrolls horizontally -->
+                    <div class="hidden sm:block bg-white rounded-lg shadow">
                         <div class="w-full">
                             <div class=" overflow-hidden border-b border-gray-200 sm:rounded-lg overflow-x-auto relative">
                                 <table class="min-w-full divide-y divide-gray-200">
