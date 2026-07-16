@@ -59,7 +59,9 @@ return [
     'chip' => [
         'api_key'  => env('CHIP_API_KEY'),
         'brand_id' => env('CHIP_BRAND_ID'),
-        'base_url' => env('CHIP_BASE_URL', 'https://gate.chip-in.asia/api/v1'),
+        'base_url' => env('CHIP_BASE_URL', env('CHIP_ENDPOINT', 'https://gate.chip-in.asia/api/v1')),
+        // RSA public key used to verify the X-Signature header on webhooks.
+        'webhook_public_key' => env('CHIP_PUBLIC_KEY_FOR_WEBHOOK'),
     ],
 
     'fiuu' => [

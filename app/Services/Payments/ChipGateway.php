@@ -75,15 +75,54 @@ class ChipGateway implements PaymentGateway
 
     public function verifyCallback(Request $request): array
     {
+        $this->assertSignatureIsValid($request);
+
         // CHIP POSTs the Purchase object. Match on our own reference, never on the amount.
-        $reference = $request->input('reference');
-        $status    = $request->input('status');
+        $status = $request->input('status');
 
         return [
-            'reference'         => $reference,
+            'reference'         => $request->input('reference'),
             'gateway_reference' => $request->input('id'),
             'status'            => $status === 'paid' ? 'paid' : 'failed',
             'reason'            => $status === 'paid' ? null : 'CHIP status: ' . $status,
         ];
+    }
+
+    /**
+     * CHIP signs the raw body with its private key and sends the base64 signature
+     * in X-Signature. Without this check, anyone who knows the webhook URL could
+     * POST a fake "paid" and mark an unpaid order as settled.
+     */
+    private function assertSignatureIsValid(Request $request): void
+    {
+        $publicKey = config('services.chip.webhook_public_key');
+
+        if (blank($publicKey)) {
+            throw new GatewayException('CHIP webhook public key is not configured — refusing to trust callback.');
+        }
+
+        $signature = $request->header('X-Signature');
+
+        if (blank($signature)) {
+            throw new GatewayException('CHIP webhook is missing the X-Signature header.');
+        }
+
+        $key = openssl_pkey_get_public($publicKey);
+
+        if ($key === false) {
+            throw new GatewayException('CHIP webhook public key is invalid.');
+        }
+
+        $verified = openssl_verify(
+            $request->getContent(),
+            base64_decode($signature, true) ?: '',
+            $key,
+            OPENSSL_ALGO_SHA256
+        );
+
+        if ($verified !== 1) {
+            Log::warning('CHIP webhook signature verification failed.', ['ip' => $request->ip()]);
+            throw new GatewayException('CHIP webhook signature is invalid.');
+        }
     }
 }
