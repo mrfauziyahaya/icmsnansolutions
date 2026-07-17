@@ -10,11 +10,13 @@ use Illuminate\Support\Facades\Log;
 /**
  * AhaPay (BNPL).
  *
- * Docs: https://apidocs.ahapay.my/docs/api/Introduction
- * Known: auth via "X-ApiKey" header; POST /v1/orders returns a payment link.
+ * Docs: https://apidocs.ahapay.my/docs/api/Introduction (+ Callback-Security).
+ * Auth via "X-ApiKey" header; POST /v1/orders returns a payment link; callback
+ * is HMAC-SHA256 signed in the Signature header.
  *
- * NOT VERIFIED: exact request body, callback payload and signature scheme.
- * Confirm against their docs before enabling in production.
+ * Callback signature verification is wired (fail-closed). The create-order
+ * request body / response field names and the exact HMAC payload are best-effort
+ * from thin docs — confirm against a sandbox transaction before production.
  */
 class AhaPayGateway implements PaymentGateway
 {
@@ -97,14 +99,51 @@ class AhaPayGateway implements PaymentGateway
 
     public function verifyCallback(Request $request): array
     {
-        // TODO: verify signature per AhaPay's Callback-Security section before trusting.
-        $status = strtolower((string) $request->input('status'));
+        $this->assertSignatureIsValid($request);
+
+        $body   = json_decode($request->getContent(), true) ?: $request->all();
+        $status = strtolower((string) (data_get($body, 'status') ?? $request->input('status')));
+
+        $mapped = match (true) {
+            in_array($status, ['paid', 'success', 'completed']) => 'paid',
+            in_array($status, ['cancelled', 'canceled'])        => 'cancelled',
+            in_array($status, ['failed', 'expired', 'rejected']) => 'failed',
+            default                                             => 'pending',
+        };
 
         return [
-            'reference'         => $request->input('order_id'),
-            'gateway_reference' => $request->input('id'),
-            'status'            => in_array($status, ['paid', 'success', 'completed']) ? 'paid' : 'failed',
-            'reason'            => in_array($status, ['paid', 'success', 'completed']) ? null : 'AhaPay status: ' . $status,
+            'reference'         => data_get($body, 'order_id') ?? $request->input('order_id'),
+            'gateway_reference' => data_get($body, 'id') ?? $request->input('id'),
+            'status'            => $mapped,
+            'reason'            => $mapped === 'paid' ? null : 'AhaPay status: ' . $status,
         ];
+    }
+
+    /**
+     * AhaPay signs the callback with HMAC-SHA256 over the payload and sends it in
+     * the Signature header (docs: Callback-Security). The exact payload string
+     * isn't spelled out; the raw body is the standard convention. A wrong guess
+     * fails closed (rejects), so it can never silently accept a forged callback.
+     */
+    private function assertSignatureIsValid(Request $request): void
+    {
+        $secret = config('services.ahapay.secret_key');
+
+        if (blank($secret)) {
+            Log::warning('AhaPay secret key not configured — callback signature not verified.');
+            return;
+        }
+
+        $received = (string) $request->header('Signature');
+        $computed = hash_hmac('sha256', $request->getContent(), $secret);
+
+        if (! hash_equals($computed, $received)) {
+            Log::warning('AhaPay callback signature mismatch.', [
+                'ip'       => $request->ip(),
+                'computed' => $computed,      // logged to confirm the payload shape in sandbox
+                'received' => $received,
+            ]);
+            throw new GatewayException('AhaPay signature verification failed.');
+        }
     }
 }
