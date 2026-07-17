@@ -37,4 +37,11 @@ class FiuuGateway implements PaymentGateway
             'Fiuu callback verification is not implemented yet — awaiting API spec.'
         );
     }
+
+    public function getStatus(Payment $payment): array
+    {
+        throw new GatewayException(
+            'Fiuu status query is not implemented yet — awaiting API spec.'
+        );
+    }
 }

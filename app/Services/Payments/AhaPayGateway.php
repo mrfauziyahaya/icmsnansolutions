@@ -68,6 +68,33 @@ class AhaPayGateway implements PaymentGateway
         return $checkoutUrl;
     }
 
+    public function getStatus(Payment $payment): array
+    {
+        // TODO: confirm AhaPay's order-status endpoint and field names before relying on this.
+        if (! $payment->gateway_reference) {
+            return ['status' => 'pending', 'reason' => 'No gateway reference to query.'];
+        }
+
+        $response = Http::withHeaders(['X-ApiKey' => config('services.ahapay.api_key')])
+            ->acceptJson()
+            ->get(rtrim(config('services.ahapay.base_url'), '/') . '/v1/orders/' . $payment->gateway_reference);
+
+        if (! $response->successful()) {
+            throw new GatewayException('AhaPay getStatus failed: ' . $response->status());
+        }
+
+        $s = strtolower((string) ($response->json('status') ?? $response->json('data.status')));
+
+        $status = match (true) {
+            in_array($s, ['paid', 'success', 'completed']) => 'paid',
+            in_array($s, ['cancelled', 'canceled'])        => 'cancelled',
+            in_array($s, ['failed', 'expired', 'rejected']) => 'failed',
+            default                                         => 'pending',
+        };
+
+        return ['status' => $status, 'reason' => $status === 'pending' ? null : 'AhaPay status: ' . $s];
+    }
+
     public function verifyCallback(Request $request): array
     {
         // TODO: verify signature per AhaPay's Callback-Security section before trusting.

@@ -26,6 +26,18 @@ interface PaymentGateway
     public function verifyCallback(Request $request): array;
 
     /**
+     * Ask the provider for the current status of a payment (source of truth).
+     *
+     * Used to reconcile records stuck at "pending" — e.g. a payer who failed,
+     * cancelled, or closed the tab, for which no webhook is sent.
+     *
+     * @return array{status: string, reason: string|null}
+     *   status is one of: pending, paid, failed, cancelled.
+     * @throws GatewayException on failure
+     */
+    public function getStatus(Payment $payment): array;
+
+    /**
      * Whether the provider has enough config to be used.
      */
     public function isConfigured(): bool;

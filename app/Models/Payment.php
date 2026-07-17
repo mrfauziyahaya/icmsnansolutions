@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\Payments\GatewayException;
+use App\Services\Payments\PaymentGatewayManager;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class Payment extends Model
 {
@@ -63,6 +66,43 @@ class Payment extends Model
     public function isPaid(): bool
     {
         return $this->status === 'paid';
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    /**
+     * Ask the gateway for the real status and update this record if it has moved
+     * on. Safe to call repeatedly; a settled payment is never reopened.
+     *
+     * @return bool whether the status changed
+     */
+    public function reconcile(): bool
+    {
+        if (! $this->isPending()) {
+            return false;
+        }
+
+        try {
+            $result = app(PaymentGatewayManager::class)->driver($this->gateway)->getStatus($this);
+        } catch (GatewayException $e) {
+            Log::warning("Reconcile {$this->reference} failed: {$e->getMessage()}");
+            return false;
+        }
+
+        if ($result['status'] === $this->status) {
+            return false;
+        }
+
+        $this->update([
+            'status'         => $result['status'],
+            'paid_at'        => $result['status'] === 'paid' ? ($this->paid_at ?? now()) : $this->paid_at,
+            'failure_reason' => $result['reason'] ?? $this->failure_reason,
+        ]);
+
+        return true;
     }
 
     /**

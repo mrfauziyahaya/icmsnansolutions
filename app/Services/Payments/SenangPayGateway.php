@@ -37,4 +37,11 @@ class SenangPayGateway implements PaymentGateway
             'senangPay callback verification is not implemented yet — awaiting API spec.'
         );
     }
+
+    public function getStatus(Payment $payment): array
+    {
+        throw new GatewayException(
+            'senangPay status query is not implemented yet — awaiting API spec.'
+        );
+    }
 }

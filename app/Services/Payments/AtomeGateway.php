@@ -36,4 +36,11 @@ class AtomeGateway implements PaymentGateway
             'Atome callback verification is not implemented yet — awaiting API spec.'
         );
     }
+
+    public function getStatus(Payment $payment): array
+    {
+        throw new GatewayException(
+            'Atome status query is not implemented yet — awaiting API spec.'
+        );
+    }
 }

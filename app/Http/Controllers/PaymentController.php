@@ -92,17 +92,26 @@ class PaymentController extends Controller
 
     public function success(Request $request)
     {
+        $payment = $this->findByReference($request->query('reference'));
+
+        // Don't trust the redirect — confirm with the gateway. A webhook may not
+        // have arrived yet, and /pay/success could be opened directly.
+        $payment?->reconcile();
+
         return view('pay.result', [
-            'payment' => $this->findByReference($request->query('reference')),
-            'ok'      => true,
+            'payment' => $payment,
+            'ok'      => $payment?->isPaid() ?? true,
         ]);
     }
 
     public function failed(Request $request)
     {
+        $payment = $this->findByReference($request->query('reference'));
+        $payment?->reconcile();
+
         return view('pay.result', [
-            'payment' => $this->findByReference($request->query('reference')),
-            'ok'      => false,
+            'payment' => $payment,
+            'ok'      => $payment?->isPaid() ?? false,
         ]);
     }
 

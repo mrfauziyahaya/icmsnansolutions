@@ -73,6 +73,36 @@ class ChipGateway implements PaymentGateway
         return $checkoutUrl;
     }
 
+    public function getStatus(Payment $payment): array
+    {
+        if (! $payment->gateway_reference) {
+            return ['status' => 'pending', 'reason' => 'No gateway reference to query.'];
+        }
+
+        $response = Http::withToken(config('services.chip.api_key'))
+            ->acceptJson()
+            ->get(rtrim(config('services.chip.base_url'), '/') . '/purchases/' . $payment->gateway_reference . '/');
+
+        if (! $response->successful()) {
+            throw new GatewayException('CHIP getStatus failed: ' . $response->status());
+        }
+
+        // CHIP purchase status values: created, paid, refunded, cancelled, expired, error, ...
+        $chipStatus = $response->json('status');
+
+        $status = match ($chipStatus) {
+            'paid', 'refunded'              => 'paid',
+            'cancelled'                     => 'cancelled',
+            'expired', 'error', 'blocked'   => 'failed',
+            default                         => 'pending',   // created / pending / hold
+        };
+
+        return [
+            'status' => $status,
+            'reason' => $status === 'failed' || $status === 'cancelled' ? 'CHIP status: ' . $chipStatus : null,
+        ];
+    }
+
     public function verifyCallback(Request $request): array
     {
         $this->assertSignatureIsValid($request);
