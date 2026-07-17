@@ -68,8 +68,12 @@ return [
         'merchant_id' => env('FIUU_MERCHANT_ID'),
         'verify_key'  => env('FIUU_VERIFY_KEY'),
         'secret_key'  => env('FIUU_SECRET_KEY'),
-        'base_url'    => env('FIUU_BASE_URL', 'https://pay.fiuu.com/RMS'),
+        // Sandbox uses sandbox-payment.fiuu.com / sandbox-api.fiuu.com hosts.
         'sandbox'     => env('FIUU_SANDBOX', true),
+        // Whether "Use extended format for Verify Payment" is enabled in the Fiuu
+        // merchant portal. If enabled, currency is included in the vcode hash.
+        // Must match the portal setting or the hosted page rejects the request.
+        'vcode_with_currency' => env('FIUU_VCODE_WITH_CURRENCY', false),
     ],
 
     'atome' => [

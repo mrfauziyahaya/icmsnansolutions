@@ -138,17 +138,46 @@ class PaymentController extends Controller
         }
 
         // Idempotent: gateways retry, and a settled payment must not be reopened.
-        if ($payment->status === 'paid') {
-            return response()->json(['status' => 'already processed']);
+        // Still ACK so the gateway stops retrying.
+        if ($payment->status !== 'paid') {
+            $payment->update([
+                'status'            => $result['status'],
+                'gateway_reference' => $result['gateway_reference'] ?? $payment->gateway_reference,
+                'paid_at'           => $result['status'] === 'paid' ? now() : null,
+                'failure_reason'    => $result['reason'] ?? null,
+                'callback_payload'  => $request->all(),
+            ]);
         }
 
-        $payment->update([
-            'status'            => $result['status'],
-            'gateway_reference' => $result['gateway_reference'] ?? $payment->gateway_reference,
-            'paid_at'           => $result['status'] === 'paid' ? now() : null,
-            'failure_reason'    => $result['reason'] ?? null,
-            'callback_payload'  => $request->all(),
-        ]);
+        return $this->webhookAck($gateway, $request, $payment->fresh());
+    }
+
+    /**
+     * Build the response a gateway expects from its webhook. Most accept any 200;
+     * Fiuu is special — its callback wants the literal "CBTOKEN:MPSTATOK", and its
+     * browser "return" POST should redirect the payer to the result page.
+     */
+    private function webhookAck(string $gateway, Request $request, Payment $payment)
+    {
+        if ($gateway === 'fiuu') {
+            $nbcb = (string) $request->input('nbcb', '');
+
+            // No nbcb = browser return URL → send the payer to the result page.
+            if ($nbcb === '') {
+                return redirect()->route(
+                    $payment->isPaid() ? 'pay.success' : 'pay.failed',
+                    ['reference' => $payment->reference]
+                );
+            }
+
+            // nbcb=1 = callback URL, must echo this exact token to ACK.
+            if ($nbcb === '1') {
+                return response('CBTOKEN:MPSTATOK');
+            }
+
+            // nbcb=2 = notification URL.
+            return response('OK');
+        }
 
         return response()->json(['status' => 'ok']);
     }
