@@ -41,7 +41,7 @@ class ChipGateway implements PaymentGateway
                 'purchase' => [
                     'currency' => $payment->currency,
                     'products' => [[
-                        'name'     => $payment->purposeLabel() . ' - ' . $payment->vehicle_plate,
+                        'name'     => 'Pembayaran ' . $payment->reference,
                         'price'    => $amountInCents,
                         'quantity' => 1,
                     ]],

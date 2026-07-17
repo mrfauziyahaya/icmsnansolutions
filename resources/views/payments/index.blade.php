@@ -62,7 +62,7 @@
                         <div class="min-w-0">
                             <p class="font-mono text-xs text-gray-400">{{ $payment->reference }}</p>
                             <p class="font-semibold text-gray-900 truncate">{{ $payment->payer_name }}</p>
-                            <p class="text-xs text-gray-500 mt-0.5">{{ $payment->vehicle_plate }} &middot; {{ $payment->gatewayLabel() }}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">{{ $payment->payer_phone }} &middot; {{ $payment->gatewayLabel() }}</p>
                         </div>
                         <div class="text-right shrink-0">
                             <p class="font-bold text-gray-900">RM {{ number_format($payment->amount, 2) }}</p>
@@ -86,7 +86,7 @@
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Tarikh</th>
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Rujukan</th>
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Nama</th>
-                        <th class="px-4 py-3 text-left font-semibold text-gray-600">Plate</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-600">Telefon</th>
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Kaedah</th>
                         <th class="px-4 py-3 text-right font-semibold text-gray-600">Jumlah</th>
                         <th class="px-4 py-3 text-center font-semibold text-gray-600">Status</th>
@@ -99,7 +99,7 @@
                             <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ $payment->created_at->timezone('Asia/Kuala_Lumpur')->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 font-mono text-xs text-gray-600">{{ $payment->reference }}</td>
                             <td class="px-4 py-3 font-medium text-gray-900">{{ $payment->payer_name }}</td>
-                            <td class="px-4 py-3 text-gray-700">{{ $payment->vehicle_plate }}</td>
+                            <td class="px-4 py-3 text-gray-700">{{ $payment->payer_phone }}</td>
                             <td class="px-4 py-3 text-gray-700">{{ $payment->gatewayLabel() }}</td>
                             <td class="px-4 py-3 text-right font-semibold text-gray-900">RM {{ number_format($payment->amount, 2) }}</td>
                             <td class="px-4 py-3 text-center">

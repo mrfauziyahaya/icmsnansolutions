@@ -35,6 +35,7 @@
                 <div class="px-5 sm:px-6 py-3 grid grid-cols-3 gap-4"><dt class="text-sm text-gray-500">Nama</dt><dd class="text-sm text-gray-900 col-span-2">{{ $payment->payer_name }}</dd></div>
                 <div class="px-5 sm:px-6 py-3 grid grid-cols-3 gap-4"><dt class="text-sm text-gray-500">E-mel</dt><dd class="text-sm text-gray-900 col-span-2 break-all">{{ $payment->payer_email }}</dd></div>
                 <div class="px-5 sm:px-6 py-3 grid grid-cols-3 gap-4"><dt class="text-sm text-gray-500">Telefon</dt><dd class="text-sm text-gray-900 col-span-2">{{ $payment->payer_phone }}</dd></div>
+                <div class="px-5 sm:px-6 py-3 grid grid-cols-3 gap-4"><dt class="text-sm text-gray-500">Alamat</dt><dd class="text-sm text-gray-900 col-span-2 whitespace-pre-line">{{ $payment->address ?? '—' }}</dd></div>
             </dl>
         </div>
 
@@ -42,8 +43,6 @@
         <div class="bg-white shadow rounded-lg overflow-hidden">
             <div class="bg-orange-600 px-5 sm:px-6 py-3"><h3 class="text-white font-semibold text-sm tracking-wide">BUTIRAN PEMBAYARAN</h3></div>
             <dl class="divide-y divide-gray-100">
-                <div class="px-5 sm:px-6 py-3 grid grid-cols-3 gap-4"><dt class="text-sm text-gray-500">Bayaran Untuk</dt><dd class="text-sm text-gray-900 col-span-2">{{ $payment->purposeLabel() }}</dd></div>
-                <div class="px-5 sm:px-6 py-3 grid grid-cols-3 gap-4"><dt class="text-sm text-gray-500">Kenderaan</dt><dd class="text-sm text-gray-900 col-span-2">{{ $payment->vehicle_plate }} ({{ $payment->vehicle_type }})</dd></div>
                 <div class="px-5 sm:px-6 py-3 grid grid-cols-3 gap-4"><dt class="text-sm text-gray-500">Kaedah</dt><dd class="text-sm text-gray-900 col-span-2">{{ $payment->gatewayLabel() }}{{ $payment->method ? ' — ' . $payment->method : '' }}</dd></div>
                 <div class="px-5 sm:px-6 py-3 grid grid-cols-3 gap-4"><dt class="text-sm text-gray-500">Rujukan Gateway</dt><dd class="text-sm text-gray-900 col-span-2 font-mono break-all">{{ $payment->gateway_reference ?? '—' }}</dd></div>
                 <div class="px-5 sm:px-6 py-3 grid grid-cols-3 gap-4"><dt class="text-sm text-gray-500">Dicipta</dt><dd class="text-sm text-gray-900 col-span-2">{{ $payment->created_at->timezone('Asia/Kuala_Lumpur')->format('d/m/Y H:i') }}</dd></div>

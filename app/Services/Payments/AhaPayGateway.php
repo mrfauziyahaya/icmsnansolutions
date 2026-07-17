@@ -35,7 +35,7 @@ class AhaPayGateway implements PaymentGateway
                 'order_id'     => $payment->reference,
                 'amount'       => (float) $payment->amount,
                 'currency'     => $payment->currency,
-                'description'  => $payment->purposeLabel() . ' - ' . $payment->vehicle_plate,
+                'description'  => 'Pembayaran ' . $payment->reference,
                 'customer'     => [
                     'name'  => $payment->payer_name,
                     'email' => $payment->payer_email,

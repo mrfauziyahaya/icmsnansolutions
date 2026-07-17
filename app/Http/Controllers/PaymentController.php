@@ -35,15 +35,12 @@ class PaymentController extends Controller
         $max = (float) config('services.payments.max_amount');
 
         $validated = $request->validate([
-            'payer_name'    => 'required|string|max:255',
-            'payer_email'   => 'required|email|max:255',
-            'payer_phone'   => 'required|string|max:20',
-            'purpose'       => 'required|in:road_tax,insurance,both',
-            'vehicle_plate' => 'required|string|max:20',
-            'vehicle_type'  => 'required|string|max:50',
-            'notes'         => 'nullable|string|max:500',
-            'amount'        => "required|numeric|min:{$min}|max:{$max}",
-            'gateway'       => 'required|string',
+            'payer_name'  => 'required|string|max:255',
+            'payer_email' => 'required|email|max:255',
+            'payer_phone' => 'required|string|max:20',
+            'address'     => 'required|string|max:500',
+            'amount'      => "required|numeric|min:{$min}|max:{$max}",
+            'gateway'     => 'required|string',
         ]);
 
         if (! $this->turnstile->verify($request->input('cf-turnstile-response'), $request->ip())) {
@@ -67,19 +64,16 @@ class PaymentController extends Controller
 
         // Recorded as pending first, so an abandoned or failed attempt is still on record.
         $payment = Payment::create([
-            'reference'     => Payment::nextReference(),
-            'payer_name'    => strtoupper($validated['payer_name']),
-            'payer_email'   => $validated['payer_email'],
-            'payer_phone'   => $validated['payer_phone'],
-            'purpose'       => $validated['purpose'],
-            'vehicle_plate' => strtoupper($validated['vehicle_plate']),
-            'vehicle_type'  => $validated['vehicle_type'],
-            'notes'         => $validated['notes'] ?? null,
-            'amount'        => $validated['amount'],
-            'currency'      => 'MYR',
-            'gateway'       => $validated['gateway'],
-            'status'        => 'pending',
-            'ip_address'    => $request->ip(),
+            'reference'   => Payment::nextReference(),
+            'payer_name'  => strtoupper($validated['payer_name']),
+            'payer_email' => $validated['payer_email'],
+            'payer_phone' => $validated['payer_phone'],
+            'address'     => $validated['address'],
+            'amount'      => $validated['amount'],
+            'currency'    => 'MYR',
+            'gateway'     => $validated['gateway'],
+            'status'      => 'pending',
+            'ip_address'  => $request->ip(),
         ]);
 
         try {
@@ -163,8 +157,7 @@ class PaymentController extends Controller
                     $w->where('reference', 'like', "%{$search}%")
                       ->orWhere('payer_name', 'like', "%{$search}%")
                       ->orWhere('payer_phone', 'like', "%{$search}%")
-                      ->orWhere('payer_email', 'like', "%{$search}%")
-                      ->orWhere('vehicle_plate', 'like', "%{$search}%");
+                      ->orWhere('payer_email', 'like', "%{$search}%");
                 });
             })
             ->when($status !== '', fn($q) => $q->where('status', $status))

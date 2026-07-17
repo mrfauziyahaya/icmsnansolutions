@@ -31,8 +31,8 @@
                         <dd class="font-mono font-semibold text-gray-900">{{ $payment->reference }}</dd>
                     </div>
                     <div class="flex justify-between gap-4 px-4 py-3">
-                        <dt class="text-gray-500">Kenderaan</dt>
-                        <dd class="text-gray-900">{{ $payment->vehicle_plate }}</dd>
+                        <dt class="text-gray-500">Nama</dt>
+                        <dd class="text-gray-900">{{ $payment->payer_name }}</dd>
                     </div>
                     <div class="flex justify-between gap-4 px-4 py-3">
                         <dt class="text-gray-500">Jumlah</dt>

@@ -62,34 +62,9 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Bayaran Untuk <span class="text-red-500">*</span></label>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <template x-for="(label, key) in purposes" :key="key">
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="purpose" :value="key" x-model="form.purpose" class="peer sr-only">
-                                    <span class="block text-center rounded-md border border-gray-300 py-2.5 text-sm peer-checked:border-orange-600 peer-checked:bg-orange-50 peer-checked:text-orange-700 peer-checked:font-semibold"
-                                          x-text="label"></span>
-                                </label>
-                            </template>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">No. Plate Kenderaan <span class="text-red-500">*</span></label>
-                            <input type="text" name="vehicle_plate" x-model="form.vehicle_plate" required
-                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm uppercase">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Kenderaan <span class="text-red-500">*</span></label>
-                            <select name="vehicle_type" x-model="form.vehicle_type" required
-                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm">
-                                <option value="">Pilih...</option>
-                                <template x-for="t in vehicleTypes" :key="t">
-                                    <option :value="t" x-text="t"></option>
-                                </template>
-                            </select>
-                        </div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Alamat <span class="text-red-500">*</span></label>
+                        <textarea name="address" x-model="form.address" rows="3" maxlength="500" required
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm"></textarea>
                     </div>
 
                     <div>
@@ -99,12 +74,6 @@
                         <p class="mt-1 text-xs italic text-gray-500">
                             Jumlah antara RM<span x-text="minAmount"></span> dan RM<span x-text="Number(maxAmount).toLocaleString()"></span>
                         </p>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Catatan (pilihan)</label>
-                        <textarea name="notes" x-model="form.notes" rows="2" maxlength="500"
-                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm"></textarea>
                     </div>
                 </div>
 
@@ -144,11 +113,7 @@
                             <dt class="text-gray-500">Telefon</dt><dd class="text-gray-900 text-right" x-text="form.payer_phone"></dd>
                         </div>
                         <div class="flex justify-between gap-4 px-4 py-3">
-                            <dt class="text-gray-500">Bayaran Untuk</dt><dd class="text-gray-900 text-right" x-text="purposes[form.purpose]"></dd>
-                        </div>
-                        <div class="flex justify-between gap-4 px-4 py-3">
-                            <dt class="text-gray-500">Kenderaan</dt>
-                            <dd class="text-gray-900 text-right"><span x-text="form.vehicle_plate"></span> (<span x-text="form.vehicle_type"></span>)</dd>
+                            <dt class="text-gray-500">Alamat</dt><dd class="text-gray-900 text-right" x-text="form.address"></dd>
                         </div>
                         <div class="flex justify-between gap-4 px-4 py-3">
                             <dt class="text-gray-500">Kaedah</dt><dd class="text-gray-900 text-right" x-text="gateways[form.gateway]"></dd>
@@ -208,17 +173,12 @@
                 bnplMin: @json($bnplMin),
                 bnplKeys: @json($bnpl),
                 gateways: @json($gateways),
-                purposes: @json(\App\Models\Payment::PURPOSE_LABELS),
-                vehicleTypes: ['Kereta', 'Motosikal', 'Van', 'Lori', 'Lain-lain'],
                 form: {
                     payer_name: @json(old('payer_name', '')),
                     payer_email: @json(old('payer_email', '')),
                     payer_phone: @json(old('payer_phone', '')),
-                    purpose: @json(old('purpose', '')),
-                    vehicle_plate: @json(old('vehicle_plate', '')),
-                    vehicle_type: @json(old('vehicle_type', '')),
+                    address: @json(old('address', '')),
                     amount: @json(old('amount', '')),
-                    notes: @json(old('notes', '')),
                     gateway: @json(old('gateway', '')),
                 },
                 isSelectable(key) {
@@ -231,9 +191,7 @@
                 validate() {
                     if (this.step === 1) {
                         const f = this.form;
-                        if (!f.payer_name || !f.payer_email || !f.payer_phone) { alert('Sila lengkapkan maklumat diri.'); return false; }
-                        if (!f.purpose) { alert('Sila pilih bayaran untuk apa.'); return false; }
-                        if (!f.vehicle_plate || !f.vehicle_type) { alert('Sila lengkapkan maklumat kenderaan.'); return false; }
+                        if (!f.payer_name || !f.payer_email || !f.payer_phone || !f.address) { alert('Sila lengkapkan semua maklumat.'); return false; }
                         const amt = Number(f.amount || 0);
                         if (!amt || amt < this.minAmount || amt > this.maxAmount) {
                             alert('Jumlah bayaran mesti antara RM' + this.minAmount + ' dan RM' + this.maxAmount + '.');
