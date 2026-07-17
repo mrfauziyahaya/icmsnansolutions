@@ -87,11 +87,12 @@ return [
         'base_url' => env('AHAPAY_BASE_URL'),
     ],
 
-    // senangPay runs on DOKU's API.
+    // senangPay runs on DOKU's Malaysia API (HMAC-signed, Client-Id header).
     'senangpay' => [
-        'merchant_id' => env('SENANGPAY_MERCHANT_ID'),
-        'secret_key'  => env('SENANGPAY_SECRET_KEY'),
-        'base_url'    => env('SENANGPAY_BASE_URL'),
+        'client_id'  => env('SENANGPAY_CLIENT_ID'),
+        'secret_key' => env('SENANGPAY_SECRET_KEY'),
+        // DOKU API host, e.g. https://api-uat.doku.com (sandbox) / https://api.doku.com (live)
+        'base_url'   => env('SENANGPAY_BASE_URL'),
     ],
 
 ];
