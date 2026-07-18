@@ -22,8 +22,8 @@ class SenangPayGatewayTest extends TestCase
 
     private const CLIENT_ID = 'SNP-0075-1781019799848';
     private const SECRET     = 'SK-RcO4406lGQDPtt9UrLKT';
-    private const BASE_URL   = 'https://api-uat.doku.com';
-    private const PATH       = '/credit-card/v1/payment-page';
+    private const BASE_URL   = 'https://api-sandbox.doku.com';
+    private const PATH       = '/checkout/v1/payment';
 
     protected function setUp(): void
     {
@@ -59,17 +59,17 @@ class SenangPayGatewayTest extends TestCase
     public function test_create_payment_returns_hosted_page_url_and_signs_the_request(): void
     {
         Http::fake([
-            'api-uat.doku.com/*' => Http::response([
-                'order'                    => ['invoice_number' => 'PAY-2026-0001', 'amount' => '200.00'],
-                'credit_card_payment_page' => ['url' => 'https://api-uat.doku.com/hosted/abc123'],
+            'api-sandbox.doku.com/*' => Http::response([
+                'order'   => ['invoice_number' => 'PAY-2026-0001', 'amount' => '200.00'],
+                'payment' => ['url' => 'https://sandbox.doku.com/checkout-link-v2/abc123', 'token_id' => 'tok-abc123'],
             ], 200),
         ]);
 
         $payment = $this->makePayment();
         $url     = app(SenangPayGateway::class)->createPayment($payment);
 
-        $this->assertSame('https://api-uat.doku.com/hosted/abc123', $url);
-        $this->assertSame('https://api-uat.doku.com/hosted/abc123', $payment->fresh()->checkout_url);
+        $this->assertSame('https://sandbox.doku.com/checkout-link-v2/abc123', $url);
+        $this->assertSame('https://sandbox.doku.com/checkout-link-v2/abc123', $payment->fresh()->checkout_url);
 
         // The Signature header must be exactly what DOKU's scheme prescribes for
         // the bytes we actually sent — recompute it from the captured request.

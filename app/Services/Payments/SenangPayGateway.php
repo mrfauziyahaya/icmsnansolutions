@@ -13,10 +13,14 @@ use Illuminate\Support\Str;
  *
  * Docs: doku-developers.apidog.io + developers.doku.com (signature scheme).
  *
- * Flow: POST a signed request to /credit-card/v1/payment-page; DOKU returns a
- * hosted-page URL (buyer picks FPX / card / e-wallet there). Result comes back
- * as a browser redirect to callback_url/failed_url plus an HTTP notification we
- * verify by recomputing the same HMAC signature.
+ * Flow: POST a signed request to /checkout/v1/payment (DOKU Checkout — the
+ * unified hosted page listing every channel enabled on the account: FPX,
+ * cards, GrabPay / ShopeePay / Touch 'n Go, BNPL). DOKU returns a hosted-page
+ * URL; the result comes back as a browser redirect to callback_url plus an
+ * HTTP notification we verify by recomputing the same HMAC signature.
+ *
+ * (The card-only /credit-card/v1/payment-page endpoint renders just a card
+ * form, so it isn't used — Checkout is what shows FPX & e-wallets.)
  *
  * Signature (non-SNAP), confirmed verbatim from DOKU docs:
  *   digest    = base64( sha256(rawBody) )                    // omit for GET
@@ -25,7 +29,7 @@ use Illuminate\Support\Str;
  */
 class SenangPayGateway implements PaymentGateway
 {
-    private const PAYMENT_PATH = '/credit-card/v1/payment-page';
+    private const PAYMENT_PATH = '/checkout/v1/payment';
 
     public function isConfigured(): bool
     {
@@ -40,17 +44,24 @@ class SenangPayGateway implements PaymentGateway
             throw new GatewayException('senangPay (DOKU) is not configured.');
         }
 
+        $amount = round((float) $payment->amount, 2);
+
         $body = [
             'order' => [
-                'amount'         => round((float) $payment->amount, 2),
+                'amount'         => $amount,
                 'invoice_number' => $payment->reference,
                 'currency'       => $payment->currency,
+                // DOKU Checkout redirects the buyer here after payment; the
+                // authoritative result still arrives via the signed webhook.
                 'callback_url'   => route('pay.success', ['reference' => $payment->reference]),
-                'failed_url'     => route('pay.failed', ['reference' => $payment->reference]),
-                'auto_redirect'  => true,
-                // DOKU caps the statement descriptor length (~20 chars), so use
-                // just the reference (e.g. PAY-2026-0009 = 13 chars).
-                'descriptor'     => substr($payment->reference, 0, 20),
+                'line_items'     => [[
+                    'name'     => 'Pembayaran ' . $payment->reference,
+                    'quantity' => 1,
+                    'price'    => $amount,
+                ]],
+            ],
+            'payment' => [
+                'payment_due_date' => 60,   // minutes before the checkout link expires
             ],
             'customer' => [
                 'id'      => $payment->reference,
@@ -59,9 +70,6 @@ class SenangPayGateway implements PaymentGateway
                 'phone'   => $payment->payer_phone,
                 'address' => $payment->address,
                 'country' => 'MY',
-            ],
-            'payment' => [
-                'type' => 'SALE',
             ],
         ];
 
@@ -78,17 +86,19 @@ class SenangPayGateway implements PaymentGateway
             throw new GatewayException('senangPay: ' . (is_string($err) ? $err : 'request failed'));
         }
 
-        // DOKU returns the hosted-page URL under credit_card_payment_page.url
-        // (the generic hosted page where the buyer chooses the method).
-        $url = $response->json('credit_card_payment_page.url')
-            ?? $response->json('payment.url')
+        // DOKU Checkout returns the hosted-page URL under payment.url.
+        $url = $response->json('payment.url')
+            ?? $response->json('response.payment.url')
             ?? $response->json('checkout.payment.url');
 
         if (! $url) {
             throw new GatewayException('senangPay did not return a payment page URL.');
         }
 
-        $payment->update(['checkout_url' => $url]);
+        $payment->update([
+            'checkout_url'      => $url,
+            'gateway_reference' => $response->json('payment.token_id') ?? $payment->gateway_reference,
+        ]);
 
         return $url;
     }
