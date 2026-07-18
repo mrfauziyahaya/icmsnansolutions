@@ -92,7 +92,7 @@ return [
     'senangpay' => [
         'client_id'  => env('SENANGPAY_CLIENT_ID'),
         'secret_key' => env('SENANGPAY_SECRET_KEY'),
-        // DOKU API host, e.g. https://api-uat.doku.com (sandbox) / https://api.doku.com (live)
+        // DOKU API host: https://api-sandbox.doku.com (sandbox) / https://api.doku.com (live)
         'base_url'   => env('SENANGPAY_BASE_URL'),
     ],
 
