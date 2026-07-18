@@ -29,29 +29,38 @@ class ChipGateway implements PaymentGateway
         // CHIP takes the amount in the minor unit (cents).
         $amountInCents = (int) round($payment->amount * 100);
 
+        $body = [
+            'brand_id' => config('services.chip.brand_id'),
+            'client'   => [
+                'email'      => $payment->payer_email,
+                'full_name'  => $payment->payer_name,
+                'phone'      => $payment->payer_phone,
+            ],
+            'purchase' => [
+                'currency' => $payment->currency,
+                'products' => [[
+                    'name'     => 'Pembayaran ' . $payment->reference,
+                    'price'    => $amountInCents,
+                    'quantity' => 1,
+                ]],
+            ],
+            'reference'        => $payment->reference,
+            'success_redirect' => route('pay.success', ['reference' => $payment->reference]),
+            'failure_redirect' => route('pay.failed', ['reference' => $payment->reference]),
+            'cancel_redirect'  => route('pay.failed', ['reference' => $payment->reference]),
+            'success_callback' => route('pay.webhook', ['gateway' => 'chip']),
+        ];
+
+        // The buyer already chose FPX or card on our form, so pin CHIP's hosted
+        // page to that category instead of showing the full method picker.
+        $whitelist = $this->methodWhitelist($payment->method);
+        if ($whitelist !== null) {
+            $body['payment_method_whitelist'] = $whitelist;
+        }
+
         $response = Http::withToken(config('services.chip.api_key'))
             ->acceptJson()
-            ->post(rtrim(config('services.chip.base_url'), '/') . '/purchases/', [
-                'brand_id' => config('services.chip.brand_id'),
-                'client'   => [
-                    'email'      => $payment->payer_email,
-                    'full_name'  => $payment->payer_name,
-                    'phone'      => $payment->payer_phone,
-                ],
-                'purchase' => [
-                    'currency' => $payment->currency,
-                    'products' => [[
-                        'name'     => 'Pembayaran ' . $payment->reference,
-                        'price'    => $amountInCents,
-                        'quantity' => 1,
-                    ]],
-                ],
-                'reference'        => $payment->reference,
-                'success_redirect' => route('pay.success', ['reference' => $payment->reference]),
-                'failure_redirect' => route('pay.failed', ['reference' => $payment->reference]),
-                'cancel_redirect'  => route('pay.failed', ['reference' => $payment->reference]),
-                'success_callback' => route('pay.webhook', ['gateway' => 'chip']),
-            ]);
+            ->post(rtrim(config('services.chip.base_url'), '/') . '/purchases/', $body);
 
         if (! $response->successful()) {
             $error = $response->json('message') ?? $response->body();
@@ -71,6 +80,22 @@ class ChipGateway implements PaymentGateway
         ]);
 
         return $checkoutUrl;
+    }
+
+    /**
+     * Map our stored method to CHIP's payment_method identifiers. Null means no
+     * restriction (show the full picker). Identifiers confirmed against CHIP's
+     * live payment-methods list for this account.
+     *
+     * @return array<int, string>|null
+     */
+    private function methodWhitelist(?string $method): ?array
+    {
+        return match ($method) {
+            'fpx'   => ['fpx', 'fpx_b2b1'],
+            'card'  => ['visa', 'mastercard', 'maestro'],
+            default => null,
+        };
     }
 
     public function getStatus(Payment $payment): array

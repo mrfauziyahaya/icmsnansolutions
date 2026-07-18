@@ -21,11 +21,10 @@ class PaymentController extends Controller
     public function create()
     {
         return view('pay.create', [
-            'gateways'  => $this->gateways->available(),
+            'options'   => $this->gateways->checkoutOptions(),
             'minAmount' => (float) config('services.payments.min_amount'),
             'maxAmount' => (float) config('services.payments.max_amount'),
             'bnplMin'   => (float) config('services.payments.bnpl_min'),
-            'bnpl'      => PaymentGatewayManager::BNPL,
         ]);
     }
 
@@ -49,14 +48,11 @@ class PaymentController extends Controller
             ]);
         }
 
-        if (! $this->gateways->exists($validated['gateway'])) {
-            return back()->withInput()->withErrors(['gateway' => 'Kaedah pembayaran tidak sah.']);
-        }
-
-        // Re-check availability server-side; the client could have posted a hidden
-        // or BNPL-below-minimum option.
-        $available = $this->gateways->available((float) $validated['amount']);
-        if (! array_key_exists($validated['gateway'], $available)) {
+        // Resolve the submitted option against what's actually available for this
+        // amount; the client could have posted a hidden, unconfigured, or
+        // BNPL-below-minimum option. A CHIP option also carries its method.
+        $option = $this->gateways->resolveOption($validated['gateway'], (float) $validated['amount']);
+        if (! $option) {
             return back()->withInput()->withErrors([
                 'gateway' => 'Kaedah pembayaran ini tidak tersedia untuk jumlah tersebut.',
             ]);
@@ -71,7 +67,8 @@ class PaymentController extends Controller
             'address'     => $validated['address'],
             'amount'      => $validated['amount'],
             'currency'    => 'MYR',
-            'gateway'     => $validated['gateway'],
+            'gateway'     => $option['gateway'],
+            'method'      => $option['method'],
             'status'      => 'pending',
             'ip_address'  => $request->ip(),
         ]);

@@ -16,7 +16,7 @@
             </div>
         @endif
 
-        @if(empty($gateways))
+        @if(empty($options))
             <div class="rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-6 text-center text-yellow-800 text-sm">
                 <p class="font-semibold mb-1">Pembayaran dalam talian belum tersedia.</p>
                 <p>Sila hubungi kami untuk membuat pembayaran.</p>
@@ -82,13 +82,13 @@
                     <h2 class="text-base sm:text-lg font-semibold text-gray-900">Kaedah Pembayaran</h2>
 
                     <div class="space-y-2">
-                        <template x-for="(label, key) in gateways" :key="key">
-                            <label x-show="isSelectable(key)"
+                        <template x-for="opt in options" :key="opt.value">
+                            <label x-show="isSelectable(opt)"
                                    class="flex items-center gap-3 cursor-pointer rounded-md border border-gray-300 px-4 py-3.5 text-sm"
-                                   :class="form.gateway === key ? 'border-orange-600 bg-orange-50' : ''">
-                                <input type="radio" name="gateway" :value="key" x-model="form.gateway"
+                                   :class="form.gateway === opt.value ? 'border-orange-600 bg-orange-50' : ''">
+                                <input type="radio" name="gateway" :value="opt.value" x-model="form.gateway"
                                        class="text-orange-600 focus:ring-orange-500">
-                                <span x-text="label" :class="form.gateway === key ? 'text-orange-700 font-semibold' : 'text-gray-700'"></span>
+                                <span x-text="opt.label" :class="form.gateway === opt.value ? 'text-orange-700 font-semibold' : 'text-gray-700'"></span>
                             </label>
                         </template>
                     </div>
@@ -116,7 +116,7 @@
                             <dt class="text-gray-500">Alamat</dt><dd class="text-gray-900 text-right" x-text="form.address"></dd>
                         </div>
                         <div class="flex justify-between gap-4 px-4 py-3">
-                            <dt class="text-gray-500">Kaedah</dt><dd class="text-gray-900 text-right" x-text="gateways[form.gateway]"></dd>
+                            <dt class="text-gray-500">Kaedah</dt><dd class="text-gray-900 text-right" x-text="selectedLabel()"></dd>
                         </div>
                         <div class="flex justify-between gap-4 px-4 py-3 bg-orange-50">
                             <dt class="font-semibold text-gray-700">Jumlah</dt>
@@ -171,8 +171,7 @@
                 minAmount: @json($minAmount),
                 maxAmount: @json($maxAmount),
                 bnplMin: @json($bnplMin),
-                bnplKeys: @json($bnpl),
-                gateways: @json($gateways),
+                options: @json($options),
                 form: {
                     payer_name: @json(old('payer_name', '')),
                     payer_email: @json(old('payer_email', '')),
@@ -181,12 +180,16 @@
                     amount: @json(old('amount', '')),
                     gateway: @json(old('gateway', '')),
                 },
-                isSelectable(key) {
-                    if (!this.bnplKeys.includes(key)) return true;
+                isSelectable(opt) {
+                    if (!opt.bnpl) return true;
                     return Number(this.form.amount || 0) >= Number(this.bnplMin);
                 },
                 hasHiddenBnpl() {
-                    return Object.keys(this.gateways).some(k => this.bnplKeys.includes(k) && !this.isSelectable(k));
+                    return this.options.some(o => o.bnpl && !this.isSelectable(o));
+                },
+                selectedLabel() {
+                    const sel = this.options.find(o => o.value === this.form.gateway);
+                    return sel ? sel.label : '';
                 },
                 validate() {
                     if (this.step === 1) {
@@ -198,7 +201,10 @@
                             return false;
                         }
                         // A method chosen earlier may no longer be valid for a changed amount.
-                        if (this.form.gateway && !this.isSelectable(this.form.gateway)) this.form.gateway = '';
+                        if (this.form.gateway) {
+                            const sel = this.options.find(o => o.value === this.form.gateway);
+                            if (!sel || !this.isSelectable(sel)) this.form.gateway = '';
+                        }
                     }
                     if (this.step === 2 && !this.form.gateway) { alert('Sila pilih kaedah pembayaran.'); return false; }
                     return true;
