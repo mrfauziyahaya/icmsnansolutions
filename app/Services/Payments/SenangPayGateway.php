@@ -48,7 +48,9 @@ class SenangPayGateway implements PaymentGateway
                 'callback_url'   => route('pay.success', ['reference' => $payment->reference]),
                 'failed_url'     => route('pay.failed', ['reference' => $payment->reference]),
                 'auto_redirect'  => true,
-                'descriptor'     => 'Pembayaran ' . $payment->reference,
+                // DOKU caps the statement descriptor length (~20 chars), so use
+                // just the reference (e.g. PAY-2026-0009 = 13 chars).
+                'descriptor'     => substr($payment->reference, 0, 20),
             ],
             'customer' => [
                 'id'      => $payment->reference,
