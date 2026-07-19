@@ -56,7 +56,7 @@ class AtomeGateway implements PaymentGateway
             'shippingAddress'     => [
                 'countryCode' => 'MY',
                 'lines'       => [$payment->address ?: '-'],
-                'postCode'    => $this->postcodeFrom($payment->address),
+                'postCode'    => $payment->postcode ?: $this->postcodeFrom($payment->address),
             ],
             'items'               => [[
                 'itemId'   => $payment->reference,

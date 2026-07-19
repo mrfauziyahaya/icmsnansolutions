@@ -38,6 +38,7 @@ class PaymentController extends Controller
             'payer_email' => 'required|email|max:255',
             'payer_phone' => 'required|string|max:20',
             'address'     => 'required|string|max:500',
+            'postcode'    => 'required|string|max:12',
             'amount'      => "required|numeric|min:{$min}|max:{$max}",
             'gateway'     => 'required|string',
         ]);
@@ -65,6 +66,7 @@ class PaymentController extends Controller
             'payer_email' => $validated['payer_email'],
             'payer_phone' => $validated['payer_phone'],
             'address'     => $validated['address'],
+            'postcode'    => $validated['postcode'],
             'amount'      => $validated['amount'],
             'currency'    => 'MYR',
             'gateway'     => $option['gateway'],

@@ -61,10 +61,17 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Alamat <span class="text-red-500">*</span></label>
-                        <textarea name="address" x-model="form.address" rows="3" maxlength="500" required
-                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm"></textarea>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="sm:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Alamat <span class="text-red-500">*</span></label>
+                            <textarea name="address" x-model="form.address" rows="3" maxlength="500" required
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Poskod <span class="text-red-500">*</span></label>
+                            <input type="text" name="postcode" x-model="form.postcode" required inputmode="numeric" maxlength="12" placeholder="50000"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm">
+                        </div>
                     </div>
 
                     <div>
@@ -114,6 +121,9 @@
                         </div>
                         <div class="flex justify-between gap-4 px-4 py-3">
                             <dt class="text-gray-500">Alamat</dt><dd class="text-gray-900 text-right" x-text="form.address"></dd>
+                        </div>
+                        <div class="flex justify-between gap-4 px-4 py-3">
+                            <dt class="text-gray-500">Poskod</dt><dd class="text-gray-900 text-right" x-text="form.postcode"></dd>
                         </div>
                         <div class="flex justify-between gap-4 px-4 py-3">
                             <dt class="text-gray-500">Kaedah</dt><dd class="text-gray-900 text-right" x-text="selectedLabel()"></dd>
@@ -177,6 +187,7 @@
                     payer_email: @json(old('payer_email', '')),
                     payer_phone: @json(old('payer_phone', '')),
                     address: @json(old('address', '')),
+                    postcode: @json(old('postcode', '')),
                     amount: @json(old('amount', '')),
                     gateway: @json(old('gateway', '')),
                 },
@@ -194,7 +205,7 @@
                 validate() {
                     if (this.step === 1) {
                         const f = this.form;
-                        if (!f.payer_name || !f.payer_email || !f.payer_phone || !f.address) { alert('Sila lengkapkan semua maklumat.'); return false; }
+                        if (!f.payer_name || !f.payer_email || !f.payer_phone || !f.address || !f.postcode) { alert('Sila lengkapkan semua maklumat.'); return false; }
                         const amt = Number(f.amount || 0);
                         if (!amt || amt < this.minAmount || amt > this.maxAmount) {
                             alert('Jumlah bayaran mesti antara RM' + this.minAmount + ' dan RM' + this.maxAmount + '.');

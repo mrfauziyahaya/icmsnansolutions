@@ -16,6 +16,7 @@ class Payment extends Model
         'payer_email',
         'payer_phone',
         'address',
+        'postcode',
         'purpose',
         'vehicle_plate',
         'vehicle_type',
