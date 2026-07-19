@@ -76,10 +76,13 @@ return [
         'vcode_with_currency' => env('FIUU_VCODE_WITH_CURRENCY', false),
     ],
 
+    // Atome v2 online API — HTTP Basic (partner_id:secret_key); callback_secret
+    // is the separate HMAC key Atome uses to sign the X-Signature on callbacks.
     'atome' => [
-        'partner_id' => env('ATOME_PARTNER_ID'),
-        'secret_key' => env('ATOME_SECRET_KEY'),
-        'base_url'   => env('ATOME_BASE_URL'),
+        'partner_id'      => env('ATOME_PARTNER_ID'),
+        'secret_key'      => env('ATOME_SECRET_KEY'),
+        'base_url'        => env('ATOME_BASE_URL'),
+        'callback_secret' => env('ATOME_CALLBACK_SECRET'),
     ],
 
     'ahapay' => [
