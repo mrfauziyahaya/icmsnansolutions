@@ -118,11 +118,29 @@ class SenangPayGateway implements PaymentGateway
             . "Request-Target:" . $request->getPathInfo() . "\n"
             . "Digest:" . $digest;
 
-        $expected = 'HMACSHA256=' . base64_encode(hash_hmac('sha256', $component, $secretKey, true));
-        $received = (string) $request->header('Signature');
+        $rawSignature = base64_encode(hash_hmac('sha256', $component, $secretKey, true));
+        $expected     = 'HMACSHA256=' . $rawSignature;
+        $received     = (string) $request->header('Signature');
 
-        if (! hash_equals($expected, $received)) {
-            Log::warning('senangPay (DOKU) signature verification failed.', ['ip' => $request->ip()]);
+        if (! hash_equals($expected, $received) && ! hash_equals($rawSignature, $received)) {
+            // TEMP (staging debug): DOKU's notification-signing scheme isn't
+            // documented clearly, so log the exact inputs vs our recompute to
+            // pin down the difference. Still fail-closed — we reject either way.
+            Log::warning('senangPay (DOKU) signature verification failed.', [
+                'ip'                => $request->ip(),
+                'received'          => $received,
+                'expected'          => $expected,
+                'expected_noprefix' => $rawSignature,
+                'client_id'         => $request->header('Client-Id'),
+                'request_id'        => $request->header('Request-Id'),
+                'request_timestamp' => $request->header('Request-Timestamp'),
+                'digest_header'     => $request->header('Digest'),
+                'digest_computed'   => $digest,
+                'path_info'         => $request->getPathInfo(),
+                'request_uri'       => $request->getRequestUri(),
+                'full_url'          => $request->fullUrl(),
+                'raw_body'          => $rawBody,
+            ]);
             throw new GatewayException('senangPay signature verification failed.');
         }
 
