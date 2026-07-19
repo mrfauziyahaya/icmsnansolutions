@@ -83,9 +83,10 @@ return [
     ],
 
     'ahapay' => [
-        'api_key'    => env('AHAPAY_API_KEY'),
-        'secret_key' => env('AHAPAY_SECRET_KEY'),   // shared secret for callback HMAC
-        'base_url'   => env('AHAPAY_BASE_URL'),
+        'api_key'     => env('AHAPAY_API_KEY'),
+        'secret_key'  => env('AHAPAY_SECRET_KEY'),   // shared secret for callback HMAC
+        'base_url'    => env('AHAPAY_BASE_URL'),
+        'merchant_id' => env('AHAPAY_MERCHANT_ID'),  // optional external_merchant_id
     ],
 
     // senangPay runs on DOKU's Malaysia API (HMAC-signed, Client-Id header).
