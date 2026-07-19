@@ -85,9 +85,41 @@ class AhaPayGateway implements PaymentGateway
             return ['status' => 'pending', 'reason' => 'No gateway reference to query.'];
         }
 
+        return $this->queryStatus($payment->gateway_reference);
+    }
+
+    public function verifyCallback(Request $request): array
+    {
+        $this->assertSignatureIsValid($request);
+
+        $body    = json_decode($request->getContent(), true) ?: $request->all();
+        $orderId = data_get($body, 'online_order_id');
+
+        if (! $orderId) {
+            throw new GatewayException('AhaPay callback missing online_order_id.');
+        }
+
+        // Don't trust the status in the callback body — re-fetch it from AhaPay's
+        // authenticated status endpoint so a forged callback can't settle an order
+        // (the shared HMAC secret is optional; this keeps us safe without it).
+        $result = $this->queryStatus($orderId);
+
+        return [
+            'reference'         => data_get($body, 'reference_number'),
+            'gateway_reference' => $orderId,
+            'status'            => $result['status'],
+            'reason'            => $result['reason'],
+        ];
+    }
+
+    /**
+     * Query AhaPay for the authoritative order status by its online_order_id.
+     */
+    private function queryStatus(string $orderId): array
+    {
         $response = Http::withHeaders(['X-ApiKey' => config('services.ahapay.api_key')])
             ->acceptJson()
-            ->get(rtrim(config('services.ahapay.base_url'), '/') . '/v1/orders/' . $payment->gateway_reference . '/status');
+            ->get(rtrim(config('services.ahapay.base_url'), '/') . '/v1/orders/' . rawurlencode($orderId) . '/status');
 
         if (! $response->successful()) {
             throw new GatewayException('AhaPay getStatus failed: ' . $response->status());
@@ -103,22 +135,6 @@ class AhaPayGateway implements PaymentGateway
         $status = $this->mapStatus($s);
 
         return ['status' => $status, 'reason' => $status === 'pending' ? null : 'AhaPay status: ' . $s];
-    }
-
-    public function verifyCallback(Request $request): array
-    {
-        $this->assertSignatureIsValid($request);
-
-        $body   = json_decode($request->getContent(), true) ?: $request->all();
-        $status = strtolower((string) data_get($body, 'status'));
-        $mapped = $this->mapStatus($status);
-
-        return [
-            'reference'         => data_get($body, 'reference_number'),
-            'gateway_reference' => data_get($body, 'online_order_id'),
-            'status'            => $mapped,
-            'reason'            => $mapped === 'paid' ? null : 'AhaPay status: ' . $status,
-        ];
     }
 
     /**
