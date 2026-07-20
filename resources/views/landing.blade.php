@@ -15,6 +15,13 @@
     $setting = \App\Models\Setting::instance();
     $company = $setting->company_name ?? 'NAN Solutions';
 
+    // Same logo the invoice/quotation PDF uses (admin Settings upload). Verify the
+    // file exists — the DB column can outlive the file — then fall back to the
+    // bundled logo, then to the text wordmark, so we never show a broken image.
+    $logo = $setting->logo_path && is_file(storage_path('app/public/' . $setting->logo_path))
+        ? Storage::url($setting->logo_path)
+        : (is_file(public_path('images/logo.png')) ? asset('images/logo.png') : null);
+
     // ── CONTENT — [label, image path under public/] ──────────────────────
     // Labels are placeholder copy; swap freely. Images live in public/images/.
     $bnplLogos  = [                                                                       // §2 hero
@@ -25,11 +32,11 @@
         ['AhaPay',         'images/hero-unnamed.png'],
         ['Direct Lending', 'images/hero-direct_lending_holdings_logo.jpg'],
     ];
-    $whyCards   = [                                                                       // §4
-        ['Tajuk Satu',  'images/Gambar-Why-Choose-Us-1.webp'],
-        ['Tajuk Dua',   'images/Gambar-Why-Choose-Us-2.webp'],
-        ['Tajuk Tiga',  'images/Gambar-Why-Choose-Us-3.webp'],
-        ['Tajuk Empat', 'images/Gambar-Why-Choose-Us-4.webp'],
+    $whyCards   = [                                                                       // §4 [tajuk, teks, imej]
+        ['Kepakaran & Pengalaman', 'Berpengalaman dalam menguruskan pelbagai jenis tuntutan insurans & takaful.',      'images/Gambar-Why-Choose-Us-1.webp'],
+        ['Khidmat Profesional',    'Memberikan bimbingan dan penyelesaian yang telus serta efisien.',                  'images/Gambar-Why-Choose-Us-2.webp'],
+        ['Kepercayaan Pelanggan',  'Telah membantu ramai individu dan syarikat dalam urusan insurans & takaful.',      'images/Gambar-Why-Choose-Us-3.webp'],
+        ['Komitmen Terbaik',       'Sentiasa memastikan pelanggan mendapat manfaat maksimum daripada perlindungan mereka.', 'images/Gambar-Why-Choose-Us-4.webp'],
     ];
     $insurers   = [                                                                       // §5
         ['Rakan Insurans 1', 'images/Logo-Insuran-1.webp'],
@@ -40,71 +47,96 @@
         ['Rakan Insurans 6', 'images/Logo-Insuran-6.webp'],
     ];
     $badges     = [                                                                       // §6 & §8
-        ['Kad Satu',  'images/why-01.png'],
-        ['Kad Dua',   'images/why-02.png'],
-        ['Kad Tiga',  'images/why-03.png'],
-        ['Kad Empat', 'images/why-04.png'],
-        ['Kad Lima',  'images/why--5.png'],
+        ['Mengikut budget dan kesesuaian kos pelanggan',                     'images/why-01.png'],
+        ['Perbandingan sebutharga dari pelbagai syarikat insurans & takaful', 'images/why-02.png'],
+        ['Pegawai khidmat pelanggan yang mesra dan berkebolehan',            'images/why-03.png'],
+        ['Membantu pelanggan dalam membuat tuntutan',                        'images/why-04.png'],
+        ['Respon yang pantas dan cekap',                                     'images/why--5.png'],
     ];
-    $reviews    = [                                                                       // §7
-        ['Nama Pelanggan', 5, 'Ulasan pelanggan akan dipaparkan di sini.'],
-        ['Nama Pelanggan', 5, 'Ulasan pelanggan akan dipaparkan di sini.'],
-        ['Nama Pelanggan', 5, 'Ulasan pelanggan akan dipaparkan di sini.'],
-        ['Nama Pelanggan', 5, 'Ulasan pelanggan akan dipaparkan di sini.'],
+    $products   = [                                                                       // §8 [nama, imej]
+        ['Cukai Jalan (Roadtax)',    'images/product-01.png'],
+        ['Kad Perubatan',            'images/product-02.png'],
+        ['Hibah Takaful',            'images/product-03.png'],
+        ['Insurans Pekerja Asing',   'images/product-04.png'],
+        ['Insurans Perjalanan',      'images/product-05.png'],
+        ['Takaful Haji & Umrah',     'images/product-06.png'],
+        ['Insurans Kebakaran',       'images/product-07.png'],
+        ['Contractor All Risk',      'images/product-08.png'],
+        ['Kemalangan Diri',          'images/product-09.png'],
+    ];
+    // §7 [nama, bila, bintang, ulasan]
+    $reviewCount = 496;
+    $reviews    = [
+        ['mesue bernas off...', '3 months ago', 5, 'terbaik...memang puas hati dah banyak kali buat dengan orang yang sama...sangat sangat puas hati...'],
+        ['faizul Tokey',        '3 months ago', 5, 'Alhamdulillah terima kasih tuan.. jumpa iklan dekat fb ..just ws tekan link isi quotation 5minit da dapat ......'],
+        ['khusaini kucai',      '3 months ago', 5, 'Mudah dan cepat proses membuat roadtax.... Sangat2 membantu.... Recommended Dan kali ke 2 buat.. Senang'],
+        ['Nur Aisyah',          '4 months ago', 5, 'Cepat dan mesra. Renew roadtax dan insurans terus settle dalam masa singkat. Terima kasih NAN Solutions!'],
     ];
 @endphp
 
-<!-- ══ §1 MENU HEADER ═══════════════════════════════════════════════════ -->
-<header x-data="{ open: false }" class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-brand-tint">
-    <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16 sm:h-20">
-            <a href="#utama" class="flex items-center gap-3 shrink-0">
-                @if($setting->logo_path)
-                    <img src="{{ Storage::url($setting->logo_path) }}" alt="{{ $company }}" class="h-9 sm:h-11 w-auto object-contain">
-                @else
-                    <span class="font-display font-bold text-xl sm:text-2xl text-brand tracking-wide">NAN<span class="text-brand-ink"> SOLUTIONS</span></span>
-                @endif
-            </a>
+<!-- ══ §2 HERO (with §1 menu header sitting on the background) ══════════ -->
+<x-hero-background id="utama">
 
-            <div class="hidden lg:flex items-center gap-8 font-display text-sm font-medium uppercase tracking-wide text-brand-slate">
-                <a href="#utama" class="hover:text-brand">Utama</a>
-                <a href="#tentang" class="hover:text-brand">Tentang Kami</a>
-                <a href="#rakan" class="hover:text-brand">Rakan Insurans</a>
-                <a href="#blog" class="hover:text-brand">Blog</a>
-                <a href="#hubungi" class="hover:text-brand">Hubungi Kami</a>
-            </div>
-
-            <div class="hidden lg:flex items-center gap-3">
-                <a href="{{ route('pay.create') }}" class="text-sm font-semibold text-brand hover:text-brand-dark">Bayaran</a>
-                <a href="{{ route('quote.create') }}"
-                   class="rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-dark transition">
-                    Sebut Harga Percuma
+    <!-- ── §1 MENU HEADER — transparent, over the hero ── -->
+    <header x-data="{ open: false }" class="relative z-20">
+        <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 sm:h-20">
+                <a href="#utama" class="flex items-center gap-3 shrink-0">
+                    @if($logo)
+                        <img src="{{ $logo }}" alt="{{ $company }}" class="h-9 sm:h-11 w-auto object-contain">
+                    @else
+                        <span class="font-display font-bold text-xl sm:text-2xl text-white tracking-wide drop-shadow">NAN SOLUTIONS</span>
+                    @endif
                 </a>
+
+                <div class="hidden lg:flex items-center gap-8 font-display text-sm font-medium uppercase tracking-wide text-white/90">
+                    <a href="#utama" class="hover:text-white">Utama</a>
+                    <a href="#tentang" class="hover:text-white">Tentang Kami</a>
+                    <a href="#rakan" class="hover:text-white">Rakan Insurans</a>
+                    <a href="#blog" class="hover:text-white">Blog</a>
+                    <a href="#hubungi" class="hover:text-white">Hubungi Kami</a>
+                </div>
+
+                <div class="hidden lg:flex items-center gap-3">
+                    <a href="{{ route('pay.create') }}" class="text-sm font-semibold text-white/90 hover:text-white">Bayaran</a>
+                    <a href="{{ route('quote.create') }}"
+                       class="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-[#D95A16] shadow-sm hover:bg-orange-50 transition">
+                        Sebut Harga Percuma
+                    </a>
+                </div>
+
+                <button @click="open = !open" class="lg:hidden p-2 -mr-2 text-white" aria-label="Menu">
+                    <svg x-show="!open" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <svg x-show="open" x-cloak class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
             </div>
 
-            <button @click="open = !open" class="lg:hidden p-2 -mr-2 text-brand-slate" aria-label="Menu">
-                <svg x-show="!open" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                <svg x-show="open" x-cloak class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
+            <div x-show="open" x-cloak @click="open = false"
+                 class="lg:hidden mb-2 rounded-xl bg-black/25 backdrop-blur p-2 space-y-1 font-display uppercase text-sm tracking-wide text-white">
+                <a href="#utama" class="block px-3 py-2.5 rounded hover:bg-white/15">Utama</a>
+                <a href="#tentang" class="block px-3 py-2.5 rounded hover:bg-white/15">Tentang Kami</a>
+                <a href="#rakan" class="block px-3 py-2.5 rounded hover:bg-white/15">Rakan Insurans</a>
+                <a href="#blog" class="block px-3 py-2.5 rounded hover:bg-white/15">Blog</a>
+                <a href="{{ route('pay.create') }}" class="block px-3 py-2.5 rounded hover:bg-white/15">Bayaran</a>
+                <a href="#hubungi" class="block px-3 py-2.5 rounded hover:bg-white/15">Hubungi Kami</a>
+                <a href="{{ route('quote.create') }}" class="block mt-2 rounded-md bg-white px-4 py-3 text-center font-semibold text-[#D95A16]">Sebut Harga Percuma</a>
+            </div>
+        </nav>
+    </header>
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 pb-32 sm:pb-40">
+
+        <!-- row 1: headline -->
+        <div class="grid grid-cols-12 mb-8 sm:mb-12">
+            <div class="col-span-12 text-center">
+                <h1 class="font-display font-bold uppercase text-white leading-[1.05]
+                           text-4xl sm:text-6xl lg:text-7xl drop-shadow-md">
+                    Renew Now,<br class="sm:hidden"> Pay Later
+                </h1>
+            </div>
         </div>
 
-        <div x-show="open" x-cloak @click="open = false" class="lg:hidden pb-4 space-y-1 font-display uppercase text-sm tracking-wide">
-            <a href="#utama" class="block px-2 py-2.5 rounded hover:bg-brand-wash">Utama</a>
-            <a href="#tentang" class="block px-2 py-2.5 rounded hover:bg-brand-wash">Tentang Kami</a>
-            <a href="#rakan" class="block px-2 py-2.5 rounded hover:bg-brand-wash">Rakan Insurans</a>
-            <a href="#blog" class="block px-2 py-2.5 rounded hover:bg-brand-wash">Blog</a>
-            <a href="{{ route('pay.create') }}" class="block px-2 py-2.5 rounded hover:bg-brand-wash">Bayaran</a>
-            <a href="#hubungi" class="block px-2 py-2.5 rounded hover:bg-brand-wash">Hubungi Kami</a>
-            <a href="{{ route('quote.create') }}" class="block mt-2 rounded-md bg-brand px-4 py-3 text-center font-semibold text-white">Sebut Harga Percuma</a>
-        </div>
-    </nav>
-</header>
-
-<!-- ══ §2 HERO — row1: 6+6 images | row2: button (12) ═══════════════════ -->
-<x-hero-background id="utama" class="flex items-center">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 pb-32 sm:pb-40">
-
-        <!-- row 1 -->
+        <!-- row 2 -->
         <div class="grid grid-cols-12 gap-6 items-center">
 
             <!-- left: 3x2 grid of image cards -->
@@ -127,18 +159,10 @@
             </div>
         </div>
 
-        <!-- row 2 -->
+        <!-- row 3 -->
         <div class="grid grid-cols-12 mt-8">
             <div class="col-span-12">
-                <a href="{{ route('quote.create') }}"
-                   class="block w-full rounded-xl border-2 border-orange-300/60
-                          bg-gradient-to-b from-[#E9701F] to-[#D95A16]
-                          px-6 py-4 sm:py-5 text-center
-                          font-display text-lg sm:text-2xl font-bold uppercase tracking-wide text-white
-                          shadow-lg transition duration-300
-                          hover:from-[#F27C28] hover:to-[#E2651B] hover:shadow-xl">
-                    Dapatkan Sebut Harga Percuma
-                </a>
+                <x-cta-button :href="route('quote.create')">Dapatkan Sebut Harga Percuma</x-cta-button>
             </div>
         </div>
     </div>
@@ -165,26 +189,35 @@
 </section>
 
 <!-- ══ §4 WHY — row1 heading | row2 4 cards (img top/text btm) | row3 text ══ -->
-<section class="bg-brand-wash py-16 sm:py-20">
+<section class="py-14 sm:py-20 bg-gradient-to-b from-[#EFB088] via-[#F6D4BC] to-[#FDF6F1]">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <!-- row 1 -->
         <div class="grid grid-cols-12">
             <div class="col-span-12 text-center">
-                <h2 class="font-display font-bold uppercase text-2xl sm:text-3xl text-brand-ink">Kenapa Pilih Kami</h2>
+                <h2 class="font-display font-bold uppercase text-white leading-tight
+                           text-3xl sm:text-5xl lg:text-6xl drop-shadow-sm">
+                    Mengapa NAN Solutions?
+                </h2>
             </div>
         </div>
 
         <!-- row 2 -->
-        <div class="grid grid-cols-12 gap-5 mt-10">
-            @foreach($whyCards as [$card, $img])
+        <div class="grid grid-cols-12 gap-4 sm:gap-6 mt-10 sm:mt-14">
+            @foreach($whyCards as [$title, $text, $img])
                 <div class="col-span-12 sm:col-span-6 lg:col-span-3">
-                    <div class="h-full bg-white rounded-xl border border-brand-tint overflow-hidden">
-                        <x-img-slot class="aspect-[16/10] rounded-none border-0" :src="$img">Imej</x-img-slot>
-                        <div class="p-5">
-                            <h3 class="font-display font-semibold uppercase text-brand-ink">{{ $card }}</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-brand-muted">
-                                Teks penerangan untuk kad ini.
+                    <div class="h-full flex flex-col rounded-3xl overflow-hidden bg-black shadow-xl">
+                        {{-- illustration sits on white --}}
+                        <div class="bg-white p-3">
+                            <x-img-slot class="aspect-square object-contain rounded-none" :src="$img" :alt="$title">Imej</x-img-slot>
+                        </div>
+                        {{-- black text panel --}}
+                        <div class="flex-1 px-5 py-6 text-center">
+                            <h3 class="font-display font-bold text-white text-lg sm:text-xl leading-snug">
+                                {{ $title }}
+                            </h3>
+                            <p class="mt-4 leading-relaxed text-white/85 text-sm sm:text-base">
+                                {{ $text }}
                             </p>
                         </div>
                     </div>
@@ -193,10 +226,12 @@
         </div>
 
         <!-- row 3 -->
-        <div class="grid grid-cols-12 mt-10">
-            <div class="col-span-12 text-center max-w-3xl mx-auto">
-                <p class="leading-relaxed text-brand-body">
-                    Teks penutup seksyen ini (12 lebar). Gantikan dengan ayat sokongan atau kesimpulan.
+        <div class="grid grid-cols-12 mt-10 sm:mt-14">
+            <div class="col-span-12 text-center max-w-4xl mx-auto">
+                <p class="font-semibold leading-relaxed text-[#33406B] text-base sm:text-lg">
+                    Kami di NAN Solutions komited untuk membantu anda memahami hak serta manfaat insurans
+                    &amp; takaful dengan lebih jelas, agar anda dapat membuat keputusan terbaik untuk
+                    perlindungan masa depan.
                 </p>
             </div>
         </div>
@@ -227,89 +262,179 @@
 
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-12 mt-10">
-            <div class="col-span-12 flex justify-center">
-                <a href="{{ route('quote.create') }}"
-                   class="rounded-md bg-brand px-7 py-3.5 font-semibold text-white hover:bg-brand-dark transition">
-                    Dapatkan Sebut Harga Percuma
-                </a>
+            <div class="col-span-12">
+                <x-cta-button :href="route('quote.create')">Dapatkan Sebut Harga Percuma</x-cta-button>
             </div>
         </div>
     </div>
 </section>
 
 <!-- ══ §6 WHY 2 — heading | 5 cards (logo + text under) ═════════════════ -->
-<section class="bg-brand-wash py-16 sm:py-20">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+<section class="relative overflow-hidden pt-24 sm:pt-32 pb-16 sm:pb-24
+                bg-gradient-to-b from-[#E2661F] via-[#EFA079] to-white">
+
+    {{-- decorative waves along the top edge --}}
+    <div class="pointer-events-none absolute inset-x-0 top-0 z-0">
+        <svg viewBox="0 0 1440 130" preserveAspectRatio="none" class="block w-full h-[70px] md:h-[110px]" aria-hidden="true">
+            <path d="M0,0 L1440,0 L1440,30 C1290,86 1140,18 990,52
+                     C840,86 700,26 550,58 C400,90 190,34 0,74 Z"
+                  fill="#ffffff" />
+            <path d="M0,0 L1440,0 L1440,10 C1300,58 1170,6 1030,30
+                     C880,56 750,4 600,30 C440,58 210,12 0,44 Z"
+                  fill="rgba(255,255,255,0.55)" />
+        </svg>
+    </div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- row 1 -->
         <div class="grid grid-cols-12">
             <div class="col-span-12 text-center">
-                <h2 class="font-display font-bold uppercase text-2xl sm:text-3xl text-brand-ink">Tajuk Seksyen Enam</h2>
+                <h2 class="font-display font-bold uppercase text-white leading-tight
+                           text-3xl sm:text-5xl lg:text-6xl drop-shadow-sm">
+                    Kenapa Perlu Pilih NAN Solutions
+                </h2>
             </div>
         </div>
 
-        <div class="grid grid-cols-10 gap-5 mt-10">
+        <!-- row 2 — 5 cards, wrapping 3 + 2 and staying centred -->
+        <div class="mt-12 sm:mt-16 flex flex-wrap justify-center gap-5 sm:gap-6 max-w-5xl mx-auto">
             @foreach($badges as [$b, $img])
-                {{-- 5 across on desktop (10-col grid / 2), 2 across on mobile --}}
-                <div class="col-span-5 sm:col-span-2">
-                    <div class="h-full bg-white rounded-xl border border-brand-tint p-5 text-center">
-                        <x-img-slot class="aspect-square max-w-24 mx-auto object-contain" :src="$img" :alt="$b">Logo</x-img-slot>
-                        <p class="mt-3 text-sm font-semibold text-brand-ink">{{ $b }}</p>
+                <div class="w-full sm:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)]
+                            rounded-2xl bg-white/35 px-6 py-8 text-center
+                            transition duration-300 hover:bg-white/50">
+                    {{-- fixed-height wrapper so every icon lines up regardless of its ratio --}}
+                    <div class="h-16 sm:h-20 flex items-center justify-center">
+                        <x-img-slot class="object-contain rounded-none" :src="$img" :alt="$b">Logo</x-img-slot>
                     </div>
+                    <p class="mt-6 font-bold leading-snug text-[#2E3A5F] text-sm sm:text-base">{{ $b }}</p>
                 </div>
             @endforeach
         </div>
     </div>
 </section>
 
-<!-- ══ §7 GOOGLE REVIEWS — 4 (logo) + 8 (auto-scroll reviews) ═══════════ -->
-<section class="py-16 sm:py-20">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-12 gap-8 items-center">
+<!-- ══ §7 GOOGLE REVIEWS — 4 (rating) + 8 (auto-scroll reviews) ═════════ -->
+@php
+    // Gold star, reused by the summary and each card.
+    $star = '<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.9c.3-.9 1.6-.9 1.9 0l1.3 4a1 1 0 00.95.7h4.2c1 0 1.4 1.2.6 1.8l-3.4 2.5a1 1 0 00-.36 1.11l1.3 4c.3.9-.75 1.66-1.53 1.1l-3.4-2.47a1 1 0 00-1.18 0l-3.4 2.47c-.78.56-1.83-.2-1.53-1.1l1.3-4a1 1 0 00-.36-1.11L2.05 9.4c-.8-.6-.4-1.8.6-1.8h4.2a1 1 0 00.95-.7l1.3-4z"/></svg>';
+@endphp
 
-            <div class="col-span-12 md:col-span-4 text-center md:text-left">
-                <x-img-slot class="aspect-[3/2] max-w-56 mx-auto md:mx-0 object-contain" src="img/google-review.png">Google Logo</x-img-slot>
-                <h2 class="mt-4 font-display font-bold uppercase text-xl text-brand-ink">Ulasan Google</h2>
-                <p class="mt-2 text-sm text-brand-muted">Apa kata pelanggan kami.</p>
+<section class="py-16 sm:py-20 bg-gradient-to-b from-[#FFF7F1] to-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-12 gap-8 lg:gap-10 items-center">
+
+            <!-- left: rating summary -->
+            <div class="col-span-12 md:col-span-4 text-center">
+                <p class="font-bold text-xl sm:text-2xl tracking-tight text-brand-ink">EXCELLENT</p>
+
+                <div class="mt-2 flex justify-center gap-1 text-[#FBBC05]" aria-label="5 daripada 5 bintang">
+                    @for($i = 0; $i < 5; $i++) {!! $star !!} @endfor
+                </div>
+
+                <p class="mt-2 text-sm text-brand-muted">
+                    Based on <span class="font-bold text-brand-ink">{{ $reviewCount }} reviews</span>
+                </p>
+
+                {{-- Google wordmark --}}
+                <p class="mt-3 text-3xl sm:text-4xl font-semibold tracking-tight" aria-label="Google">
+                    <span class="text-[#4285F4]">G</span><span class="text-[#EA4335]">o</span><span class="text-[#FBBC05]">o</span><span class="text-[#4285F4]">g</span><span class="text-[#34A853]">l</span><span class="text-[#EA4335]">e</span>
+                </p>
             </div>
 
+            <!-- right: auto-scrolling review cards -->
             <div class="col-span-12 md:col-span-8">
-                <div class="marquee overflow-hidden" style="mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)">
+                <div class="marquee overflow-hidden py-2" style="mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent)">
                     <div class="marquee-track marquee-slow flex w-max gap-4">
-                        @foreach(array_merge($reviews, $reviews) as [$name, $stars, $text])
-                            <figure class="w-72 shrink-0 rounded-xl border border-brand-tint bg-white p-5">
-                                <div class="flex gap-0.5 text-amber-400" aria-label="{{ $stars }} bintang">
-                                    @for($i = 0; $i < $stars; $i++)
-                                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.9c.3-.9 1.6-.9 1.9 0l1.3 4a1 1 0 00.95.7h4.2c1 0 1.4 1.2.6 1.8l-3.4 2.5a1 1 0 00-.36 1.11l1.3 4c.3.9-.75 1.66-1.53 1.1l-3.4-2.47a1 1 0 00-1.18 0l-3.4 2.47c-.78.56-1.83-.2-1.53-1.1l1.3-4a1 1 0 00-.36-1.11L2.05 9.4c-.8-.6-.4-1.8.6-1.8h4.2a1 1 0 00.95-.7l1.3-4z"/></svg>
-                                    @endfor
+                        @foreach(array_merge($reviews, $reviews) as [$name, $when, $stars, $text])
+                            <figure class="w-72 shrink-0 rounded-xl bg-white p-5 shadow-md ring-1 ring-black/5">
+                                <div class="flex items-start gap-3">
+                                    {{-- avatar: initial, until real photos are available --}}
+                                    <span class="h-10 w-10 shrink-0 rounded-full bg-brand-tint text-brand-slate
+                                                 flex items-center justify-center font-semibold">
+                                        {{ mb_strtoupper(mb_substr($name, 0, 1)) }}
+                                    </span>
+                                    <div class="min-w-0 flex-1">
+                                        <figcaption class="font-semibold text-brand-ink truncate">{{ $name }}</figcaption>
+                                        <p class="text-xs text-brand-muted">{{ $when }}</p>
+                                    </div>
+                                    {{-- Google "G" --}}
+                                    <svg class="h-5 w-5 shrink-0" viewBox="0 0 48 48" aria-hidden="true">
+                                        <path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-2.7-.4-3.9H24v7.1h12.1c-.2 1.8-1.6 4.5-4.5 6.3l6.9 5.3c4.1-3.8 6.6-9.3 6.6-14.8z"/>
+                                        <path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-6.9-5.3c-1.8 1.3-4.3 2.2-7.6 2.2-5.8 0-10.8-3.8-12.5-9.1l-7.2 5.5C7.9 41.1 15.4 46 24 46z"/>
+                                        <path fill="#FBBC05" d="M11.5 28.5c-.5-1.3-.7-2.8-.7-4.5s.3-3.2.7-4.5l-7.2-5.6C2.8 16.9 2 20.3 2 24s.8 7.1 2.3 10.1l7.2-5.6z"/>
+                                        <path fill="#EA4335" d="M24 10.6c4.1 0 6.9 1.8 8.5 3.3l6.2-6C34.9 4.4 29.9 2 24 2 15.4 2 7.9 6.9 4.3 13.9l7.2 5.6C13.2 14.4 18.2 10.6 24 10.6z"/>
+                                    </svg>
                                 </div>
-                                <blockquote class="mt-3 text-sm leading-relaxed text-brand-body">{{ $text }}</blockquote>
-                                <figcaption class="mt-3 text-sm font-semibold text-brand-ink">{{ $name }}</figcaption>
+
+                                <div class="mt-3 flex items-center gap-1 text-[#FBBC05]" aria-label="{{ $stars }} bintang">
+                                    @for($i = 0; $i < $stars; $i++) {!! $star !!} @endfor
+                                    {{-- verified tick --}}
+                                    <svg class="ml-1 h-4 w-4 text-[#4285F4]" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10 1.5l2 1.6 2.5-.3 1 2.3 2.3 1-.3 2.5 1.6 2-1.6 2 .3 2.5-2.3 1-1 2.3-2.5-.3-2 1.6-2-1.6-2.5.3-1-2.3-2.3-1 .3-2.5L1.5 10l1.6-2-.3-2.5 2.3-1 1-2.3 2.5.3 2-1.6zm3.6 6.1a.9.9 0 00-1.3-1.2L9 9.8 7.7 8.4a.9.9 0 10-1.3 1.2l2 2c.4.4.9.4 1.3 0l3.9-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+
+                                <blockquote class="mt-3 text-sm leading-relaxed text-brand-body line-clamp-4">{{ $text }}</blockquote>
+                                <p class="mt-3 text-xs font-medium text-brand-muted">Read more</p>
                             </figure>
                         @endforeach
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- CTA -->
+        <div class="grid grid-cols-12 mt-10 sm:mt-12">
+            <div class="col-span-12">
+                <x-cta-button :href="route('quote.create')">Dapatkan Sebut Harga Percuma</x-cta-button>
+            </div>
+        </div>
     </div>
 </section>
 
-<!-- ══ §8 SAME AS §6 — but card text replaced with a button ═════════════ -->
-<section class="bg-brand-wash py-16 sm:py-20">
+<!-- ══ §8 PRODUK & PERKHIDMATAN — 9 cards, icon + 2 buttons ═════════════ -->
+<section id="produk" class="py-16 sm:py-20">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- heading -->
         <div class="grid grid-cols-12">
             <div class="col-span-12 text-center">
-                <h2 class="font-display font-bold uppercase text-2xl sm:text-3xl text-brand-ink">Tajuk Seksyen Lapan</h2>
+                <h2 class="font-display font-bold uppercase leading-[1.1] text-[#8C8C8C] drop-shadow-md
+                           text-3xl sm:text-5xl lg:text-6xl">
+                    Produk dan Perkhidmatan<br>Insurans &amp; Takaful
+                </h2>
             </div>
         </div>
 
-        <div class="grid grid-cols-10 gap-5 mt-10">
-            @foreach($badges as [$b, $img])
-                <div class="col-span-5 sm:col-span-2">
-                    <div class="h-full flex flex-col bg-white rounded-xl border border-brand-tint p-5 text-center">
-                        <x-img-slot class="aspect-square max-w-24 mx-auto object-contain" :src="$img" :alt="$b">Logo</x-img-slot>
-                        <a href="{{ route('quote.create') }}"
-                           class="mt-auto pt-4 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark transition">
-                            Renew Now
-                        </a>
+        <!-- 9 cards, 3 across -->
+        <div class="grid grid-cols-12 gap-5 sm:gap-6 mt-10 sm:mt-14">
+            @foreach($products as [$name, $img])
+                <div class="col-span-12 sm:col-span-6 lg:col-span-4">
+                    <div class="h-full flex flex-col rounded-2xl bg-[#F7A76C] px-5 py-6 text-center shadow-md">
+                        {{-- fixed-height wrapper keeps every icon on the same baseline --}}
+                        <div class="h-24 flex items-center justify-center">
+                            <x-img-slot class="object-contain rounded-none" :src="$img" :alt="$name">Ikon</x-img-slot>
+                        </div>
+
+                        <p class="mt-4 font-display font-bold uppercase tracking-wide text-white text-sm sm:text-base">
+                            {{ $name }}
+                        </p>
+
+                        <div class="mt-auto pt-5 space-y-3">
+                            <a href="{{ route('quote.create') }}"
+                               class="block rounded-lg bg-[#E2661F] px-4 py-3 shadow
+                                      font-display font-bold uppercase tracking-wide text-white text-sm sm:text-base
+                                      transition hover:bg-[#CC5512]">
+                                Renew Sekarang
+                            </a>
+                            <a href="{{ route('pay.create') }}"
+                               class="block rounded-lg bg-[#E2661F] px-4 py-3 shadow
+                                      font-display font-bold uppercase tracking-wide text-white text-sm sm:text-base
+                                      transition hover:bg-[#CC5512]">
+                                Pembayaran
+                            </a>
+                        </div>
                     </div>
                 </div>
             @endforeach
@@ -345,35 +470,41 @@
 </section>
 
 <!-- ══ §10 CONTACT — left: info | right: form ═══════════════════════════ -->
-<section id="hubungi" class="bg-brand-wash py-16 sm:py-20">
+@php
+    // Shared field styling — visible border, orange focus ring.
+    $field = 'block w-full rounded-md border border-gray-300 shadow-sm text-sm
+              focus:border-[#E2661F] focus:ring-[#E2661F]';
+@endphp
+
+<section id="hubungi" class="bg-[#FFF7F1] py-16 sm:py-20">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-12 gap-8 lg:gap-12">
 
             <!-- left -->
             <div class="col-span-12 md:col-span-5">
-                @if($setting->logo_path)
-                    <img src="{{ Storage::url($setting->logo_path) }}" alt="{{ $company }}" class="h-14 w-auto object-contain">
+                @if($logo)
+                    <img src="{{ $logo }}" alt="{{ $company }}" class="h-14 w-auto object-contain">
                 @else
-                    <span class="font-display font-bold text-2xl text-brand tracking-wide">NAN<span class="text-brand-ink"> SOLUTIONS</span></span>
+                    <span class="font-display font-bold text-2xl text-[#E2661F] tracking-wide">NAN<span class="text-brand-ink"> SOLUTIONS</span></span>
                 @endif
 
                 <h2 class="mt-6 font-display font-bold uppercase text-2xl text-brand-ink">Hubungi Kami</h2>
 
                 <dl class="mt-6 space-y-4 text-sm">
                     <div>
-                        <dt class="font-display uppercase text-xs tracking-wide text-brand">Alamat</dt>
+                        <dt class="font-display uppercase text-xs tracking-wide text-[#E2661F]">Alamat</dt>
                         <dd class="mt-1 leading-relaxed">{{ $setting->address ?? 'Alamat penuh syarikat di sini.' }}</dd>
                     </div>
                     <div>
-                        <dt class="font-display uppercase text-xs tracking-wide text-brand">Telefon</dt>
-                        <dd class="mt-1"><a href="tel:+60123509257" class="font-semibold text-brand-ink hover:text-brand">012-350 9257</a></dd>
+                        <dt class="font-display uppercase text-xs tracking-wide text-[#E2661F]">Telefon</dt>
+                        <dd class="mt-1"><a href="tel:+60123509257" class="font-semibold text-brand-ink hover:text-[#E2661F]">012-350 9257</a></dd>
                     </div>
                     <div>
-                        <dt class="font-display uppercase text-xs tracking-wide text-brand">E-mel</dt>
-                        <dd class="mt-1"><a href="mailto:hello@nansolutions.com.my" class="font-semibold text-brand-ink hover:text-brand break-all">hello@nansolutions.com.my</a></dd>
+                        <dt class="font-display uppercase text-xs tracking-wide text-[#E2661F]">E-mel</dt>
+                        <dd class="mt-1"><a href="mailto:hello@nansolutions.com.my" class="font-semibold text-brand-ink hover:text-[#E2661F] break-all">hello@nansolutions.com.my</a></dd>
                     </div>
                     <div>
-                        <dt class="font-display uppercase text-xs tracking-wide text-brand">Waktu Operasi</dt>
+                        <dt class="font-display uppercase text-xs tracking-wide text-[#E2661F]">Waktu Operasi</dt>
                         <dd class="mt-1 space-y-0.5">
                             <div class="flex justify-between max-w-xs"><span>Isnin – Jumaat</span><span class="font-medium text-brand-ink">9:00 – 18:00</span></div>
                             <div class="flex justify-between max-w-xs"><span>Sabtu</span><span class="font-medium text-brand-ink">9:00 – 13:00</span></div>
@@ -385,38 +516,32 @@
 
             <!-- right — NOTE: markup only, backend not wired yet -->
             <div class="col-span-12 md:col-span-7">
-                <form class="bg-white rounded-xl border border-brand-tint p-6 sm:p-8 space-y-5">
+                <form class="bg-white rounded-xl border border-gray-300 p-6 sm:p-8 space-y-5">
                     <div>
                         <label class="block text-sm font-medium text-brand-slate mb-1">Nama Penuh</label>
-                        <input type="text" name="name"
-                               class="block w-full rounded-md border-brand-tint shadow-sm focus:border-brand focus:ring-brand text-sm">
+                        <input type="text" name="name" class="{{ $field }}">
                     </div>
                     <div class="grid sm:grid-cols-2 gap-5">
                         <div>
                             <label class="block text-sm font-medium text-brand-slate mb-1">E-mel</label>
-                            <input type="email" name="email"
-                                   class="block w-full rounded-md border-brand-tint shadow-sm focus:border-brand focus:ring-brand text-sm">
+                            <input type="email" name="email" class="{{ $field }}">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-brand-slate mb-1">No. WhatsApp</label>
-                            <input type="text" name="phone" placeholder="0129622878"
-                                   class="block w-full rounded-md border-brand-tint shadow-sm focus:border-brand focus:ring-brand text-sm">
+                            <input type="text" name="phone" placeholder="0129622878" class="{{ $field }}">
                         </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-brand-slate mb-1">Perkara</label>
-                        <input type="text" name="subject"
-                               class="block w-full rounded-md border-brand-tint shadow-sm focus:border-brand focus:ring-brand text-sm">
+                        <input type="text" name="subject" class="{{ $field }}">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-brand-slate mb-1">Mesej</label>
-                        <textarea name="message" rows="5"
-                                  class="block w-full rounded-md border-brand-tint shadow-sm focus:border-brand focus:ring-brand text-sm"></textarea>
+                        <textarea name="message" rows="5" class="{{ $field }}"></textarea>
                     </div>
-                    <button type="button"
-                            class="w-full rounded-md bg-brand px-6 py-3.5 font-semibold text-white hover:bg-brand-dark transition">
-                        Hantar Mesej
-                    </button>
+
+                    <x-cta-button type="button">Hantar Mesej</x-cta-button>
+
                     <p class="text-xs italic text-brand-muted">Borang ini belum disambungkan — akan dilaksanakan bersama ciri Contact Form.</p>
                 </form>
             </div>
@@ -428,27 +553,27 @@
 <footer class="bg-brand-ink text-white/70">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-12 gap-8 text-sm">
         <div class="col-span-12 sm:col-span-6">
-            <span class="font-display font-bold text-xl text-white tracking-wide">NAN SOLUTIONS</span>
+            <span class="font-display font-bold text-xl tracking-wide"><span class="text-[#F0813A]">NAN</span> <span class="text-white">SOLUTIONS</span></span>
             <p class="mt-3 leading-relaxed max-w-sm">
                 Perkhidmatan pembaharuan insurans kenderaan, cukai jalan dan takaful dengan pilihan bayaran ansuran.
             </p>
             <p class="mt-3 text-white/50 text-xs">No. Pendaftaran: 202003286749 | SA0554424-W</p>
         </div>
         <div class="col-span-6 sm:col-span-3">
-            <h4 class="font-display uppercase text-white text-xs tracking-widest">Pautan</h4>
+            <h4 class="font-display uppercase text-[#F0813A] text-xs tracking-widest">Pautan</h4>
             <ul class="mt-3 space-y-2">
-                <li><a href="#tentang" class="hover:text-white">Tentang Kami</a></li>
-                <li><a href="#rakan" class="hover:text-white">Rakan Insurans</a></li>
-                <li><a href="#blog" class="hover:text-white">Blog</a></li>
-                <li><a href="#hubungi" class="hover:text-white">Hubungi Kami</a></li>
+                <li><a href="#tentang" class="hover:text-[#F0813A]">Tentang Kami</a></li>
+                <li><a href="#rakan" class="hover:text-[#F0813A]">Rakan Insurans</a></li>
+                <li><a href="#blog" class="hover:text-[#F0813A]">Blog</a></li>
+                <li><a href="#hubungi" class="hover:text-[#F0813A]">Hubungi Kami</a></li>
             </ul>
         </div>
         <div class="col-span-6 sm:col-span-3">
-            <h4 class="font-display uppercase text-white text-xs tracking-widest">Perkhidmatan</h4>
+            <h4 class="font-display uppercase text-[#F0813A] text-xs tracking-widest">Perkhidmatan</h4>
             <ul class="mt-3 space-y-2">
-                <li><a href="{{ route('quote.create') }}" class="hover:text-white">Sebut Harga</a></li>
-                <li><a href="{{ route('pay.create') }}" class="hover:text-white">Bayaran</a></li>
-                <li><a href="{{ route('lookup') }}" class="hover:text-white">Semak Polisi</a></li>
+                <li><a href="{{ route('quote.create') }}" class="hover:text-[#F0813A]">Sebut Harga</a></li>
+                <li><a href="{{ route('pay.create') }}" class="hover:text-[#F0813A]">Bayaran</a></li>
+                <li><a href="{{ route('lookup') }}" class="hover:text-[#F0813A]">Semak Polisi</a></li>
             </ul>
         </div>
     </div>
