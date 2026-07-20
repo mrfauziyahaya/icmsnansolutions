@@ -158,7 +158,7 @@
                 </p>
             </div>
             <div class="col-span-12 md:col-span-6">
-                <x-img-slot class="aspect-[4/3]" src="images/gambar-Kereta-Payung.webp" alt="NAN Solutions">Imej Kanan</x-img-slot>
+                <x-img-slot class="aspect-[4/3] object-contain" src="images/gambar-Kereta-Payung.webp" alt="NAN Solutions">Imej Kanan</x-img-slot>
             </div>
         </div>
     </div>

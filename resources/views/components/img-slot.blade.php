@@ -17,13 +17,18 @@
 @php
     $file   = $src ? public_path(ltrim($src, '/')) : null;
     $exists = $file && is_file($file);
+
+    // Only default to object-cover when the caller hasn't chosen a fit. Merging
+    // it unconditionally would win over a passed object-contain, because
+    // Tailwind emits object-cover later in the stylesheet.
+    $fit = str_contains((string) $attributes->get('class'), 'object-') ? '' : 'object-cover';
 @endphp
 
 @if($exists)
     <img src="{{ asset($src) }}"
          alt="{{ $alt ?: trim($slot) }}"
          loading="lazy"
-         {{ $attributes->merge(['class' => 'w-full h-full object-cover rounded-xl']) }}>
+         {{ $attributes->merge(['class' => trim("w-full h-full {$fit} rounded-xl")]) }}>
 @else
     <div {{ $attributes->merge([
             'class' => 'w-full rounded-xl border-2 border-dashed border-brand-muted/40 bg-brand-tint/60 flex items-center justify-center text-center p-3',
