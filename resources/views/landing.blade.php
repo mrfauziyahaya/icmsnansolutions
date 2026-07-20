@@ -123,7 +123,7 @@
 
             <!-- right -->
             <div class="col-span-12 md:col-span-6">
-                <x-img-slot class="aspect-[4/3]" src="img/hero-right.jpg">Imej Kanan (6)</x-img-slot>
+                <x-img-slot class="aspect-[4/3]" src="images/Background-Header-Image.webp" alt="NAN Solutions">Imej Kanan</x-img-slot>
             </div>
         </div>
 
