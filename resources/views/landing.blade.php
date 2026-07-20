@@ -129,9 +129,14 @@
 
         <!-- row 2 -->
         <div class="grid grid-cols-12 mt-8">
-            <div class="col-span-12 flex justify-center">
+            <div class="col-span-12">
                 <a href="{{ route('quote.create') }}"
-                   class="inline-flex items-center justify-center rounded-md bg-white px-8 py-4 text-base sm:text-lg font-bold text-brand shadow-lg hover:bg-brand-wash transition">
+                   class="block w-full rounded-xl border-2 border-orange-300/60
+                          bg-gradient-to-b from-[#E9701F] to-[#D95A16]
+                          px-6 py-4 sm:py-5 text-center
+                          font-display text-lg sm:text-2xl font-bold uppercase tracking-wide text-white
+                          shadow-lg transition duration-300
+                          hover:from-[#F27C28] hover:to-[#E2651B] hover:shadow-xl">
                     Dapatkan Sebut Harga Percuma
                 </a>
             </div>
