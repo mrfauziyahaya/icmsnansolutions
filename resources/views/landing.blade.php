@@ -111,7 +111,10 @@
             <div class="col-span-12 md:col-span-6">
                 <div class="grid grid-cols-3 gap-3 sm:gap-4">
                     @foreach($bnplLogos as [$label, $img])
-                        <div class="bg-white rounded-xl p-3 sm:p-4 flex items-center justify-center shadow-sm">
+                        {{-- relative + hover:z-10 so the enlarged card lifts above its neighbours --}}
+                        <div class="relative bg-white rounded-xl p-3 sm:p-4 flex items-center justify-center shadow-sm
+                                    transition duration-300 ease-out hover:shadow-xl hover:z-10
+                                    motion-safe:hover:scale-110">
                             <x-img-slot class="aspect-[3/2] object-contain" :src="$img" :alt="$label">{{ $label }}</x-img-slot>
                         </div>
                     @endforeach
