@@ -16,29 +16,35 @@
     $company = $setting->company_name ?? 'NAN Solutions';
 
     // ── CONTENT — [label, image path under public/] ──────────────────────
-    // Drop the file at the given path and it replaces the placeholder automatically.
+    // Labels are placeholder copy; swap freely. Images live in public/images/.
+    $bnplLogos  = [                                                                       // §2 hero
+        ['SPayLater',      'images/hero-SPaylater.webp'],
+        ['Grab PayLater',  'images/hero-grabpaylater.webp'],
+        ['Boost',          'images/hero-Boost.webp'],
+        ['Atome',          'images/hero-Atome.webp'],
+        ['AhaPay',         'images/hero-unnamed.png'],
+        ['Direct Lending', 'images/hero-direct_lending_holdings_logo.jpg'],
+    ];
     $whyCards   = [                                                                       // §4
-        ['Tajuk Satu',  'img/why-1.jpg'],
-        ['Tajuk Dua',   'img/why-2.jpg'],
-        ['Tajuk Tiga',  'img/why-3.jpg'],
-        ['Tajuk Empat', 'img/why-4.jpg'],
+        ['Tajuk Satu',  'images/Gambar-Why-Choose-Us-1.webp'],
+        ['Tajuk Dua',   'images/Gambar-Why-Choose-Us-2.webp'],
+        ['Tajuk Tiga',  'images/Gambar-Why-Choose-Us-3.webp'],
+        ['Tajuk Empat', 'images/Gambar-Why-Choose-Us-4.webp'],
     ];
     $insurers   = [                                                                       // §5
-        ['Etiqa',            'img/insurers/etiqa.png'],
-        ['Allianz',          'img/insurers/allianz.png'],
-        ['Zurich',           'img/insurers/zurich.png'],
-        ['Takaful Malaysia', 'img/insurers/takaful-malaysia.png'],
-        ['Liberty',          'img/insurers/liberty.png'],
-        ['RHB',              'img/insurers/rhb.png'],
-        ['AmGeneral',        'img/insurers/amgeneral.png'],
-        ['Tokio Marine',     'img/insurers/tokio-marine.png'],
+        ['Rakan Insurans 1', 'images/Logo-Insuran-1.webp'],
+        ['Rakan Insurans 2', 'images/Logo-Insuran-2.webp'],
+        ['Rakan Insurans 3', 'images/Logo-Insuran-3.webp'],
+        ['Rakan Insurans 4', 'images/Logo-Insuran-4.webp'],
+        ['Rakan Insurans 5', 'images/Logo-Insuran-5.webp'],
+        ['Rakan Insurans 6', 'images/Logo-Insuran-6.webp'],
     ];
     $badges     = [                                                                       // §6 & §8
-        ['Kad Satu',  'img/badge-1.png'],
-        ['Kad Dua',   'img/badge-2.png'],
-        ['Kad Tiga',  'img/badge-3.png'],
-        ['Kad Empat', 'img/badge-4.png'],
-        ['Kad Lima',  'img/badge-5.png'],
+        ['Kad Satu',  'images/why-01.png'],
+        ['Kad Dua',   'images/why-02.png'],
+        ['Kad Tiga',  'images/why-03.png'],
+        ['Kad Empat', 'images/why-04.png'],
+        ['Kad Lima',  'images/why--5.png'],
     ];
     $reviews    = [                                                                       // §7
         ['Nama Pelanggan', 5, 'Ulasan pelanggan akan dipaparkan di sini.'],
@@ -100,9 +106,19 @@
 
         <!-- row 1 -->
         <div class="grid grid-cols-12 gap-6 items-center">
+
+            <!-- left: 3x2 grid of image cards -->
             <div class="col-span-12 md:col-span-6">
-                <x-img-slot class="aspect-[4/3]" src="img/hero-left.jpg">Imej Kiri (6)</x-img-slot>
+                <div class="grid grid-cols-3 gap-3 sm:gap-4">
+                    @foreach($bnplLogos as [$label, $img])
+                        <div class="bg-white rounded-xl p-3 sm:p-4 flex items-center justify-center shadow-sm">
+                            <x-img-slot class="aspect-[3/2] object-contain" :src="$img" :alt="$label">{{ $label }}</x-img-slot>
+                        </div>
+                    @endforeach
+                </div>
             </div>
+
+            <!-- right -->
             <div class="col-span-12 md:col-span-6">
                 <x-img-slot class="aspect-[4/3]" src="img/hero-right.jpg">Imej Kanan (6)</x-img-slot>
             </div>
