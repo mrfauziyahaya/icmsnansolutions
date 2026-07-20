@@ -40,9 +40,9 @@ class AhaPayGateway implements PaymentGateway
             'reference_number' => $payment->reference,
             'callback_url'     => route('pay.webhook', ['gateway' => 'ahapay']),
             'redirect_urls'    => [
-                'success' => route('pay.success', ['reference' => $payment->reference]),
-                'failed'  => route('pay.failed', ['reference' => $payment->reference]),
-                'cart'    => route('pay.failed', ['reference' => $payment->reference]),
+                'success_redirect_url' => route('pay.success', ['reference' => $payment->reference]),
+                'failed_redirect_url'  => route('pay.failed', ['reference' => $payment->reference]),
+                'cart_redirect_url'    => route('pay.failed', ['reference' => $payment->reference]),
             ],
             'order_items'      => [[
                 'name'     => 'Pembayaran ' . $payment->reference,
