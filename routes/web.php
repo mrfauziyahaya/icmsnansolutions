@@ -11,9 +11,8 @@ use App\Http\Controllers\WhatsAppNotificationController;
 use App\Http\Controllers\QuoteRequestController;
 use App\Http\Controllers\PaymentController;
 
-Route::get('/', function () {
-    return redirect()->route('login');
-});
+// Public landing page (the site's front door once nansolutions.com.my points here)
+Route::view('/', 'landing')->name('landing');
 
 // Public policy lookup — no auth required
 Route::get('/lookup', [LookupController::class, 'index'])->name('lookup');
