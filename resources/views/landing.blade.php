@@ -145,23 +145,20 @@
 </x-hero-background>
 
 <!-- ══ §3 INTRO — left: heading+subtext | right: image ══════════════════ -->
-<section id="tentang" class="py-16 sm:py-20">
+{{-- Gradient continues the hero's orange downward, lightening toward the bottom. --}}
+<section id="tentang" class="py-16 sm:py-20 bg-gradient-to-b from-[#DA5813] to-[#F59A5B]">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-12 gap-8 lg:gap-12 items-center">
             <div class="col-span-12 md:col-span-6">
-                <h2 class="font-display font-bold uppercase text-2xl sm:text-3xl lg:text-4xl text-brand-ink leading-tight">
-                    Tajuk Seksyen Intro
+                <h2 class="font-display font-bold uppercase text-2xl sm:text-3xl lg:text-4xl text-white leading-tight">
+                    TENTANG KAMI
                 </h2>
-                <p class="mt-5 leading-relaxed text-brand-body">
-                    Subteks seksyen intro diletakkan di sini. Gantikan dengan penerangan ringkas
-                    mengenai perkhidmatan NAN Solutions.
-                </p>
-                <p class="mt-4 leading-relaxed text-brand-muted">
-                    Perenggan kedua (pilihan) untuk maklumat tambahan.
+                <p class="mt-4 leading-relaxed text-white/75">
+                    Nan Solutions (No. Pendaftaran: 202003286749 | SA0554424-W) telah beroperasi sejak tahun 2020 dan terus berkembang sebagai syarikat yang pakar dalam bidang tuntutan insurans & takaful. Dengan pengalaman luas, kami telah membantu ramai pelanggan mendapatkan penyelesaian terbaik dalam urusan insurans dan takaful mereka.
                 </p>
             </div>
             <div class="col-span-12 md:col-span-6">
-                <x-img-slot class="aspect-[4/3]" src="img/intro.jpg">Imej Intro</x-img-slot>
+                <x-img-slot class="aspect-[4/3]" src="images/gambar-Kereta-Payung.webp" alt="NAN Solutions">Imej Kanan</x-img-slot>
             </div>
         </div>
     </div>
