@@ -15,10 +15,31 @@
     $setting = \App\Models\Setting::instance();
     $company = $setting->company_name ?? 'NAN Solutions';
 
-    // ── PLACEHOLDER CONTENT — replace with real copy/assets ──────────────
-    $whyCards   = ['Tajuk Satu', 'Tajuk Dua', 'Tajuk Tiga', 'Tajuk Empat'];               // §4
-    $insurers   = ['Etiqa', 'Allianz', 'Zurich', 'Takaful Malaysia', 'Liberty', 'RHB', 'AmGeneral', 'Tokio Marine']; // §5
-    $badges     = ['Kad Satu', 'Kad Dua', 'Kad Tiga', 'Kad Empat', 'Kad Lima'];           // §6 & §8
+    // ── CONTENT — [label, image path under public/] ──────────────────────
+    // Drop the file at the given path and it replaces the placeholder automatically.
+    $whyCards   = [                                                                       // §4
+        ['Tajuk Satu',  'img/why-1.jpg'],
+        ['Tajuk Dua',   'img/why-2.jpg'],
+        ['Tajuk Tiga',  'img/why-3.jpg'],
+        ['Tajuk Empat', 'img/why-4.jpg'],
+    ];
+    $insurers   = [                                                                       // §5
+        ['Etiqa',            'img/insurers/etiqa.png'],
+        ['Allianz',          'img/insurers/allianz.png'],
+        ['Zurich',           'img/insurers/zurich.png'],
+        ['Takaful Malaysia', 'img/insurers/takaful-malaysia.png'],
+        ['Liberty',          'img/insurers/liberty.png'],
+        ['RHB',              'img/insurers/rhb.png'],
+        ['AmGeneral',        'img/insurers/amgeneral.png'],
+        ['Tokio Marine',     'img/insurers/tokio-marine.png'],
+    ];
+    $badges     = [                                                                       // §6 & §8
+        ['Kad Satu',  'img/badge-1.png'],
+        ['Kad Dua',   'img/badge-2.png'],
+        ['Kad Tiga',  'img/badge-3.png'],
+        ['Kad Empat', 'img/badge-4.png'],
+        ['Kad Lima',  'img/badge-5.png'],
+    ];
     $reviews    = [                                                                       // §7
         ['Nama Pelanggan', 5, 'Ulasan pelanggan akan dipaparkan di sini.'],
         ['Nama Pelanggan', 5, 'Ulasan pelanggan akan dipaparkan di sini.'],
@@ -80,10 +101,10 @@
         <!-- row 1 -->
         <div class="grid grid-cols-12 gap-6 items-center">
             <div class="col-span-12 md:col-span-6">
-                <x-img-slot class="aspect-[4/3]">Imej Kiri (6)</x-img-slot>
+                <x-img-slot class="aspect-[4/3]" src="img/hero-left.jpg">Imej Kiri (6)</x-img-slot>
             </div>
             <div class="col-span-12 md:col-span-6">
-                <x-img-slot class="aspect-[4/3]">Imej Kanan (6)</x-img-slot>
+                <x-img-slot class="aspect-[4/3]" src="img/hero-right.jpg">Imej Kanan (6)</x-img-slot>
             </div>
         </div>
 
@@ -116,7 +137,7 @@
                 </p>
             </div>
             <div class="col-span-12 md:col-span-6">
-                <x-img-slot class="aspect-[4/3]">Imej Intro</x-img-slot>
+                <x-img-slot class="aspect-[4/3]" src="img/intro.jpg">Imej Intro</x-img-slot>
             </div>
         </div>
     </div>
@@ -135,10 +156,10 @@
 
         <!-- row 2 -->
         <div class="grid grid-cols-12 gap-5 mt-10">
-            @foreach($whyCards as $card)
+            @foreach($whyCards as [$card, $img])
                 <div class="col-span-12 sm:col-span-6 lg:col-span-3">
                     <div class="h-full bg-white rounded-xl border border-brand-tint overflow-hidden">
-                        <x-img-slot class="aspect-[16/10] rounded-none border-0">Imej</x-img-slot>
+                        <x-img-slot class="aspect-[16/10] rounded-none border-0" :src="$img">Imej</x-img-slot>
                         <div class="p-5">
                             <h3 class="font-display font-semibold uppercase text-brand-ink">{{ $card }}</h3>
                             <p class="mt-2 text-sm leading-relaxed text-brand-muted">
@@ -175,9 +196,9 @@
     <div class="marquee mt-10 overflow-hidden" style="mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)">
         <div class="marquee-track flex w-max gap-5">
             {{-- duplicated once for a seamless loop --}}
-            @foreach(array_merge($insurers, $insurers) as $ins)
+            @foreach(array_merge($insurers, $insurers) as [$ins, $img])
                 <div class="w-40 sm:w-52 shrink-0">
-                    <x-img-slot class="aspect-[3/2] bg-white">{{ $ins }}</x-img-slot>
+                    <x-img-slot class="aspect-[3/2] bg-white object-contain p-4" :src="$img" :alt="$ins">{{ $ins }}</x-img-slot>
                 </div>
             @endforeach
         </div>
@@ -205,11 +226,11 @@
         </div>
 
         <div class="grid grid-cols-10 gap-5 mt-10">
-            @foreach($badges as $b)
+            @foreach($badges as [$b, $img])
                 {{-- 5 across on desktop (10-col grid / 2), 2 across on mobile --}}
                 <div class="col-span-5 sm:col-span-2">
                     <div class="h-full bg-white rounded-xl border border-brand-tint p-5 text-center">
-                        <x-img-slot class="aspect-square max-w-24 mx-auto">Logo</x-img-slot>
+                        <x-img-slot class="aspect-square max-w-24 mx-auto object-contain" :src="$img" :alt="$b">Logo</x-img-slot>
                         <p class="mt-3 text-sm font-semibold text-brand-ink">{{ $b }}</p>
                     </div>
                 </div>
@@ -224,7 +245,7 @@
         <div class="grid grid-cols-12 gap-8 items-center">
 
             <div class="col-span-12 md:col-span-4 text-center md:text-left">
-                <x-img-slot class="aspect-[3/2] max-w-56 mx-auto md:mx-0">Google Logo</x-img-slot>
+                <x-img-slot class="aspect-[3/2] max-w-56 mx-auto md:mx-0 object-contain" src="img/google-review.png">Google Logo</x-img-slot>
                 <h2 class="mt-4 font-display font-bold uppercase text-xl text-brand-ink">Ulasan Google</h2>
                 <p class="mt-2 text-sm text-brand-muted">Apa kata pelanggan kami.</p>
             </div>
@@ -260,10 +281,10 @@
         </div>
 
         <div class="grid grid-cols-10 gap-5 mt-10">
-            @foreach($badges as $b)
+            @foreach($badges as [$b, $img])
                 <div class="col-span-5 sm:col-span-2">
                     <div class="h-full flex flex-col bg-white rounded-xl border border-brand-tint p-5 text-center">
-                        <x-img-slot class="aspect-square max-w-24 mx-auto">Logo</x-img-slot>
+                        <x-img-slot class="aspect-square max-w-24 mx-auto object-contain" :src="$img" :alt="$b">Logo</x-img-slot>
                         <a href="{{ route('quote.create') }}"
                            class="mt-auto pt-4 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark transition">
                             Renew Now

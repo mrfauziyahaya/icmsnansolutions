@@ -3,20 +3,26 @@
 {{--
     Image slot for the landing page.
 
-    Pass `src` to render a real image; with no `src` it renders a labelled
-    dashed placeholder so the layout holds its shape while assets are pending.
-    The slot content is used as the placeholder label (and as alt text when
-    `alt` isn't given).
+    `src` is a path relative to public/ (e.g. "img/hero-left.jpg"). If that file
+    exists it renders as an <img>; if it's missing (or no src given) it falls back
+    to a labelled dashed placeholder that holds the same box. That means images can
+    be dropped in one at a time without the page breaking.
 
         <x-img-slot class="aspect-[4/3]">Imej Kiri</x-img-slot>
-        <x-img-slot class="aspect-[4/3]" src="{{ asset('img/hero.jpg') }}" alt="Hero" />
+        <x-img-slot class="aspect-[4/3]" src="img/hero-left.jpg" alt="Hero">Imej Kiri</x-img-slot>
 
-    NOTE: the name must not start with "slot" — Blade reserves <x-slot...> for slots.
+    NOTE: the component name must not start with "slot" — Blade reserves <x-slot>.
 --}}
 
-@if($src)
-    <img src="{{ $src }}"
+@php
+    $file   = $src ? public_path(ltrim($src, '/')) : null;
+    $exists = $file && is_file($file);
+@endphp
+
+@if($exists)
+    <img src="{{ asset($src) }}"
          alt="{{ $alt ?: trim($slot) }}"
+         loading="lazy"
          {{ $attributes->merge(['class' => 'w-full h-full object-cover rounded-xl']) }}>
 @else
     <div {{ $attributes->merge([
