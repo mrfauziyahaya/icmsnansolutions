@@ -144,7 +144,7 @@
                 <div class="grid grid-cols-3 gap-3 sm:gap-4">
                     @foreach($bnplLogos as [$label, $img])
                         {{-- relative + hover:z-10 so the enlarged card lifts above its neighbours --}}
-                        <div class="relative bg-white rounded-xl p-3 sm:p-4 flex items-center justify-center shadow-sm
+                        <div class="relative bg-white rounded-lg sm:rounded-xl p-2 sm:p-4 flex items-center justify-center shadow-sm
                                     transition duration-300 ease-out hover:shadow-xl hover:z-10
                                     motion-safe:hover:scale-110">
                             <x-img-slot class="aspect-[3/2] object-contain" :src="$img" :alt="$label">{{ $label }}</x-img-slot>
@@ -401,8 +401,9 @@
         <div class="grid grid-cols-12">
             <div class="col-span-12 text-center">
                 <h2 class="font-display font-bold uppercase leading-[1.1] text-[#8C8C8C] drop-shadow-md
-                           text-3xl sm:text-5xl lg:text-6xl">
-                    Produk dan Perkhidmatan<br>Insurans &amp; Takaful
+                           text-2xl sm:text-5xl lg:text-6xl">
+                    {{-- let it wrap naturally on phones; force the break from sm up --}}
+                    Produk dan Perkhidmatan<br class="hidden sm:block">Insurans &amp; Takaful
                 </h2>
             </div>
         </div>
@@ -583,6 +584,17 @@
         </div>
     </div>
 </footer>
+
+<!-- ══ Floating WhatsApp ════════════════════════════════════════════════ -->
+<a href="https://wa.link/cikhnz" target="_blank" rel="noopener"
+   aria-label="Hubungi kami di WhatsApp"
+   class="fixed bottom-5 right-5 z-50 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center
+          rounded-full bg-[#25D366] text-white shadow-lg ring-1 ring-black/5
+          transition duration-300 hover:bg-[#1EBE57] hover:shadow-xl motion-safe:hover:scale-110">
+    <svg class="h-7 w-7 sm:h-8 sm:w-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.2-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.2.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.2-.6-.4M12 2a10 10 0 00-8.6 15L2 22l5.1-1.3A10 10 0 1012 2"/>
+    </svg>
+</a>
 
 <style>
     [x-cloak]{display:none!important}

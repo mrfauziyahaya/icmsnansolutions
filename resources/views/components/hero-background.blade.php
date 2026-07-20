@@ -1,6 +1,6 @@
 <section
     {{ $attributes->merge([
-        'class' => 'hero-background relative isolate min-h-[720px] overflow-hidden'
+        'class' => 'hero-background relative isolate min-h-[560px] sm:min-h-[720px] overflow-hidden'
     ]) }}
 >
     {{-- Soft yellow glow behind the left-side content --}}
