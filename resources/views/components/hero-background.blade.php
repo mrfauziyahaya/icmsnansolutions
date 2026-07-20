@@ -25,8 +25,10 @@
     {{-- Optional subtle texture --}}
     <div class="hero-background__texture pointer-events-none absolute inset-0"></div>
 
-    {{-- Page content goes here --}}
-    <div class="relative z-10">
+    {{-- Page content goes here. w-full so it still spans the section when the
+         section is a flex container (otherwise the flex item shrink-wraps and
+         any mx-auto inside centres against the wrong width). --}}
+    <div class="relative z-10 w-full">
         {{ $slot }}
     </div>
 
