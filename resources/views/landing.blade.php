@@ -101,8 +101,8 @@
 </header>
 
 <!-- ══ §2 HERO — row1: 6+6 images | row2: button (12) ═══════════════════ -->
-<section id="utama" class="bg-gradient-to-br from-brand-dark via-brand to-brand-dark">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+<x-hero-background id="utama" class="flex items-center">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 pb-32 sm:pb-40">
 
         <!-- row 1 -->
         <div class="grid grid-cols-12 gap-6 items-center">
@@ -134,7 +134,7 @@
             </div>
         </div>
     </div>
-</section>
+</x-hero-background>
 
 <!-- ══ §3 INTRO — left: heading+subtext | right: image ══════════════════ -->
 <section id="tentang" class="py-16 sm:py-20">
