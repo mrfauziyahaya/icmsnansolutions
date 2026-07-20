@@ -54,11 +54,12 @@ class PaymentGatewayManager
      */
     public function available(?float $amount = null): array
     {
-        $bnplMin = (float) config('services.payments.bnpl_min', 30);
-        $out     = [];
+        $bnplMin  = (float) config('services.payments.bnpl_min', 30);
+        $disabled = (array) config('services.payments.disabled', []);
+        $out      = [];
 
         foreach (self::DRIVERS as $key => $class) {
-            if (! app($class)->isConfigured()) {
+            if (in_array($key, $disabled, true) || ! app($class)->isConfigured()) {
                 continue;
             }
 
@@ -82,11 +83,12 @@ class PaymentGatewayManager
      */
     public function checkoutOptions(?float $amount = null): array
     {
-        $bnplMin = (float) config('services.payments.bnpl_min', 30);
-        $options = [];
+        $bnplMin  = (float) config('services.payments.bnpl_min', 30);
+        $disabled = (array) config('services.payments.disabled', []);
+        $options  = [];
 
         foreach (self::DRIVERS as $key => $class) {
-            if (! app($class)->isConfigured()) {
+            if (in_array($key, $disabled, true) || ! app($class)->isConfigured()) {
                 continue;
             }
 

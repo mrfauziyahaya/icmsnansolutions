@@ -51,7 +51,7 @@ class Payment extends Model
         'fiuu'      => 'Fiuu',
         'atome'     => 'Atome',
         'ahapay'    => 'AhaPay',
-        'senangpay' => 'senangPay',
+        'senangpay' => 'Grab PayLater',
     ];
 
     public function purposeLabel(): string

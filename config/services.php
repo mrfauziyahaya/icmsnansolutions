@@ -50,10 +50,15 @@ return [
 
     'payments' => [
         // Hard limits on the public custom-amount field (MYR).
-        'min_amount'  => env('PAYMENT_MIN_AMOUNT', 1),
+        'min_amount'  => env('PAYMENT_MIN_AMOUNT', 50),
         'max_amount'  => env('PAYMENT_MAX_AMOUNT', 50000),
         // BNPL providers won't accept tiny amounts; below this they're hidden.
         'bnpl_min'    => env('PAYMENT_BNPL_MIN', 30),
+        // Gateways hidden from checkout regardless of credentials (comma-separated).
+        'disabled'    => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('PAYMENT_DISABLED_GATEWAYS', 'fiuu'))
+        ))),
     ],
 
     'chip' => [
