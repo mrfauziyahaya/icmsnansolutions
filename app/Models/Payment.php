@@ -40,6 +40,22 @@ class Payment extends Model
         'callback_payload' => 'array',
     ];
 
+    protected static function booted(): void
+    {
+        // Fire the "payment received" WhatsApp exactly once, on the transition
+        // to paid — this catches every path (webhook + reconcile) in one place.
+        // Guarded so a messaging failure never breaks payment processing.
+        static::updated(function (Payment $payment) {
+            if ($payment->wasChanged('status') && $payment->status === 'paid') {
+                try {
+                    app(\App\Services\WhatsAppService::class)->notifyPaymentReceived($payment);
+                } catch (\Throwable $e) {
+                    Log::error("Payment {$payment->reference} WhatsApp notify failed: {$e->getMessage()}");
+                }
+            }
+        });
+    }
+
     public const PURPOSE_LABELS = [
         'road_tax'  => 'Cukai Jalan',
         'insurance' => 'Insurans',
