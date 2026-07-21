@@ -51,6 +51,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
     Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
 
+    // Quote Templates (admin comparison quote builder)
+    Route::resource('quote-templates', \App\Http\Controllers\QuoteTemplateController::class)
+        ->except(['show'])->parameters(['quote-templates' => 'quoteTemplate']);
+    Route::get('/quote-templates/{quoteTemplate}', [\App\Http\Controllers\QuoteTemplateController::class, 'show'])->name('quote-templates.show');
+
     // Quote Requests (Request Sebut Harga)
     Route::get('/quote-requests', [QuoteRequestController::class, 'index'])->name('quote-requests.index');
     Route::get('/quote-requests/{quoteRequest}', [QuoteRequestController::class, 'show'])->name('quote-requests.show');
