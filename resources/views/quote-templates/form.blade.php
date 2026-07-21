@@ -51,8 +51,12 @@
                 @php $tints = ['bg-sky-200', 'bg-yellow-200', 'bg-green-200']; @endphp
                 <div class="grid grid-cols-[160px_repeat(3,1fr)] gap-2 items-stretch sticky top-0 z-10 bg-white py-1">
                     <div class="flex items-center text-xs font-semibold uppercase tracking-wide text-gray-500">Sebut Harga</div>
+                    @php $logos = \App\Models\QuoteTemplate::COMPANY_LOGOS; @endphp
                     @foreach(\App\Models\QuoteTemplate::COMPANIES as $i => $company)
-                        <div class="{{ $tints[$i % 3] }} rounded-md px-2 py-2.5 text-center text-sm font-bold uppercase text-gray-800">
+                        <div class="{{ $tints[$i % 3] }} rounded-md px-2 py-2 text-center text-sm font-bold uppercase text-gray-800">
+                            @if(($logos[$i] ?? null) && is_file(public_path($logos[$i])))
+                                <img src="{{ asset($logos[$i]) }}" alt="{{ $company }}" class="mx-auto mb-1 h-7 w-auto object-contain">
+                            @endif
                             {{ $company }}
                         </div>
                     @endforeach

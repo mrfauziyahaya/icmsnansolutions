@@ -23,6 +23,13 @@ class QuoteTemplate extends Model
     /** Fixed insurance companies — the three comparison columns. */
     public const COMPANIES = ['Zurich Takaful', 'Etiqa Takaful', 'Takaful Ikhlas'];
 
+    /** Logo (under public/) for each company column, keyed by index. */
+    public const COMPANY_LOGOS = [
+        'images/zurich-takaful.png',
+        'images/Logo-Insuran-3.webp',
+        'images/Logo-Insuran-5.webp',
+    ];
+
     // ── Option lists (form dropdowns) + display labels (preview) ──────────────
 
     public const VALUE_OPTIONS = [

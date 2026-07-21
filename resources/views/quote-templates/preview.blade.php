@@ -54,6 +54,19 @@
                     <td colspan="{{ max($n - 1, 1) }}" class="border border-gray-300 bg-yellow-300 px-3 py-2">Model: {{ $template->vehicle_model ?: '—' }}</td>
                 </tr>
 
+                {{-- company logos --}}
+                @php $logos = \App\Models\QuoteTemplate::COMPANY_LOGOS; @endphp
+                <tr>
+                    <td class="border border-gray-300 bg-white px-3 py-2"></td>
+                    @foreach($columns as $i => $c)
+                        <td class="border border-gray-300 bg-white px-3 py-2 text-center align-middle">
+                            @if(($logos[$i] ?? null) && is_file(public_path($logos[$i])))
+                                <img src="{{ asset($logos[$i]) }}" alt="{{ $c['company'] }}" class="mx-auto h-10 w-auto object-contain">
+                            @endif
+                        </td>
+                    @endforeach
+                </tr>
+
                 {{-- company header --}}
                 <tr>
                     <td class="border border-gray-300 bg-white px-3 py-2"></td>
