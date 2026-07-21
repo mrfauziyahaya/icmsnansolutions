@@ -28,11 +28,7 @@
 
         {{-- ── Header info ─────────────────────────────────────────────── --}}
         <div class="bg-white shadow rounded-lg p-5 sm:p-6 space-y-5">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Tajuk</label>
-                <input type="text" name="title" x-model="f.title" required
-                       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm">
-            </div>
+            <p class="text-center text-sm font-bold uppercase tracking-wide text-gray-500">{{ \App\Models\QuoteTemplate::TITLE }}</p>
             <div class="grid sm:grid-cols-2 gap-5">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">No. Pendaftaran Kenderaan <span class="text-red-500">*</span></label>
@@ -51,12 +47,14 @@
         <div class="bg-white shadow rounded-lg mt-6 overflow-x-auto">
             <div class="min-w-[720px] p-4 sm:p-6">
 
-                {{-- company names (per column) --}}
-                <div class="grid grid-cols-[160px_repeat(3,1fr)] gap-2 items-end">
-                    <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Syarikat Insurans</div>
-                    @foreach($d['columns'] as $i => $col)
-                        <input type="text" name="columns[{{ $i }}][company]" x-model="f.columns[{{ $i }}].company" placeholder="cth: Zurich Takaful"
-                               class="rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm font-semibold text-center">
+                {{-- fixed company headers (like the image) --}}
+                @php $tints = ['bg-sky-200', 'bg-yellow-200', 'bg-green-200']; @endphp
+                <div class="grid grid-cols-[160px_repeat(3,1fr)] gap-2 items-stretch sticky top-0 z-10 bg-white py-1">
+                    <div class="flex items-center text-xs font-semibold uppercase tracking-wide text-gray-500">Sebut Harga</div>
+                    @foreach(\App\Models\QuoteTemplate::COMPANIES as $i => $company)
+                        <div class="{{ $tints[$i % 3] }} rounded-md px-2 py-2.5 text-center text-sm font-bold uppercase text-gray-800">
+                            {{ $company }}
+                        </div>
                     @endforeach
                 </div>
 

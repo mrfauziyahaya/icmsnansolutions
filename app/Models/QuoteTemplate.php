@@ -17,6 +17,12 @@ class QuoteTemplate extends Model
         'data' => 'array',
     ];
 
+    /** Fixed title (no longer entered per quote). */
+    public const TITLE = 'First Party Comprehensive';
+
+    /** Fixed insurance companies — the three comparison columns. */
+    public const COMPANIES = ['Zurich Takaful', 'Etiqa Takaful', 'Takaful Ikhlas'];
+
     // ── Option lists (form dropdowns) + display labels (preview) ──────────────
 
     public const VALUE_OPTIONS = [
@@ -70,8 +76,8 @@ class QuoteTemplate extends Model
                 'digital_copy' => 'yes',
                 'roadtax'      => null,
             ],
-            'columns' => array_fill(0, 3, [
-                'company'            => '',
+            'columns' => array_map(fn ($company) => [
+                'company'            => $company,
                 'value'              => 'market_value',
                 'towing'             => '300km',
                 'accident_assist'    => 'yes',
@@ -80,7 +86,7 @@ class QuoteTemplate extends Model
                 'personal_accident'  => 'no',
                 'vehicle_inspection' => 'no',
                 'insurance_takaful'  => null,
-            ]),
+            ], self::COMPANIES),
         ];
     }
 

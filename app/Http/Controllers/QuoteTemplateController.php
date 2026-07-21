@@ -27,7 +27,7 @@ class QuoteTemplateController extends Controller
     public function create()
     {
         $template = new QuoteTemplate([
-            'title' => 'First Party Comprehensive',
+            'title' => QuoteTemplate::TITLE,
             'data'  => QuoteTemplate::blankData(),
         ]);
 
@@ -79,7 +79,6 @@ class QuoteTemplateController extends Controller
     private function validated(Request $request): array
     {
         $validated = $request->validate([
-            'title'              => 'required|string|max:255',
             'vehicle_reg_number' => 'required|string|max:30',
             'vehicle_model'      => 'nullable|string|max:100',
 
@@ -90,7 +89,6 @@ class QuoteTemplateController extends Controller
             'shared.roadtax'      => 'nullable|numeric|min:0',
 
             'columns'                       => 'required|array|size:3',
-            'columns.*.company'             => 'nullable|string|max:100',
             'columns.*.value'               => 'required|in:market_value,agreed_value',
             'columns.*.towing'              => 'required|in:150km,200km,300km,unlimited',
             'columns.*.accident_assist'     => 'required|in:yes,no',
@@ -101,13 +99,20 @@ class QuoteTemplateController extends Controller
             'columns.*.insurance_takaful'   => 'nullable|numeric|min:0',
         ]);
 
+        // Company names are fixed — stamp them onto each column server-side.
+        $columns = $validated['columns'];
+        foreach ($columns as $i => &$col) {
+            $col['company'] = QuoteTemplate::COMPANIES[$i] ?? '';
+        }
+        unset($col);
+
         return [
-            'title'              => $validated['title'],
+            'title'              => QuoteTemplate::TITLE,
             'vehicle_reg_number' => strtoupper($validated['vehicle_reg_number']),
             'vehicle_model'      => $validated['vehicle_model'] ?? null,
             'data'               => [
                 'shared'  => $validated['shared'],
-                'columns' => $validated['columns'],
+                'columns' => $columns,
             ],
         ];
     }
