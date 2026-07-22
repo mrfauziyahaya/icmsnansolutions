@@ -609,7 +609,7 @@
 </footer>
 
 <!-- ══ Floating WhatsApp ════════════════════════════════════════════════ -->
-<a href="https://wa.link/cikhnz" target="_blank" rel="noopener"
+<a href="https://wa.link/aib22q" target="_blank" rel="noopener"
    aria-label="Hubungi kami di WhatsApp"
    class="fixed bottom-5 right-5 z-50 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center
           rounded-full bg-[#25D366] text-white shadow-lg ring-1 ring-black/5
