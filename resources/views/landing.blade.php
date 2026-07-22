@@ -95,6 +95,18 @@
                     <a href="#rakan" class="hover:text-white">Rakan Insurans</a>
                     <a href="#blog" class="hover:text-white">Blog</a>
                     <a href="#hubungi" class="hover:text-white">Hubungi Kami</a>
+                    <div class="relative" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.outside="t=false">
+                        <button @click="t=!t" class="flex items-center gap-1 uppercase hover:text-white">
+                            Terma &amp; Syarat
+                            <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="t" x-cloak
+                             class="absolute right-0 mt-3 w-64 rounded-lg bg-white py-1 shadow-xl ring-1 ring-black/5 normal-case tracking-normal">
+                            <a href="{{ route('legal.privacy') }}" class="block px-4 py-2.5 text-sm text-brand-slate hover:bg-brand-wash">Dasar Privasi</a>
+                            <a href="{{ route('legal.refund') }}" class="block px-4 py-2.5 text-sm text-brand-slate hover:bg-brand-wash">Pembatalan &amp; Bayaran Balik</a>
+                            <a href="{{ route('legal.delivery') }}" class="block px-4 py-2.5 text-sm text-brand-slate hover:bg-brand-wash">Penghantaran Perkhidmatan</a>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="hidden lg:flex items-center gap-3">
@@ -119,6 +131,12 @@
                 <a href="#blog" class="block px-3 py-2.5 rounded hover:bg-white/15">Blog</a>
                 <a href="{{ route('pay.create') }}" class="block px-3 py-2.5 rounded hover:bg-white/15">Bayaran</a>
                 <a href="#hubungi" class="block px-3 py-2.5 rounded hover:bg-white/15">Hubungi Kami</a>
+                <div class="mt-1 pt-1 border-t border-white/15">
+                    <p class="px-3 pt-2 pb-1 text-xs text-white/50">Terma &amp; Syarat</p>
+                    <a href="{{ route('legal.privacy') }}" class="block px-3 py-2 rounded text-[13px] normal-case tracking-normal hover:bg-white/15">Dasar Privasi</a>
+                    <a href="{{ route('legal.refund') }}" class="block px-3 py-2 rounded text-[13px] normal-case tracking-normal hover:bg-white/15">Pembatalan &amp; Bayaran Balik</a>
+                    <a href="{{ route('legal.delivery') }}" class="block px-3 py-2 rounded text-[13px] normal-case tracking-normal hover:bg-white/15">Penghantaran Perkhidmatan</a>
+                </div>
                 <a href="{{ route('quote.create') }}" class="block mt-2 rounded-md bg-white px-4 py-3 text-center font-semibold text-[#D95A16]">Sebut Harga Percuma</a>
             </div>
         </nav>
@@ -579,8 +597,13 @@
         </div>
     </div>
     <div class="border-t border-white/10">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 text-xs text-white/50">
-            &copy; {{ date('Y') }} {{ $company }}. Hak cipta terpelihara.
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 text-xs text-white/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span>&copy; {{ date('Y') }} {{ $company }}. Hak cipta terpelihara.</span>
+            <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+                <a href="{{ route('legal.privacy') }}" class="hover:text-[#F0813A]">Dasar Privasi</a>
+                <a href="{{ route('legal.refund') }}" class="hover:text-[#F0813A]">Pembatalan &amp; Bayaran Balik</a>
+                <a href="{{ route('legal.delivery') }}" class="hover:text-[#F0813A]">Penghantaran Perkhidmatan</a>
+            </nav>
         </div>
     </div>
 </footer>

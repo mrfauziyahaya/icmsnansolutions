@@ -14,6 +14,11 @@ use App\Http\Controllers\PaymentController;
 // Public landing page (the site's front door once nansolutions.com.my points here)
 Route::view('/', 'landing')->name('landing');
 
+// Legal pages (Terms & Conditions sub-pages)
+Route::view('/privacy-policy', 'legal.privacy-policy')->name('legal.privacy');
+Route::view('/cancellation-refund-policy', 'legal.cancellation-refund')->name('legal.refund');
+Route::view('/service-delivery-policy', 'legal.service-delivery')->name('legal.delivery');
+
 // Public policy lookup — no auth required
 Route::get('/lookup', [LookupController::class, 'index'])->name('lookup');
 
