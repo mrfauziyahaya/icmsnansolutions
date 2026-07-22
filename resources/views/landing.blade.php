@@ -512,7 +512,10 @@
                 <dl class="mt-6 space-y-4 text-sm">
                     <div>
                         <dt class="font-display uppercase text-xs tracking-wide text-[#E2661F]">Alamat</dt>
-                        <dd class="mt-1 leading-relaxed">{{ $setting->address ?? 'Alamat penuh syarikat di sini.' }}</dd>
+                        <dd class="mt-1 leading-relaxed">
+                            No 17A, Tingkat Atas Ruangniaga Sinar Mekar Abadi (RSMA),<br>
+                            Jalan Kangsar, 33000 Kuala Kangsar, Perak.
+                        </dd>
                     </div>
                     <div>
                         <dt class="font-display uppercase text-xs tracking-wide text-[#E2661F]">Telefon</dt>
@@ -533,35 +536,51 @@
                 </dl>
             </div>
 
-            <!-- right — NOTE: markup only, backend not wired yet -->
+            <!-- right — contact form -->
             <div class="col-span-12 md:col-span-7">
-                <form class="bg-white rounded-xl border border-gray-300 p-6 sm:p-8 space-y-5">
+                @if(session('contact_success'))
+                    <div class="mb-4 rounded-xl bg-green-50 border border-green-200 px-5 py-4 text-sm text-green-800">
+                        {{ session('contact_success') }}
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('contact.store') }}" class="bg-white rounded-xl border border-gray-300 p-6 sm:p-8 space-y-5">
+                    @csrf
                     <div>
                         <label class="block text-sm font-medium text-brand-slate mb-1">Nama Penuh</label>
-                        <input type="text" name="name" class="{{ $field }}">
+                        <input type="text" name="name" value="{{ old('name') }}" required class="{{ $field }}">
+                        @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div class="grid sm:grid-cols-2 gap-5">
                         <div>
                             <label class="block text-sm font-medium text-brand-slate mb-1">E-mel</label>
-                            <input type="email" name="email" class="{{ $field }}">
+                            <input type="email" name="email" value="{{ old('email') }}" required class="{{ $field }}">
+                            @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-brand-slate mb-1">No. WhatsApp</label>
-                            <input type="text" name="phone" placeholder="0129622878" class="{{ $field }}">
+                            <input type="text" name="phone" value="{{ old('phone') }}" required placeholder="0129622878" class="{{ $field }}">
+                            @error('phone')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                         </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-brand-slate mb-1">Perkara</label>
-                        <input type="text" name="subject" class="{{ $field }}">
+                        <input type="text" name="subject" value="{{ old('subject') }}" class="{{ $field }}">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-brand-slate mb-1">Mesej</label>
-                        <textarea name="message" rows="5" class="{{ $field }}"></textarea>
+                        <textarea name="message" rows="5" required class="{{ $field }}">{{ old('message') }}</textarea>
+                        @error('message')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
 
-                    <x-cta-button type="button">Hantar Mesej</x-cta-button>
+                    @if(config('services.turnstile.site_key'))
+                        <div>
+                            <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}"></div>
+                            @error('captcha')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    @endif
 
-                    <p class="text-xs italic text-brand-muted">Borang ini belum disambungkan — akan dilaksanakan bersama ciri Contact Form.</p>
+                    <x-cta-button type="submit">Hantar Mesej</x-cta-button>
                 </form>
             </div>
         </div>
@@ -618,6 +637,14 @@
         <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.2-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.2.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.2-.6-.4M12 2a10 10 0 00-8.6 15L2 22l5.1-1.3A10 10 0 1012 2"/>
     </svg>
 </a>
+
+@if(config('services.turnstile.site_key'))
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+@endif
+
+@if($errors->hasAny(['name', 'email', 'phone', 'message', 'captcha']) || session('contact_success'))
+    <script>document.addEventListener('DOMContentLoaded', () => document.getElementById('hubungi')?.scrollIntoView());</script>
+@endif
 
 <style>
     [x-cloak]{display:none!important}
