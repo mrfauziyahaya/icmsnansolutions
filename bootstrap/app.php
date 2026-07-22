@@ -11,7 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // Payment gateways POST server-to-server and cannot carry a CSRF token.
+        // Authenticity is verified per-gateway inside each driver's verifyCallback().
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/payments/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

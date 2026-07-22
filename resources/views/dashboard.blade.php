@@ -5,15 +5,13 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
+    <div>
+        <div class="max-w-7xl mx-auto">
+            <div class="space-y-4 sm:space-y-6">
                         <!-- Quick Stats Section! -->
-                        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                        <div class="bg-white overflow-hidden shadow-sm rounded-lg p-4 sm:p-6">
                             <h3 class="text-lg font-medium text-gray-900">Quick Stats</h3>
-                            <div class="mt-4 grid grid-cols-3 gap-4">
+                            <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                                 <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                                     <p class="text-sm text-gray-500">Total Clients</p>
                                     <p class="text-2xl font-semibold text-gray-900">{{ \App\Models\Client::count() }}</p>
@@ -29,20 +27,18 @@
                             </div>
                         </div>
 
-                        <!-- Quick Stats Section -->
-                        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                            
-                            <div class="mt-4 grid grid-cols-1 gap-4">
+                        <div>
+                            <div class="grid grid-cols-1 gap-4 sm:gap-6">
                                 <!-- Forecast Renewal Chart -->
-                                <div class="bg-white p-6 rounded-lg shadow">
-                                    <div class="flex justify-between items-center mb-4">
+                                <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
+                                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
                                         <h3 class="text-lg font-semibold">Forecast Renewal</h3>
-                                        <form id="insuranceFilterForm" class="flex items-center space-x-2">
-                                            <label for="insurance_company" class="text-sm text-gray-600">Filter by Insurance Company:</label>
-                                            <select name="insurance_company" 
-                                                    id="insurance_company" 
+                                        <form id="insuranceFilterForm" class="flex flex-col sm:flex-row sm:items-center gap-2">
+                                            <label for="insurance_company" class="text-sm text-gray-600 whitespace-nowrap">Filter by Insurance Company:</label>
+                                            <select name="insurance_company"
+                                                    id="insurance_company"
                                                     onchange="this.form.submit()"
-                                                    class="rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                                    class="w-full sm:w-auto rounded-md border-gray-300 shadow-sm text-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
                                                 <option value="all" {{ request('insurance_company', 'all') == 'all' ? 'selected' : '' }}>All Companies</option>
                                                 @foreach($insuranceCompanies as $company)
                                                     <option value="{{ $company }}" {{ request('insurance_company') == $company ? 'selected' : '' }}>
@@ -52,7 +48,7 @@
                                             </select>
                                         </form>
                                     </div>
-                                    <canvas id="forecastRenewalChart"></canvas>
+                                    <div class="relative h-64 sm:h-80"><canvas id="forecastRenewalChart"></canvas></div>
                                 </div>
 
                                 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -87,6 +83,7 @@
                                             },
                                             options: {
                                                 responsive: true,
+                                                maintainAspectRatio: false,
                                                 scales: {
                                                     y: {
                                                         beginAtZero: true,
@@ -111,6 +108,7 @@
                                                         }
                                                     },
                                                     datalabels: {
+                                                        display: window.innerWidth >= 640,
                                                         anchor: 'end',
                                                         align: 'top',
                                                         formatter: function(value) {
@@ -129,11 +127,11 @@
                                 </script>
                             </div>
 
-                            <div class="mt-4 grid grid-cols-2 gap-4">
+                            <div class="mt-4 sm:mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                                 <!-- Clients by Insurance Company Chart -->
-                                <div class="bg-white p-6 rounded-lg shadow">
+                                <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
                                     <h3 class="text-lg font-semibold mb-4">Clients by Insurance Company</h3>
-                                    <canvas id="insuranceChart"></canvas>
+                                    <div class="relative h-64 sm:h-80"><canvas id="insuranceChart"></canvas></div>
                                 </div>
 
                                 <script>
@@ -165,6 +163,7 @@
                                             },
                                             options: {
                                                 responsive: true,
+                                                maintainAspectRatio: false,
                                                 scales: {
                                                     y: {
                                                         beginAtZero: true,
@@ -189,6 +188,7 @@
                                                         }
                                                     },
                                                     datalabels: {
+                                                        display: window.innerWidth >= 640,
                                                         anchor: 'end',
                                                         align: 'top',
                                                         formatter: function(value) {
@@ -207,9 +207,9 @@
                                 </script>
                                 
                                 <!-- Category Chart -->
-                                <div class="bg-white p-6 rounded-lg shadow">
+                                <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
                                     <h3 class="text-lg font-semibold mb-4">Clients by Category</h3>
-                                    <canvas id="categoryChart"></canvas>
+                                    <div class="relative h-64 sm:h-80"><canvas id="categoryChart"></canvas></div>
                                 </div>
 
                                 <script>
@@ -241,6 +241,7 @@
                                             },
                                             options: {
                                                 responsive: true,
+                                                maintainAspectRatio: false,
                                                 scales: {
                                                     y: {
                                                         beginAtZero: true,
@@ -265,6 +266,7 @@
                                                         }
                                                     },
                                                     datalabels: {
+                                                        display: window.innerWidth >= 640,
                                                         anchor: 'end',
                                                         align: 'top',
                                                         formatter: function(value) {
@@ -286,9 +288,9 @@
 
                             <div class="mt-4 grid grid-cols-1 gap-4">
                                 <!-- Total Premium vs Inception Date Monthly Chart -->
-                                <div class="bg-white p-6 rounded-lg shadow">
+                                <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
                                     <h3 class="text-lg font-semibold mb-4">Total Premium vs Inception Date Monthly</h3>
-                                    <canvas id="totalPremiumInceptionDateChart"></canvas>
+                                    <div class="relative h-64 sm:h-80"><canvas id="totalPremiumInceptionDateChart"></canvas></div>
                                 </div>
 
                                 <script>
@@ -324,6 +326,7 @@
                                             },
                                             options: {
                                                 responsive: true,
+                                                maintainAspectRatio: false,
                                                 scales: {
                                                     y: {
                                                         beginAtZero: true,
@@ -354,6 +357,7 @@
                                                         }
                                                     },
                                                     datalabels: {
+                                                        display: window.innerWidth >= 640,
                                                         tickSize: {
                                                             maxRotation: 45,
                                                             minRotation: 45
@@ -378,9 +382,9 @@
 
                             <div class="mt-4 grid grid-cols-1 gap-4">
                                 <!-- Total Premium vs Inception Date Yearly Chart -->
-                                <div class="bg-white p-6 rounded-lg shadow">
+                                <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
                                     <h3 class="text-lg font-semibold mb-4">Total Premium vs Inception Date Yearly</h3>
-                                    <canvas id="totalPremiumInceptionDateYearlyChart"></canvas>
+                                    <div class="relative h-64 sm:h-80"><canvas id="totalPremiumInceptionDateYearlyChart"></canvas></div>
                                 </div>
 
                                 <script>
@@ -413,6 +417,7 @@
                                             },
                                             options: {
                                                 responsive: true,
+                                                maintainAspectRatio: false,
                                                 scales: {
                                                     y: {
                                                         beginAtZero: true,
@@ -443,6 +448,7 @@
                                                         }
                                                     },
                                                     datalabels: {
+                                                        display: window.innerWidth >= 640,
                                                         anchor: 'end',
                                                         align: 'top',
                                                         formatter: function(value) {
@@ -461,8 +467,6 @@
                                 </script>
                             </div>
                         </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

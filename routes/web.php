@@ -9,10 +9,10 @@ use App\Http\Controllers\LookupController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\WhatsAppNotificationController;
 use App\Http\Controllers\QuoteRequestController;
+use App\Http\Controllers\PaymentController;
 
-Route::get('/', function () {
-    return redirect()->route('login');
-});
+// Public landing page (the site's front door once nansolutions.com.my points here)
+Route::view('/', 'landing')->name('landing');
 
 // Public policy lookup — no auth required
 Route::get('/lookup', [LookupController::class, 'index'])->name('lookup');
@@ -21,6 +21,15 @@ Route::get('/lookup', [LookupController::class, 'index'])->name('lookup');
 Route::get('/quote-request', [QuoteRequestController::class, 'create'])->name('quote.create');
 Route::post('/quote-request', [QuoteRequestController::class, 'store'])->name('quote.store');
 Route::get('/quote-request/success', [QuoteRequestController::class, 'success'])->name('quote.success');
+
+// Public payment checkout — no auth required
+Route::get('/pay', [PaymentController::class, 'create'])->name('pay.create');
+Route::post('/pay', [PaymentController::class, 'store'])->name('pay.store');
+Route::get('/pay/success', [PaymentController::class, 'success'])->name('pay.success');
+Route::get('/pay/failed', [PaymentController::class, 'failed'])->name('pay.failed');
+
+// Gateway webhook — CSRF-exempt (see bootstrap/app.php); verified inside the driver
+Route::post('/webhooks/payments/{gateway}', [PaymentController::class, 'webhook'])->name('pay.webhook');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -37,6 +46,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // WhatsApp Notifications Log
     Route::get('/whatsapp-notifications', [WhatsAppNotificationController::class, 'index'])->name('whatsapp.index');
+
+    // Payments
+    Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+    Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+
+    // Quote Templates (admin comparison quote builder)
+    Route::resource('quote-templates', \App\Http\Controllers\QuoteTemplateController::class)
+        ->except(['show'])->parameters(['quote-templates' => 'quoteTemplate']);
+    Route::get('/quote-templates/{quoteTemplate}', [\App\Http\Controllers\QuoteTemplateController::class, 'show'])->name('quote-templates.show');
 
     // Quote Requests (Request Sebut Harga)
     Route::get('/quote-requests', [QuoteRequestController::class, 'index'])->name('quote-requests.index');

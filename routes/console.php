@@ -12,3 +12,6 @@ Artisan::command('inspire', function () {
 Schedule::command('whatsapp:send-expiry-reminders')
     ->dailyAt('09:00')
     ->timezone('Asia/Kuala_Lumpur');
+
+// Settle payments left pending (payer failed/cancelled/closed the tab — no webhook)
+Schedule::command('payments:reconcile')->everyTenMinutes();

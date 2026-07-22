@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Client;
+use App\Models\Payment;
 use App\Models\WhatsAppNotification;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -51,6 +52,48 @@ class WhatsAppService
     {
         // Template quote_notify — {{1}} name, {{2}} phone
         $this->callTemplate($this->adminNumber, 'quote_notify', [$name, $phone]);
+    }
+
+    // ── Payment ───────────────────────────────────────────────────────────────
+
+    /**
+     * Notify the payer that their payment succeeded.
+     * Template payment_received — {{1}} name, {{2}} amount, {{3}} payment method.
+     */
+    public function notifyPaymentReceived(Payment $payment): void
+    {
+        $phone  = $this->normalizePhone($payment->payer_phone);
+        $method = Payment::GATEWAY_LABELS[$payment->gateway] ?? ucfirst($payment->gateway);
+
+        $params = [
+            $payment->payer_name,
+            number_format((float) $payment->amount, 2, '.', ''),
+            $method,
+        ];
+
+        $status = 'sent';
+        $error  = null;
+
+        if ($phone) {
+            $result = $this->callTemplate($phone, 'payment_received', $params);
+            if (! $result['success']) {
+                $status = 'failed';
+                $error  = $result['error'];
+            }
+        } else {
+            $status = 'failed';
+            $error  = 'No valid phone number on record.';
+        }
+
+        WhatsAppNotification::create([
+            'client_id'       => null,
+            'type'            => 'payment_received',
+            'recipient_phone' => $phone ?? $payment->payer_phone,
+            'message'         => 'payment_received: ' . implode(' | ', $params),
+            'status'          => $status,
+            'error'           => $error,
+            'sent_at'         => now(),
+        ]);
     }
 
     // ── Expiry reminders ────────────────────────────────────────────────────
@@ -118,7 +161,7 @@ class WhatsAppService
         ]);
     }
 
-    private function callTemplate(string $phone, string $templateName, array $params): array
+    private function callTemplate(string $phone, string $templateName, array $params, string $language = 'ms'): array
     {
         if (!$this->phoneNumberId || !$this->accessToken) {
             Log::warning('WhatsApp credentials not configured.');
@@ -142,7 +185,7 @@ class WhatsAppService
                     'type'              => 'template',
                     'template'          => [
                         'name'       => $templateName,
-                        'language'   => ['code' => 'ms'],
+                        'language'   => ['code' => $language],
                         'components' => $components,
                     ],
                 ]);

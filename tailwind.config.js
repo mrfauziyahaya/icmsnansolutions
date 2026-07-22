@@ -13,6 +13,21 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                // Display face used by nansolutions.com.my (Kadence primary nav).
+                display: ['Oswald', ...defaultTheme.fontFamily.sans],
+            },
+            colors: {
+                // Brand palette lifted from nansolutions.com.my (Kadence globals).
+                brand: {
+                    DEFAULT: '#2B6CB0',
+                    dark:    '#215387',
+                    ink:     '#1A202C',
+                    slate:   '#2D3748',
+                    body:    '#4A5568',
+                    muted:   '#718096',
+                    tint:    '#EDF2F7',
+                    wash:    '#F7FAFC',
+                },
             },
         },
     },

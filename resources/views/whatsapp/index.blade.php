@@ -49,6 +49,7 @@
                                 'expiry_30d'     => ['label' => 'Expiry (30 days)', 'color' => 'bg-orange-100 text-orange-700'],
                                 'expiry_14d'     => ['label' => 'Expiry (14 days)', 'color' => 'bg-red-100 text-red-700'],
                                 'expiry_3d'      => ['label' => 'Expiry (3 days)',  'color' => 'bg-red-200 text-red-800'],
+                                'payment_received' => ['label' => 'Payment Received', 'color' => 'bg-emerald-100 text-emerald-700'],
                             ];
                             $type = $typeLabels[$n->type] ?? ['label' => $n->type, 'color' => 'bg-gray-100 text-gray-700'];
                         @endphp
