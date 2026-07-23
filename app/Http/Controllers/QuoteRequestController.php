@@ -129,4 +129,15 @@ class QuoteRequestController extends Controller
 
         return back();
     }
+
+    public function destroy(QuoteRequest $quoteRequest)
+    {
+        $reference = $quoteRequest->nama_pemilik . ' (' . $quoteRequest->no_plate . ')';
+
+        $quoteRequest->delete();
+
+        return redirect()
+            ->route('quote-requests.index')
+            ->with('success', "Permohonan {$reference} telah dipadam.");
+    }
 }
