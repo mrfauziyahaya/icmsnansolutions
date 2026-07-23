@@ -147,6 +147,44 @@ class SenangPayGatewayTest extends TestCase
         $this->assertSame('pending', $result['status']);
     }
 
+    /**
+     * The live production failure: DOKU signs with a Request-Target of its own
+     * choosing and announces it in a header, and omits the "HMACSHA256=" prefix.
+     * We assumed the target was our own request path, so every real notification
+     * was rejected and paid orders sat pending.
+     */
+    public function test_verify_callback_uses_the_request_target_header_doku_sends(): void
+    {
+        $request = $this->signedNotification(
+            ['order' => ['invoice_number' => 'PAY-2026-0024'], 'transaction' => ['status' => 'SUCCESS']],
+            target: '/api/v1/notification/webhook',
+            prefix: false,
+        );
+
+        $result = app(SenangPayGateway::class)->verifyCallback($request);
+
+        $this->assertSame('paid', $result['status']);
+        $this->assertSame('PAY-2026-0024', $result['reference']);
+    }
+
+    /**
+     * Trusting that header must not become a bypass — it only selects which
+     * string is signed, and forging still requires the secret key.
+     */
+    public function test_request_target_header_is_not_a_signature_bypass(): void
+    {
+        $request = $this->signedNotification(
+            ['order' => ['invoice_number' => 'PAY-2026-0024'], 'transaction' => ['status' => 'SUCCESS']],
+            secret: 'SK-attacker-key',
+            target: '/api/v1/notification/webhook',
+            prefix: false,
+        );
+
+        $this->expectException(GatewayException::class);
+
+        app(SenangPayGateway::class)->verifyCallback($request);
+    }
+
     public function test_verify_callback_rejects_a_forged_signature(): void
     {
         // Correctly built body, but the signature is computed with the wrong key.
@@ -185,8 +223,12 @@ class SenangPayGatewayTest extends TestCase
      * Build a Request carrying a DOKU-style notification signed exactly the way
      * the driver's verifier recomputes it (Request-Target = our webhook path).
      */
-    private function signedNotification(array $payload, ?string $secret = null): Request
-    {
+    private function signedNotification(
+        array $payload,
+        ?string $secret = null,
+        ?string $target = null,
+        bool $prefix = true,
+    ): Request {
         $secret = $secret ?? self::SECRET;
         $path   = '/webhooks/payments/senangpay';
         $body   = json_encode($payload);
@@ -199,18 +241,25 @@ class SenangPayGatewayTest extends TestCase
         $component = "Client-Id:{$clientId}\n"
             . "Request-Id:{$requestId}\n"
             . "Request-Timestamp:{$timestamp}\n"
-            . "Request-Target:{$path}\n"
+            . "Request-Target:" . ($target ?? $path) . "\n"
             . "Digest:{$digest}";
 
-        $signature = 'HMACSHA256=' . base64_encode(hash_hmac('sha256', $component, $secret, true));
+        $signature = base64_encode(hash_hmac('sha256', $component, $secret, true));
 
-        return Request::create($path, 'POST', [], [], [], [
+        $headers = [
             'HTTP_CLIENT_ID'         => $clientId,
             'HTTP_REQUEST_ID'        => $requestId,
             'HTTP_REQUEST_TIMESTAMP' => $timestamp,
-            'HTTP_SIGNATURE'         => $signature,
+            'HTTP_SIGNATURE'         => $prefix ? 'HMACSHA256=' . $signature : $signature,
             'CONTENT_TYPE'           => 'application/json',
-        ], $body);
+        ];
+
+        // DOKU announces the target it signed with; only send it when set.
+        if ($target !== null) {
+            $headers['HTTP_REQUEST_TARGET'] = $target;
+        }
+
+        return Request::create($path, 'POST', [], [], [], $headers, $body);
     }
 
     /**
