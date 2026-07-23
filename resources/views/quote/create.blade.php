@@ -189,6 +189,13 @@
                             </template>
                         </div>
                     </div>
+
+                    @if(config('services.turnstile.site_key'))
+                        <div class="pt-2">
+                            <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}"></div>
+                            @error('captcha')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    @endif
                 </div>
 
                 <!-- ── Navigation ───────────────────────────────────────────── -->
@@ -280,6 +287,10 @@
             }
         }
     </script>
+
+    @if(config('services.turnstile.site_key'))
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    @endif
 
     <style>[x-cloak]{display:none!important}</style>
 </x-public-layout>
