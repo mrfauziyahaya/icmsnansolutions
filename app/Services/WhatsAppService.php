@@ -57,12 +57,13 @@ class WhatsAppService
     // ── Payment ───────────────────────────────────────────────────────────────
 
     /**
-     * Notify the payer that their payment succeeded.
-     * Template payment_received — {{1}} name, {{2}} amount, {{3}} payment method.
+     * Alert the admin that a payment succeeded — this goes to the admin number,
+     * never to the payer. The template's {{1}} is the payer's name, so the admin
+     * can see who paid: {{1}} name, {{2}} amount, {{3}} payment method.
      */
     public function notifyPaymentReceived(Payment $payment): void
     {
-        $phone  = $this->normalizePhone($payment->payer_phone);
+        $phone  = $this->normalizePhone($this->adminNumber);
         $method = Payment::GATEWAY_LABELS[$payment->gateway] ?? ucfirst($payment->gateway);
 
         $params = [
@@ -82,13 +83,13 @@ class WhatsAppService
             }
         } else {
             $status = 'failed';
-            $error  = 'No valid phone number on record.';
+            $error  = 'Admin WhatsApp number is not configured.';
         }
 
         WhatsAppNotification::create([
             'client_id'       => null,
             'type'            => 'payment_received',
-            'recipient_phone' => $phone ?? $payment->payer_phone,
+            'recipient_phone' => $phone ?? $this->adminNumber,
             'message'         => 'payment_received: ' . implode(' | ', $params),
             'status'          => $status,
             'error'           => $error,
