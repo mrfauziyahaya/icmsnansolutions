@@ -10,6 +10,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // MySQL-only syntax; no-op elsewhere so the sqlite test DB can build.
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("ALTER TABLE whatsapp_notifications MODIFY COLUMN type ENUM('expiry_30d', 'expiry_14d', 'expiry_3d', 'policy_created', 'policy_updated', 'policy_renewed')");
     }
 
@@ -18,6 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("ALTER TABLE whatsapp_notifications MODIFY COLUMN type ENUM('expiry_30d', 'expiry_14d', 'policy_created', 'policy_updated', 'policy_renewed')");
     }
 };
