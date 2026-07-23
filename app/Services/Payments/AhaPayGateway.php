@@ -180,6 +180,7 @@ class AhaPayGateway implements PaymentGateway
             in_array($status, [
                 '', 'pending', 'payment_pending', 'created', 'order_created',
                 'awaiting_payment', 'scoring', 'sent_to_scoring', 'approved',
+                'payment_in_progress',                                   // confirmed live
             ], true) => 'pending',
 
             default => null,   // unknown — caller logs it
