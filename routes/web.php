@@ -73,6 +73,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/quote-requests', [QuoteRequestController::class, 'index'])->name('quote-requests.index');
     Route::get('/quote-requests/{quoteRequest}', [QuoteRequestController::class, 'show'])->name('quote-requests.show');
     Route::patch('/quote-requests/{quoteRequest}/toggle-read', [QuoteRequestController::class, 'toggleRead'])->name('quote-requests.toggle-read');
+    Route::delete('/quote-requests/{quoteRequest}', [QuoteRequestController::class, 'destroy'])->name('quote-requests.destroy');
 
     // Settings
     Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');

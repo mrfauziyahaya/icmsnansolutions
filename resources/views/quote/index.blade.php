@@ -46,10 +46,21 @@
                                 </form>
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <a href="{{ route('quote-requests.show', $quote) }}"
-                                   class="inline-flex items-center rounded-md bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-700">
-                                    View
-                                </a>
+                                <div class="flex items-center justify-center gap-2">
+                                    <a href="{{ route('quote-requests.show', $quote) }}"
+                                       class="inline-flex items-center rounded-md bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-700">
+                                        View
+                                    </a>
+                                    <form method="POST" action="{{ route('quote-requests.destroy', $quote) }}" class="inline"
+                                          onsubmit="return confirm('Padam permohonan daripada {{ addslashes($quote->nama_pemilik) }} ({{ $quote->no_plate }})? Tindakan ini tidak boleh dibatalkan.')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                                class="inline-flex items-center rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
+                                            Padam
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty
