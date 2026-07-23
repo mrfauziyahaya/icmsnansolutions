@@ -141,21 +141,56 @@ class AhaPayGateway implements PaymentGateway, SiteAwareGateway
 
         $status = $this->mapStatus($s);
 
+        // An unrecognised status used to fall through to "pending" silently,
+        // which is indistinguishable from a genuinely unpaid order — that hid a
+        // successful payment for hours. Surface it loudly instead.
+        if ($status === null) {
+            Log::warning('AhaPay returned an unrecognised order status — treating as pending.', [
+                'order'  => $orderId,
+                'status' => $s,
+            ]);
+
+            $status = 'pending';
+        }
+
         return ['status' => $status, 'reason' => $status === 'pending' ? null : 'AhaPay status: ' . $s];
     }
 
     /**
-     * Map AhaPay's order status to ours. Only explicit success values become
-     * "paid" — anything unrecognised stays "pending", so an unknown/forged
-     * status can never settle an order.
+     * Map AhaPay's order status to ours, comparing against the lowercased value.
+     *
+     * Returns null for anything unrecognised so the caller can log it; only
+     * explicit success values become "paid", so an unknown or forged status can
+     * never settle an order.
+     *
+     * "payment_successful" is confirmed from a live order. The other values
+     * follow AhaPay's PAYMENT_ prefix convention and are best-effort: getting
+     * one wrong can only mislabel an unpaid order, never mark one paid.
      */
-    private function mapStatus(string $status): string
+    private function mapStatus(string $status): ?string
     {
         return match (true) {
-            in_array($status, ['paid', 'success', 'completed', 'settled', 'approved'], true) => 'paid',
-            in_array($status, ['cancelled', 'canceled'], true)                               => 'cancelled',
-            in_array($status, ['failed', 'expired', 'rejected', 'declined'], true)           => 'failed',
-            default                                                                          => 'pending',
+            in_array($status, [
+                'payment_successful',                                    // confirmed live
+                'paid', 'success', 'successful', 'completed', 'settled',
+            ], true) => 'paid',
+
+            in_array($status, [
+                'cancelled', 'canceled', 'payment_cancelled', 'payment_canceled',
+            ], true) => 'cancelled',
+
+            in_array($status, [
+                'payment_failed', 'failed', 'expired', 'payment_expired',
+                'rejected', 'declined',
+            ], true) => 'failed',
+
+            in_array($status, [
+                '', 'pending', 'payment_pending', 'created', 'order_created',
+                'awaiting_payment', 'scoring', 'sent_to_scoring', 'approved',
+                'payment_in_progress',                                   // confirmed live
+            ], true) => 'pending',
+
+            default => null,   // unknown — caller logs it
         };
     }
 

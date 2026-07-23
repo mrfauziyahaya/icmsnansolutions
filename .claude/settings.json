@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://doku-developers.apidog.io/create-payment-1950499m0.data\" -o /tmp/cp.data)",
+      "Bash(grep -oE '\"[^\"]{8,}\"' /tmp/cp.data)",
+      "Bash(grep -viE '^_[0-9]|^https://assets|apidog\\\\.com|^[0-9a-f-]{20,}$')",
+      "Bash(grep -iE '[a-z]{4,}')",
+      "Bash(php -l app/Services/Payments/SenangPayGateway.php)",
+      "Bash(git commit -m ' *)",
+      "WebFetch(domain:apidocs.ahapay.my)",
+      "Bash(php -l app/Services/Payments/AhaPayGateway.php)",
+      "Bash(php -l app/Services/Payments/PaymentGatewayManager.php)",
+      "Bash(php -l app/Http/Controllers/PaymentController.php)",
+      "Bash(cd \"c:/Users/Fauzi Yahaya/NANSolution\" && grep -nE \"^APP_URL|^APP_ENV\" .env; echo \"--- deploy scripts? ---\"; ls -1 *.sh deploy* 2>/dev/null; echo \"--- ssh hosts ---\"; ls -1 ~/.ssh/ 2>/dev/null | grep -iE \"config|known\" )",
+      "Read(//c/Users/Fauzi Yahaya/.ssh/**)",
+      "WebFetch(domain:doc.apaylater.com)",
+      "Bash(curl -sSL \"https://doc.apaylater.com/v2/swagger.yaml\" -o /tmp/atome.yaml -w \"HTTP %{http_code} size=%{size_download}\\\\n\")",
+      "Bash(awk '/^    shippingAddress:/{f=1} f{print} f&&/billingAddress:/{c++; if\\(c>1\\)exit}' /tmp/atome.yaml)",
+      "Bash(php -l app/Services/Payments/AtomeGateway.php)"
+    ]
+  }
+}

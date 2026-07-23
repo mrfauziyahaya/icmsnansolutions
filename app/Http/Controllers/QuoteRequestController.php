@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\QuoteRequestMail;
 use App\Models\QuoteRequest;
+use App\Services\TurnstileService;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Mail;
 
 class QuoteRequestController extends Controller
 {
+    public function __construct(private TurnstileService $turnstile) {}
+
     // ── Public ───────────────────────────────────────────────────────────────
 
     public function create()
@@ -34,6 +37,14 @@ class QuoteRequestController extends Controller
             'jumlah_perlindungan_cermin' => 'nullable|numeric',
             'jenis_pembayaran'           => 'required|string|max:255',
         ]);
+
+        // Captcha sits on the last step, so check it before anything is stored.
+        // Skipped automatically when Turnstile isn't configured.
+        if (! $this->turnstile->verify($request->input('cf-turnstile-response'), $request->ip())) {
+            return back()->withInput()->withErrors([
+                'captcha' => 'Pengesahan keselamatan gagal. Sila cuba lagi.',
+            ]);
+        }
 
         // Normalize perlindungan_tambahan to an array (checkboxes = array, radio = string)
         $tambahan = $request->input('perlindungan_tambahan', []);
@@ -117,5 +128,16 @@ class QuoteRequestController extends Controller
         $quoteRequest->update(['is_read' => ! $quoteRequest->is_read]);
 
         return back();
+    }
+
+    public function destroy(QuoteRequest $quoteRequest)
+    {
+        $reference = $quoteRequest->nama_pemilik . ' (' . $quoteRequest->no_plate . ')';
+
+        $quoteRequest->delete();
+
+        return redirect()
+            ->route('quote-requests.index')
+            ->with('success', "Permohonan {$reference} telah dipadam.");
     }
 }

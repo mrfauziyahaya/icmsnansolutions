@@ -132,9 +132,28 @@ class SenangPayGateway implements PaymentGateway, SiteAwareGateway
         $received     = (string) $request->header('Signature');
 
         if (! hash_equals($expected, $received) && ! hash_equals($rawSignature, $received)) {
+            // TEMPORARY (production diagnosis): DOKU is delivering notifications
+            // but our recompute doesn't match. Log every input so the difference
+            // can be identified, then trim this back to a plain warning.
+            // Still fail-closed — a mismatch is always rejected.
             Log::warning('senangPay (DOKU) signature verification failed.', [
-                'ip'        => $request->ip(),
-                'path_info' => $request->getPathInfo(),
+                'ip'                => $request->ip(),
+                'received'          => $received,
+                'expected'          => $expected,
+                'expected_noprefix' => $rawSignature,
+                'client_id_header'  => $request->header('Client-Id'),
+                'client_id_config'  => $this->cfg('client_id'),
+                'site'              => $this->site(),
+                'request_id'        => $request->header('Request-Id'),
+                'request_timestamp' => $request->header('Request-Timestamp'),
+                'digest_header'     => $request->header('Digest'),
+                'digest_computed'   => $digest,
+                'path_info'         => $request->getPathInfo(),
+                'request_uri'       => $request->getRequestUri(),
+                'full_url'          => $request->fullUrl(),
+                'content_type'      => $request->header('Content-Type'),
+                'all_headers'       => array_keys($request->headers->all()),
+                'raw_body'          => $rawBody,
             ]);
             throw new GatewayException('senangPay signature verification failed.');
         }
@@ -162,10 +181,15 @@ class SenangPayGateway implements PaymentGateway, SiteAwareGateway
 
     public function getStatus(Payment $payment): array
     {
-        // DOKU's Transaction/Check Status endpoint spec isn't wired yet. The
-        // signed HTTP notification (verifyCallback) is the source of truth, and
-        // DOKU sends one even for EXPIRED, so pending payments still resolve.
-        throw new GatewayException('senangPay status query is not implemented yet — awaiting Check Status API spec.');
+        // DOKU's Check Status endpoint spec isn't available, so senangPay can't
+        // self-query: the signed HTTP notification (verifyCallback) is the only
+        // source of truth. Report "unchanged" rather than throwing — the
+        // reconcile cron runs every 10 minutes and an exception here logged a
+        // warning per stuck payment per tick, drowning out real errors.
+        //
+        // Consequence: a missed notification leaves a payment pending until it
+        // is resolved by hand. Wire this up properly once DOKU supplies the spec.
+        return ['status' => $payment->status, 'reason' => null];
     }
 
     /**
