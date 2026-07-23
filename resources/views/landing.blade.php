@@ -100,11 +100,14 @@
                             Terma &amp; Syarat
                             <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                         </button>
-                        <div x-show="t" x-cloak
-                             class="absolute right-0 mt-3 w-64 rounded-lg bg-white py-1 shadow-xl ring-1 ring-black/5 normal-case tracking-normal">
-                            <a href="{{ route('legal.privacy') }}" class="block px-4 py-2.5 text-sm text-brand-slate hover:bg-brand-wash">Dasar Privasi</a>
-                            <a href="{{ route('legal.refund') }}" class="block px-4 py-2.5 text-sm text-brand-slate hover:bg-brand-wash">Pembatalan &amp; Bayaran Balik</a>
-                            <a href="{{ route('legal.delivery') }}" class="block px-4 py-2.5 text-sm text-brand-slate hover:bg-brand-wash">Penghantaran Perkhidmatan</a>
+                        {{-- pt-3 (not mt-3) keeps the gap inside the hoverable area, so
+                             moving from the button to the menu doesn't fire mouseleave. --}}
+                        <div x-show="t" x-cloak class="absolute right-0 top-full z-30 w-64 pt-3">
+                            <div class="rounded-lg bg-white py-1 shadow-xl ring-1 ring-black/5 normal-case tracking-normal">
+                                <a href="{{ route('legal.privacy') }}" class="block px-4 py-2.5 text-sm text-brand-slate hover:bg-brand-wash">Dasar Privasi</a>
+                                <a href="{{ route('legal.refund') }}" class="block px-4 py-2.5 text-sm text-brand-slate hover:bg-brand-wash">Pembatalan &amp; Bayaran Balik</a>
+                                <a href="{{ route('legal.delivery') }}" class="block px-4 py-2.5 text-sm text-brand-slate hover:bg-brand-wash">Penghantaran Perkhidmatan</a>
+                            </div>
                         </div>
                     </div>
                 </div>
