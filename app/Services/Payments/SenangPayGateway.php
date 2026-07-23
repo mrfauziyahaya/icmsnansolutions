@@ -125,9 +125,27 @@ class SenangPayGateway implements PaymentGateway
         $received     = (string) $request->header('Signature');
 
         if (! hash_equals($expected, $received) && ! hash_equals($rawSignature, $received)) {
+            // TEMPORARY (production diagnosis): DOKU is delivering notifications
+            // but our recompute doesn't match. Log every input so the difference
+            // can be identified, then trim this back to a plain warning.
+            // Still fail-closed — a mismatch is always rejected.
             Log::warning('senangPay (DOKU) signature verification failed.', [
-                'ip'        => $request->ip(),
-                'path_info' => $request->getPathInfo(),
+                'ip'                => $request->ip(),
+                'received'          => $received,
+                'expected'          => $expected,
+                'expected_noprefix' => $rawSignature,
+                'client_id_header'  => $request->header('Client-Id'),
+                'client_id_config'  => config('services.senangpay.client_id'),
+                'request_id'        => $request->header('Request-Id'),
+                'request_timestamp' => $request->header('Request-Timestamp'),
+                'digest_header'     => $request->header('Digest'),
+                'digest_computed'   => $digest,
+                'path_info'         => $request->getPathInfo(),
+                'request_uri'       => $request->getRequestUri(),
+                'full_url'          => $request->fullUrl(),
+                'content_type'      => $request->header('Content-Type'),
+                'all_headers'       => array_keys($request->headers->all()),
+                'raw_body'          => $rawBody,
             ]);
             throw new GatewayException('senangPay signature verification failed.');
         }
