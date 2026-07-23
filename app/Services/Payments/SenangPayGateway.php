@@ -27,15 +27,22 @@ use Illuminate\Support\Str;
  *   component = "Client-Id:{id}\nRequest-Id:{rid}\nRequest-Timestamp:{ts}\nRequest-Target:{path}\nDigest:{digest}"
  *   signature = "HMACSHA256=" . base64( hmac_sha256(component, secretKey) )
  */
-class SenangPayGateway implements PaymentGateway
+class SenangPayGateway implements PaymentGateway, SiteAwareGateway
 {
+    use Concerns\ResolvesSiteCredentials;
+
+    protected function gatewayKey(): string
+    {
+        return 'senangpay';
+    }
+
     private const PAYMENT_PATH = '/checkout/v1/payment';
 
     public function isConfigured(): bool
     {
-        return filled(config('services.senangpay.client_id'))
-            && filled(config('services.senangpay.secret_key'))
-            && filled(config('services.senangpay.base_url'));
+        return filled($this->cfg('client_id'))
+            && filled($this->cfg('secret_key'))
+            && filled($this->cfg('base_url'));
     }
 
     public function createPayment(Payment $payment): string
@@ -78,7 +85,7 @@ class SenangPayGateway implements PaymentGateway
 
         $response = Http::withHeaders($headers)
             ->withBody($json, 'application/json')
-            ->post(rtrim(config('services.senangpay.base_url'), '/') . self::PAYMENT_PATH);
+            ->post(rtrim($this->cfg('base_url'), '/') . self::PAYMENT_PATH);
 
         if (! $response->successful()) {
             $err = $response->json('error.message') ?? $response->body();
@@ -105,7 +112,7 @@ class SenangPayGateway implements PaymentGateway
 
     public function verifyCallback(Request $request): array
     {
-        $secretKey = config('services.senangpay.secret_key');
+        $secretKey = $this->cfg('secret_key');
         $rawBody   = $request->getContent();
 
         // DOKU signs its notification with the same scheme, using the path it
@@ -166,8 +173,8 @@ class SenangPayGateway implements PaymentGateway
      */
     private function signedHeaders(string $path, string $jsonBody): array
     {
-        $clientId  = config('services.senangpay.client_id');
-        $secretKey = config('services.senangpay.secret_key');
+        $clientId  = $this->cfg('client_id');
+        $secretKey = $this->cfg('secret_key');
         $requestId = (string) Str::uuid();
         $timestamp = gmdate('Y-m-d\TH:i:s\Z');   // ISO-8601 UTC, e.g. 2020-10-21T03:38:28Z
         $digest    = base64_encode(hash('sha256', $jsonBody, true));

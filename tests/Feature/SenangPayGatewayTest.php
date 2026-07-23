@@ -29,7 +29,8 @@ class SenangPayGatewayTest extends TestCase
     {
         parent::setUp();
 
-        config()->set('services.senangpay', [
+        // Credentials are per-site now (config/sites.php), not global services.*.
+        config()->set('sites.sites.nansolutions.gateways.senangpay.config', [
             'client_id'  => self::CLIENT_ID,
             'secret_key' => self::SECRET,
             'base_url'   => self::BASE_URL,

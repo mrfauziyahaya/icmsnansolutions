@@ -2,6 +2,8 @@
 
 namespace App\Services\Payments;
 
+use App\Services\SiteManager;
+
 class PaymentGatewayManager
 {
     private const DRIVERS = [
@@ -12,26 +14,16 @@ class PaymentGatewayManager
         'senangpay' => SenangPayGateway::class,
     ];
 
-    /**
-     * Gateways that are BNPL — hidden below the BNPL minimum amount.
-     */
-    public const BNPL = ['atome', 'ahapay'];
+    public function __construct(private SiteManager $sites) {}
 
     /**
-     * Gateways that expose more than one selectable method at checkout. Each
-     * entry becomes its own option; the chosen method is stored on the Payment
-     * and the driver narrows the hosted page to it (e.g. CHIP's whitelist).
-     *
-     * @var array<string, array<int, array{method: string, label: string}>>
+     * Resolve a driver bound to a specific site, so it reads that site's
+     * credentials. Always pass the site explicitly where it matters:
+     *   - createPayment  -> the current request's site
+     *   - getStatus      -> the payment's own site (CLI-safe)
+     *   - verifyCallback -> the site the callback arrived on
      */
-    private const METHODS = [
-        'chip' => [
-            ['method' => 'fpx',  'label' => 'CHIP — FPX (Maybank, CIMB, dll.)'],
-            ['method' => 'card', 'label' => 'CHIP — Kad Kredit / Debit'],
-        ],
-    ];
-
-    public function driver(string $gateway): PaymentGateway
+    public function driver(string $gateway, ?string $site = null): PaymentGateway
     {
         $class = self::DRIVERS[$gateway] ?? null;
 
@@ -39,7 +31,13 @@ class PaymentGatewayManager
             throw new GatewayException("Unknown payment gateway [{$gateway}].");
         }
 
-        return app($class);
+        $driver = app($class);
+
+        if ($driver instanceof SiteAwareGateway) {
+            $driver->usingSite($site ?? $this->sites->key());
+        }
+
+        return $driver;
     }
 
     public function exists(string $gateway): bool
@@ -48,59 +46,54 @@ class PaymentGatewayManager
     }
 
     /**
-     * Gateways that are configured and therefore selectable by a payer.
+     * Gateways this site has switched on and configured, as label => key.
      *
-     * @return array<string, string> gateway key => label
+     * @return array<string, string>
      */
-    public function available(?float $amount = null): array
+    public function available(?float $amount = null, ?string $site = null): array
     {
-        $bnplMin  = (float) config('services.payments.bnpl_min', 30);
-        $disabled = (array) config('services.payments.disabled', []);
-        $out      = [];
+        $out = [];
 
-        foreach (self::DRIVERS as $key => $class) {
-            if (in_array($key, $disabled, true) || ! app($class)->isConfigured()) {
-                continue;
-            }
-
-            // BNPL providers reject small amounts — don't offer what will fail.
-            if ($amount !== null && in_array($key, self::BNPL, true) && $amount < $bnplMin) {
-                continue;
-            }
-
-            $out[$key] = \App\Models\Payment::GATEWAY_LABELS[$key] ?? $key;
+        foreach ($this->checkoutOptions($amount, $site) as $option) {
+            $out[$option['gateway']] = $option['label'];
         }
 
         return $out;
     }
 
     /**
-     * Flat list of selectable checkout options. A gateway with multiple methods
-     * (CHIP → FPX / Card) yields one option per method; every other gateway
-     * yields a single option. The `value` is what the checkout form submits.
+     * Flat list of selectable checkout options for a site. A gateway with
+     * several methods (CHIP → FPX / Card) yields one option per method.
      *
      * @return array<int, array{value: string, gateway: string, method: ?string, label: string, bnpl: bool}>
      */
-    public function checkoutOptions(?float $amount = null): array
+    public function checkoutOptions(?float $amount = null, ?string $site = null): array
     {
+        $site     = $site ?? $this->sites->key();
         $bnplMin  = (float) config('services.payments.bnpl_min', 30);
         $disabled = (array) config('services.payments.disabled', []);
         $options  = [];
 
-        foreach (self::DRIVERS as $key => $class) {
-            if (in_array($key, $disabled, true) || ! app($class)->isConfigured()) {
+        foreach ($this->sites->gateways($site) as $key => $definition) {
+            if (! isset(self::DRIVERS[$key]) || in_array($key, $disabled, true)) {
                 continue;
             }
 
-            $isBnpl = in_array($key, self::BNPL, true);
+            if (! $this->driver($key, $site)->isConfigured()) {
+                continue;
+            }
+
+            $isBnpl = (bool) ($definition['bnpl'] ?? false);
 
             // BNPL providers reject small amounts — don't offer what will fail.
             if ($amount !== null && $isBnpl && $amount < $bnplMin) {
                 continue;
             }
 
-            if (isset(self::METHODS[$key])) {
-                foreach (self::METHODS[$key] as $m) {
+            $methods = $definition['methods'] ?? null;
+
+            if (is_array($methods) && $methods !== []) {
+                foreach ($methods as $m) {
                     $options[] = [
                         'value'   => $key . ':' . $m['method'],
                         'gateway' => $key,
@@ -117,7 +110,7 @@ class PaymentGatewayManager
                 'value'   => $key,
                 'gateway' => $key,
                 'method'  => null,
-                'label'   => \App\Models\Payment::GATEWAY_LABELS[$key] ?? $key,
+                'label'   => $definition['label'] ?? $key,
                 'bnpl'    => $isBnpl,
             ];
         }
@@ -126,15 +119,15 @@ class PaymentGatewayManager
     }
 
     /**
-     * Resolve a submitted option value against the options actually available
-     * for the given amount. Returns null if the value is unknown or gated out
-     * (BNPL below minimum, gateway unconfigured), so the caller can reject it.
+     * Resolve a submitted option value against what's actually available for
+     * this amount on this site. Null when unknown or gated out, so the caller
+     * can reject it.
      *
      * @return array{value: string, gateway: string, method: ?string, label: string, bnpl: bool}|null
      */
-    public function resolveOption(string $value, ?float $amount = null): ?array
+    public function resolveOption(string $value, ?float $amount = null, ?string $site = null): ?array
     {
-        foreach ($this->checkoutOptions($amount) as $option) {
+        foreach ($this->checkoutOptions($amount, $site) as $option) {
             if ($option['value'] === $value) {
                 return $option;
             }

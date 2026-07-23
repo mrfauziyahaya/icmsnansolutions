@@ -9,10 +9,23 @@ class TurnstileService
 {
     private const VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
-    public function isConfigured(): bool
+    /**
+     * Turnstile keys are bound to a hostname, so each site has its own pair.
+     * Falls back to the legacy single-site keys when a site hasn't got any.
+     */
+    public function siteKey(?string $site = null): ?string
     {
-        return filled(config('services.turnstile.site_key'))
-            && filled(config('services.turnstile.secret_key'));
+        return site()->turnstile('site_key', $site) ?: config('services.turnstile.site_key');
+    }
+
+    public function secretKey(?string $site = null): ?string
+    {
+        return site()->turnstile('secret_key', $site) ?: config('services.turnstile.secret_key');
+    }
+
+    public function isConfigured(?string $site = null): bool
+    {
+        return filled($this->siteKey($site)) && filled($this->secretKey($site));
     }
 
     /**
@@ -20,10 +33,10 @@ class TurnstileService
      * skipped so local/staging still work, but that is logged — production
      * should always have the keys set.
      */
-    public function verify(?string $token, ?string $ip = null): bool
+    public function verify(?string $token, ?string $ip = null, ?string $site = null): bool
     {
-        if (! $this->isConfigured()) {
-            Log::warning('Turnstile is not configured — captcha check skipped.');
+        if (! $this->isConfigured($site)) {
+            Log::warning('Turnstile is not configured — captcha check skipped.', ['site' => $site ?? site()->key()]);
             return true;
         }
 
@@ -33,7 +46,7 @@ class TurnstileService
 
         try {
             $response = Http::asForm()->post(self::VERIFY_URL, [
-                'secret'   => config('services.turnstile.secret_key'),
+                'secret'   => $this->secretKey($site),
                 'response' => $token,
                 'remoteip' => $ip,
             ]);

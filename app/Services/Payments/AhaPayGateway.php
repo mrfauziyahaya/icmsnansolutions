@@ -20,11 +20,18 @@ use Illuminate\Support\Facades\Log;
  * treats explicit success values as paid (unknown -> pending), so it can never
  * mark an order paid by mistake. Confirm the exact strings in a sandbox order.
  */
-class AhaPayGateway implements PaymentGateway
+class AhaPayGateway implements PaymentGateway, SiteAwareGateway
 {
+    use Concerns\ResolvesSiteCredentials;
+
+    protected function gatewayKey(): string
+    {
+        return 'ahapay';
+    }
+
     public function isConfigured(): bool
     {
-        return filled(config('services.ahapay.api_key')) && filled(config('services.ahapay.base_url'));
+        return filled($this->cfg('api_key')) && filled($this->cfg('base_url'));
     }
 
     public function createPayment(Payment $payment): string
@@ -52,13 +59,13 @@ class AhaPayGateway implements PaymentGateway
         ];
 
         // Optional merchant identifier, only sent if configured.
-        if (filled(config('services.ahapay.merchant_id'))) {
-            $body['external_merchant_id'] = config('services.ahapay.merchant_id');
+        if (filled($this->cfg('merchant_id'))) {
+            $body['external_merchant_id'] = $this->cfg('merchant_id');
         }
 
-        $response = Http::withHeaders(['X-ApiKey' => config('services.ahapay.api_key')])
+        $response = Http::withHeaders(['X-ApiKey' => $this->cfg('api_key')])
             ->acceptJson()
-            ->post(rtrim(config('services.ahapay.base_url'), '/') . '/v1/orders', $body);
+            ->post(rtrim($this->cfg('base_url'), '/') . '/v1/orders', $body);
 
         if (! $response->successful()) {
             Log::error("AhaPay createPayment failed for {$payment->reference}: " . $response->body());
@@ -117,9 +124,9 @@ class AhaPayGateway implements PaymentGateway
      */
     private function queryStatus(string $orderId): array
     {
-        $response = Http::withHeaders(['X-ApiKey' => config('services.ahapay.api_key')])
+        $response = Http::withHeaders(['X-ApiKey' => $this->cfg('api_key')])
             ->acceptJson()
-            ->get(rtrim(config('services.ahapay.base_url'), '/') . '/v1/orders/' . rawurlencode($orderId) . '/status');
+            ->get(rtrim($this->cfg('base_url'), '/') . '/v1/orders/' . rawurlencode($orderId) . '/status');
 
         if (! $response->successful()) {
             throw new GatewayException('AhaPay getStatus failed: ' . $response->status());
@@ -160,7 +167,7 @@ class AhaPayGateway implements PaymentGateway
      */
     private function assertSignatureIsValid(Request $request): void
     {
-        $secret = config('services.ahapay.secret_key');
+        $secret = $this->cfg('secret_key');
 
         if (blank($secret)) {
             Log::warning('AhaPay secret key not configured — callback signature not verified.');

@@ -134,9 +134,9 @@
                         </div>
                     </dl>
 
-                    @if(config('services.turnstile.site_key'))
+                    @if(app(\App\Services\TurnstileService::class)->siteKey())
                         <div>
-                            <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}"></div>
+                            <div class="cf-turnstile" data-sitekey="{{ app(\App\Services\TurnstileService::class)->siteKey() }}"></div>
                         </div>
                     @endif
 
@@ -168,7 +168,7 @@
         @endif
     </div>
 
-    @if(config('services.turnstile.site_key'))
+    @if(app(\App\Services\TurnstileService::class)->siteKey())
         <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     @endif
 

@@ -22,13 +22,20 @@ use Illuminate\Support\Facades\Log;
  * the authenticated Get Payment API — so even an unsigned/forged ping cannot
  * settle an order. Signature is still verified when a callback secret is set.
  */
-class AtomeGateway implements PaymentGateway
+class AtomeGateway implements PaymentGateway, SiteAwareGateway
 {
+    use Concerns\ResolvesSiteCredentials;
+
+    protected function gatewayKey(): string
+    {
+        return 'atome';
+    }
+
     public function isConfigured(): bool
     {
-        return filled(config('services.atome.partner_id'))
-            && filled(config('services.atome.secret_key'))
-            && filled(config('services.atome.base_url'));
+        return filled($this->cfg('partner_id'))
+            && filled($this->cfg('secret_key'))
+            && filled($this->cfg('base_url'));
     }
 
     public function createPayment(Payment $payment): string
@@ -67,9 +74,9 @@ class AtomeGateway implements PaymentGateway
         ];
 
         $response = Http::withBasicAuth(
-            config('services.atome.partner_id'),
-            config('services.atome.secret_key'),
-        )->acceptJson()->post(rtrim(config('services.atome.base_url'), '/') . '/payments', $body);
+            $this->cfg('partner_id'),
+            $this->cfg('secret_key'),
+        )->acceptJson()->post(rtrim($this->cfg('base_url'), '/') . '/payments', $body);
 
         if (! $response->successful()) {
             $err = $response->json('message') ?? $response->json('code') ?? $response->body();
@@ -130,9 +137,9 @@ class AtomeGateway implements PaymentGateway
     private function queryStatus(string $referenceId): array
     {
         $response = Http::withBasicAuth(
-            config('services.atome.partner_id'),
-            config('services.atome.secret_key'),
-        )->acceptJson()->get(rtrim(config('services.atome.base_url'), '/') . '/payments/' . rawurlencode($referenceId));
+            $this->cfg('partner_id'),
+            $this->cfg('secret_key'),
+        )->acceptJson()->get(rtrim($this->cfg('base_url'), '/') . '/payments/' . rawurlencode($referenceId));
 
         // Not found yet = buyer hasn't progressed → still pending.
         if ($response->status() === 404) {
@@ -159,7 +166,7 @@ class AtomeGateway implements PaymentGateway
      */
     private function assertSignatureIsValid(Request $request): void
     {
-        $secret = config('services.atome.callback_secret');
+        $secret = $this->cfg('callback_secret');
 
         if (blank($secret)) {
             Log::warning('Atome callback secret not configured — X-Signature not verified (status is still re-fetched from Atome).');

@@ -576,9 +576,9 @@
                         @error('message')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
 
-                    @if(config('services.turnstile.site_key'))
+                    @if(app(\App\Services\TurnstileService::class)->siteKey())
                         <div>
-                            <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}"></div>
+                            <div class="cf-turnstile" data-sitekey="{{ app(\App\Services\TurnstileService::class)->siteKey() }}"></div>
                             @error('captcha')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                         </div>
                     @endif
@@ -641,7 +641,7 @@
     </svg>
 </a>
 
-@if(config('services.turnstile.site_key'))
+@if(app(\App\Services\TurnstileService::class)->siteKey())
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 @endif
 
