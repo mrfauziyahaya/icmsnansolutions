@@ -155,10 +155,15 @@ class SenangPayGateway implements PaymentGateway
 
     public function getStatus(Payment $payment): array
     {
-        // DOKU's Transaction/Check Status endpoint spec isn't wired yet. The
-        // signed HTTP notification (verifyCallback) is the source of truth, and
-        // DOKU sends one even for EXPIRED, so pending payments still resolve.
-        throw new GatewayException('senangPay status query is not implemented yet — awaiting Check Status API spec.');
+        // DOKU's Check Status endpoint spec isn't available, so senangPay can't
+        // self-query: the signed HTTP notification (verifyCallback) is the only
+        // source of truth. Report "unchanged" rather than throwing — the
+        // reconcile cron runs every 10 minutes and an exception here logged a
+        // warning per stuck payment per tick, drowning out real errors.
+        //
+        // Consequence: a missed notification leaves a payment pending until it
+        // is resolved by hand. Wire this up properly once DOKU supplies the spec.
+        return ['status' => $payment->status, 'reason' => null];
     }
 
     /**
