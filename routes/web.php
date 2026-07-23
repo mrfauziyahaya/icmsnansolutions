@@ -14,6 +14,14 @@ use App\Http\Controllers\PaymentController;
 // Public landing page (the site's front door once nansolutions.com.my points here)
 Route::view('/', 'landing')->name('landing');
 
+// Legal pages (Terms & Conditions sub-pages)
+Route::view('/privacy-policy', 'legal.privacy-policy')->name('legal.privacy');
+Route::view('/cancellation-refund-policy', 'legal.cancellation-refund')->name('legal.refund');
+Route::view('/service-delivery-policy', 'legal.service-delivery')->name('legal.delivery');
+
+// Public contact form
+Route::post('/hubungi', [\App\Http\Controllers\ContactController::class, 'store'])->name('contact.store');
+
 // Public policy lookup — no auth required
 Route::get('/lookup', [LookupController::class, 'index'])->name('lookup');
 
@@ -55,6 +63,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('quote-templates', \App\Http\Controllers\QuoteTemplateController::class)
         ->except(['show'])->parameters(['quote-templates' => 'quoteTemplate']);
     Route::get('/quote-templates/{quoteTemplate}', [\App\Http\Controllers\QuoteTemplateController::class, 'show'])->name('quote-templates.show');
+
+    // Contact messages (Mesej Hubungi)
+    Route::get('/contact-messages', [\App\Http\Controllers\ContactController::class, 'index'])->name('contact.index');
+    Route::patch('/contact-messages/{contactMessage}/toggle-read', [\App\Http\Controllers\ContactController::class, 'toggleRead'])->name('contact.toggle-read');
+    Route::delete('/contact-messages/{contactMessage}', [\App\Http\Controllers\ContactController::class, 'destroy'])->name('contact.destroy');
 
     // Quote Requests (Request Sebut Harga)
     Route::get('/quote-requests', [QuoteRequestController::class, 'index'])->name('quote-requests.index');

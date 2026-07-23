@@ -95,6 +95,18 @@
                     <a href="#rakan" class="hover:text-white">Rakan Insurans</a>
                     <a href="#blog" class="hover:text-white">Blog</a>
                     <a href="#hubungi" class="hover:text-white">Hubungi Kami</a>
+                    <div class="relative" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.outside="t=false">
+                        <button @click="t=!t" class="flex items-center gap-1 uppercase hover:text-white">
+                            Terma &amp; Syarat
+                            <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="t" x-cloak
+                             class="absolute right-0 mt-3 w-64 rounded-lg bg-white py-1 shadow-xl ring-1 ring-black/5 normal-case tracking-normal">
+                            <a href="{{ route('legal.privacy') }}" class="block px-4 py-2.5 text-sm text-brand-slate hover:bg-brand-wash">Dasar Privasi</a>
+                            <a href="{{ route('legal.refund') }}" class="block px-4 py-2.5 text-sm text-brand-slate hover:bg-brand-wash">Pembatalan &amp; Bayaran Balik</a>
+                            <a href="{{ route('legal.delivery') }}" class="block px-4 py-2.5 text-sm text-brand-slate hover:bg-brand-wash">Penghantaran Perkhidmatan</a>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="hidden lg:flex items-center gap-3">
@@ -119,6 +131,12 @@
                 <a href="#blog" class="block px-3 py-2.5 rounded hover:bg-white/15">Blog</a>
                 <a href="{{ route('pay.create') }}" class="block px-3 py-2.5 rounded hover:bg-white/15">Bayaran</a>
                 <a href="#hubungi" class="block px-3 py-2.5 rounded hover:bg-white/15">Hubungi Kami</a>
+                <div class="mt-1 pt-1 border-t border-white/15">
+                    <p class="px-3 pt-2 pb-1 text-xs text-white/50">Terma &amp; Syarat</p>
+                    <a href="{{ route('legal.privacy') }}" class="block px-3 py-2 rounded text-[13px] normal-case tracking-normal hover:bg-white/15">Dasar Privasi</a>
+                    <a href="{{ route('legal.refund') }}" class="block px-3 py-2 rounded text-[13px] normal-case tracking-normal hover:bg-white/15">Pembatalan &amp; Bayaran Balik</a>
+                    <a href="{{ route('legal.delivery') }}" class="block px-3 py-2 rounded text-[13px] normal-case tracking-normal hover:bg-white/15">Penghantaran Perkhidmatan</a>
+                </div>
                 <a href="{{ route('quote.create') }}" class="block mt-2 rounded-md bg-white px-4 py-3 text-center font-semibold text-[#D95A16]">Sebut Harga Percuma</a>
             </div>
         </nav>
@@ -494,7 +512,10 @@
                 <dl class="mt-6 space-y-4 text-sm">
                     <div>
                         <dt class="font-display uppercase text-xs tracking-wide text-[#E2661F]">Alamat</dt>
-                        <dd class="mt-1 leading-relaxed">{{ $setting->address ?? 'Alamat penuh syarikat di sini.' }}</dd>
+                        <dd class="mt-1 leading-relaxed">
+                            No 17A, Tingkat Atas Ruangniaga Sinar Mekar Abadi (RSMA),<br>
+                            Jalan Kangsar, 33000 Kuala Kangsar, Perak.
+                        </dd>
                     </div>
                     <div>
                         <dt class="font-display uppercase text-xs tracking-wide text-[#E2661F]">Telefon</dt>
@@ -515,35 +536,51 @@
                 </dl>
             </div>
 
-            <!-- right — NOTE: markup only, backend not wired yet -->
+            <!-- right — contact form -->
             <div class="col-span-12 md:col-span-7">
-                <form class="bg-white rounded-xl border border-gray-300 p-6 sm:p-8 space-y-5">
+                @if(session('contact_success'))
+                    <div class="mb-4 rounded-xl bg-green-50 border border-green-200 px-5 py-4 text-sm text-green-800">
+                        {{ session('contact_success') }}
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('contact.store') }}" class="bg-white rounded-xl border border-gray-300 p-6 sm:p-8 space-y-5">
+                    @csrf
                     <div>
                         <label class="block text-sm font-medium text-brand-slate mb-1">Nama Penuh</label>
-                        <input type="text" name="name" class="{{ $field }}">
+                        <input type="text" name="name" value="{{ old('name') }}" required class="{{ $field }}">
+                        @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div class="grid sm:grid-cols-2 gap-5">
                         <div>
                             <label class="block text-sm font-medium text-brand-slate mb-1">E-mel</label>
-                            <input type="email" name="email" class="{{ $field }}">
+                            <input type="email" name="email" value="{{ old('email') }}" required class="{{ $field }}">
+                            @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-brand-slate mb-1">No. WhatsApp</label>
-                            <input type="text" name="phone" placeholder="0129622878" class="{{ $field }}">
+                            <input type="text" name="phone" value="{{ old('phone') }}" required placeholder="0129622878" class="{{ $field }}">
+                            @error('phone')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                         </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-brand-slate mb-1">Perkara</label>
-                        <input type="text" name="subject" class="{{ $field }}">
+                        <input type="text" name="subject" value="{{ old('subject') }}" class="{{ $field }}">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-brand-slate mb-1">Mesej</label>
-                        <textarea name="message" rows="5" class="{{ $field }}"></textarea>
+                        <textarea name="message" rows="5" required class="{{ $field }}">{{ old('message') }}</textarea>
+                        @error('message')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
 
-                    <x-cta-button type="button">Hantar Mesej</x-cta-button>
+                    @if(config('services.turnstile.site_key'))
+                        <div>
+                            <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}"></div>
+                            @error('captcha')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    @endif
 
-                    <p class="text-xs italic text-brand-muted">Borang ini belum disambungkan — akan dilaksanakan bersama ciri Contact Form.</p>
+                    <x-cta-button type="submit">Hantar Mesej</x-cta-button>
                 </form>
             </div>
         </div>
@@ -579,14 +616,19 @@
         </div>
     </div>
     <div class="border-t border-white/10">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 text-xs text-white/50">
-            &copy; {{ date('Y') }} {{ $company }}. Hak cipta terpelihara.
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 text-xs text-white/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span>&copy; {{ date('Y') }} {{ $company }}. Hak cipta terpelihara.</span>
+            <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+                <a href="{{ route('legal.privacy') }}" class="hover:text-[#F0813A]">Dasar Privasi</a>
+                <a href="{{ route('legal.refund') }}" class="hover:text-[#F0813A]">Pembatalan &amp; Bayaran Balik</a>
+                <a href="{{ route('legal.delivery') }}" class="hover:text-[#F0813A]">Penghantaran Perkhidmatan</a>
+            </nav>
         </div>
     </div>
 </footer>
 
 <!-- ══ Floating WhatsApp ════════════════════════════════════════════════ -->
-<a href="https://wa.link/cikhnz" target="_blank" rel="noopener"
+<a href="https://wa.link/aib22q" target="_blank" rel="noopener"
    aria-label="Hubungi kami di WhatsApp"
    class="fixed bottom-5 right-5 z-50 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center
           rounded-full bg-[#25D366] text-white shadow-lg ring-1 ring-black/5
@@ -595,6 +637,14 @@
         <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.2-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.2.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.2-.6-.4M12 2a10 10 0 00-8.6 15L2 22l5.1-1.3A10 10 0 1012 2"/>
     </svg>
 </a>
+
+@if(config('services.turnstile.site_key'))
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+@endif
+
+@if($errors->hasAny(['name', 'email', 'phone', 'message', 'captcha']) || session('contact_success'))
+    <script>document.addEventListener('DOMContentLoaded', () => document.getElementById('hubungi')?.scrollIntoView());</script>
+@endif
 
 <style>
     [x-cloak]{display:none!important}
