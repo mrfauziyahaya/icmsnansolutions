@@ -31,15 +31,22 @@ use Illuminate\Support\Str;
  * header of that name, and sends the Signature without the "HMACSHA256=" prefix.
  * Verification uses that header rather than assuming our own request path.
  */
-class SenangPayGateway implements PaymentGateway
+class SenangPayGateway implements PaymentGateway, SiteAwareGateway
 {
+    use Concerns\ResolvesSiteCredentials;
+
+    protected function gatewayKey(): string
+    {
+        return 'senangpay';
+    }
+
     private const PAYMENT_PATH = '/checkout/v1/payment';
 
     public function isConfigured(): bool
     {
-        return filled(config('services.senangpay.client_id'))
-            && filled(config('services.senangpay.secret_key'))
-            && filled(config('services.senangpay.base_url'));
+        return filled($this->cfg('client_id'))
+            && filled($this->cfg('secret_key'))
+            && filled($this->cfg('base_url'));
     }
 
     public function createPayment(Payment $payment): string
@@ -82,7 +89,7 @@ class SenangPayGateway implements PaymentGateway
 
         $response = Http::withHeaders($headers)
             ->withBody($json, 'application/json')
-            ->post(rtrim(config('services.senangpay.base_url'), '/') . self::PAYMENT_PATH);
+            ->post(rtrim($this->cfg('base_url'), '/') . self::PAYMENT_PATH);
 
         if (! $response->successful()) {
             $err = $response->json('error.message') ?? $response->body();
@@ -109,7 +116,7 @@ class SenangPayGateway implements PaymentGateway
 
     public function verifyCallback(Request $request): array
     {
-        $secretKey = config('services.senangpay.secret_key');
+        $secretKey = $this->cfg('secret_key');
         $rawBody   = $request->getContent();
 
         $digest   = base64_encode(hash('sha256', $rawBody, true));
@@ -153,7 +160,8 @@ class SenangPayGateway implements PaymentGateway
                 'received'          => $received,
                 'targets_tried'     => $targets,
                 'client_id_header'  => $request->header('Client-Id'),
-                'client_id_matches' => $request->header('Client-Id') === config('services.senangpay.client_id'),
+                'client_id_matches' => $request->header('Client-Id') === $this->cfg('client_id'),
+                'site'              => $this->site(),
                 'request_id'        => $request->header('Request-Id'),
                 'request_timestamp' => $request->header('Request-Timestamp'),
                 'digest_computed'   => $digest,
@@ -201,8 +209,8 @@ class SenangPayGateway implements PaymentGateway
      */
     private function signedHeaders(string $path, string $jsonBody): array
     {
-        $clientId  = config('services.senangpay.client_id');
-        $secretKey = config('services.senangpay.secret_key');
+        $clientId  = $this->cfg('client_id');
+        $secretKey = $this->cfg('secret_key');
         $requestId = (string) Str::uuid();
         $timestamp = gmdate('Y-m-d\TH:i:s\Z');   // ISO-8601 UTC, e.g. 2020-10-21T03:38:28Z
         $digest    = base64_encode(hash('sha256', $jsonBody, true));
