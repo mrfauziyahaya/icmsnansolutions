@@ -11,8 +11,9 @@
 <body class="h-full font-sans antialiased text-gray-900">
 
     @php
-        $company = site()->companyName();
-        $logo    = site()->logoUrl();
+        $company   = site()->companyName();
+        $logo      = site()->logoUrl();
+        $copyright = site()->copyrightName();
     @endphp
 
     <header class="bg-orange-600 shadow">
@@ -31,7 +32,7 @@
     </main>
 
     <footer class="text-center text-xs text-gray-400 pb-8">
-        &copy; {{ date('Y') }} {{ $company }}. All rights reserved.
+        &copy; {{ date('Y') }} {{ $copyright }}. All rights reserved.
     </footer>
 
 </body>

@@ -152,6 +152,16 @@ class SiteManager
     }
 
     /**
+     * Name on the copyright line. Separate from companyName() because a site can
+     * trade under its own brand while the copyright stays with the operating
+     * company — reniu.my shows the Reniu logo but the NAN Solutions copyright.
+     */
+    public function copyrightName(?string $site = null): string
+    {
+        return (string) ($this->config('copyright', null, $site) ?: $this->companyName($site));
+    }
+
+    /**
      * Logo URL for this site, or null to fall back to a text wordmark.
      * Checks the file exists so a missing asset never renders broken.
      */

@@ -124,10 +124,12 @@ return [
             'reference_prefix' => 'RNU',
             'whatsapp_link'    => env('RENIU_WHATSAPP_LINK'),
 
-            // Drop a logo at public/images/reniu-logo.png to use it; until then
-            // the checkout shows the company name as text.
             'company' => 'Reniu',
-            'logo'    => 'images/reniu-logo.png',
+            'logo'    => 'images/reniu-my.png',
+
+            // reniu.my is a NAN Solutions brand, so the checkout carries Reniu
+            // branding but the NAN Solutions copyright line.
+            'copyright' => 'NAN SOLUTIONS',
 
             'turnstile' => [
                 'site_key'   => env('RENIU_TURNSTILE_SITE_KEY'),

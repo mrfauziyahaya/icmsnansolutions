@@ -112,6 +112,30 @@ class MultiSiteTest extends TestCase
         $this->assertStringStartsWith('PAY-', Payment::nextReference('nansolutions'));
     }
 
+    // ── Branding ─────────────────────────────────────────────────────────────
+
+    /** reniu.my trades as Reniu but the checkout carries NAN Solutions' copyright. */
+    public function test_reniu_checkout_shows_the_reniu_logo_and_nansolutions_copyright(): void
+    {
+        $html = $this->get('http://reniu.my/pay')->assertOk()->getContent();
+
+        $this->assertStringContainsString('images/reniu-my.png', $html);
+        $this->assertStringContainsString('&copy; ' . date('Y') . ' NAN SOLUTIONS. All rights reserved.', $html);
+    }
+
+    /** The logo file must actually exist, or logoUrl() silently renders nothing. */
+    public function test_the_reniu_logo_file_is_present(): void
+    {
+        $this->assertFileExists(public_path(config('sites.sites.reniu.logo')));
+    }
+
+    public function test_nansolutions_copyright_is_unchanged(): void
+    {
+        $html = $this->get('http://nansolutions.com.my/pay')->assertOk()->getContent();
+
+        $this->assertStringContainsString(site()->companyName('nansolutions') . '. All rights reserved.', $html);
+    }
+
     // ── Route exposure ───────────────────────────────────────────────────────
 
     public function test_reniu_exposes_the_checkout(): void
