@@ -114,13 +114,12 @@ class MultiSiteTest extends TestCase
 
     // ── Branding ─────────────────────────────────────────────────────────────
 
-    /** reniu.my trades as Reniu but the checkout carries NAN Solutions' copyright. */
-    public function test_reniu_checkout_shows_the_reniu_logo_and_nansolutions_copyright(): void
+    public function test_reniu_checkout_shows_the_reniu_logo_and_copyright(): void
     {
         $html = $this->get('http://reniu.my/pay')->assertOk()->getContent();
 
         $this->assertStringContainsString('images/reniu-my.png', $html);
-        $this->assertStringContainsString('&copy; ' . date('Y') . ' NAN SOLUTIONS. All rights reserved.', $html);
+        $this->assertStringContainsString('&copy; ' . date('Y') . ' RENIU. All rights reserved.', $html);
     }
 
     /** The logo file must actually exist, or logoUrl() silently renders nothing. */

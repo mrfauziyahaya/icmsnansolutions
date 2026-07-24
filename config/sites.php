@@ -127,9 +127,8 @@ return [
             'company' => 'Reniu',
             'logo'    => 'images/reniu-my.png',
 
-            // reniu.my is a NAN Solutions brand, so the checkout carries Reniu
-            // branding but the NAN Solutions copyright line.
-            'copyright' => 'NAN SOLUTIONS',
+            // Uppercase on the copyright line, matching how the brand is set there.
+            'copyright' => 'RENIU',
 
             'turnstile' => [
                 'site_key'   => env('RENIU_TURNSTILE_SITE_KEY'),
