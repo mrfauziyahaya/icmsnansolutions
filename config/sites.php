@@ -45,6 +45,18 @@ return [
             'company' => null,
             'logo'    => null,
 
+            // Company identity shown on the landing contact block and the legal
+            // pages. Kept per-site so reniu.my carries its own entity.
+            'legal' => [
+                'name'         => 'Nan Solutions',            // as written in policy prose
+                'entity'       => 'NAN SOLUTIONS',            // uppercase, contact/footer
+                'registration' => '202003286749 | SA0554424-W',
+                // The registered/DPO address shown on the legal pages (the landing
+                // shows the office address separately, and is left as-is).
+                'address'      => 'No 1115, Persiaran Chandan 2/11,<br>Taman Chandan Puteri Fasa 4,<br>33000 Kuala Kangsar, Perak.',
+                'email'        => 'hello@nansolutions.com.my',
+            ],
+
             'turnstile' => [
                 'site_key'   => env('TURNSTILE_SITE_KEY'),
                 'secret_key' => env('TURNSTILE_SECRET_KEY'),
@@ -132,6 +144,14 @@ return [
 
             // Uppercase on the copyright line, matching how the brand is set there.
             'copyright' => 'RENIU',
+
+            'legal' => [
+                'name'         => 'Reniu',
+                'entity'       => 'MY RENIU AGENCY',
+                'registration' => '202603051585 (003827443-P)',
+                'address'      => 'NO I-15, FASA 1D1, JALAN SM 1D/4,<br>32040 SERI MANJUNG, PERAK.',
+                'email'        => 'hello@reniu.my',
+            ],
 
             'turnstile' => [
                 'site_key'   => env('RENIU_TURNSTILE_SITE_KEY'),

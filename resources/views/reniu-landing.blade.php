@@ -87,7 +87,6 @@
                     <a href="#utama" class="hover:text-white">Utama</a>
                     <a href="#tentang" class="hover:text-white">Tentang Kami</a>
                     <a href="#rakan" class="hover:text-white">Rakan Insurans</a>
-                    <a href="#blog" class="hover:text-white">Blog</a>
                     <a href="#hubungi" class="hover:text-white">Hubungi Kami</a>
                     <div class="relative" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.outside="t=false">
                         <button @click="t=!t" class="flex items-center gap-1 uppercase hover:text-white">
@@ -119,7 +118,6 @@
                 <a href="#utama" class="block px-3 py-2.5 rounded hover:bg-white/15">Utama</a>
                 <a href="#tentang" class="block px-3 py-2.5 rounded hover:bg-white/15">Tentang Kami</a>
                 <a href="#rakan" class="block px-3 py-2.5 rounded hover:bg-white/15">Rakan Insurans</a>
-                <a href="#blog" class="block px-3 py-2.5 rounded hover:bg-white/15">Blog</a>
                 <a href="{{ route('pay.create') }}" class="block px-3 py-2.5 rounded hover:bg-white/15">Bayaran</a>
                 <a href="#hubungi" class="block px-3 py-2.5 rounded hover:bg-white/15">Hubungi Kami</a>
                 <div class="mt-1 pt-1 border-t border-white/15">
@@ -177,7 +175,7 @@
                     TENTANG KAMI
                 </h2>
                 <p class="mt-4 leading-relaxed text-white/75">
-                    Reniu (No. Pendaftaran: 202003286749 | SA0554424-W) telah beroperasi sejak tahun 2020 dan terus berkembang sebagai syarikat yang pakar dalam bidang tuntutan insurans & takaful. Dengan pengalaman luas, kami telah membantu ramai pelanggan mendapatkan penyelesaian terbaik dalam urusan insurans dan takaful mereka.
+                    {{ site()->legal('entity') }} (No. Pendaftaran: {{ site()->legal('registration') }}) telah beroperasi dan terus berkembang sebagai syarikat yang pakar dalam bidang tuntutan insurans & takaful. Dengan pengalaman luas, kami telah membantu ramai pelanggan mendapatkan penyelesaian terbaik dalam urusan insurans dan takaful mereka.
                 </p>
             </div>
             <div class="col-span-12 md:col-span-6">
@@ -410,33 +408,6 @@
     </div>
 </section>
 
-<!-- ══ §9 BLOG — placeholder, to be implemented ═════════════════════════ -->
-<section id="blog" class="py-16 sm:py-20">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-12">
-            <div class="col-span-12 text-center">
-                <h2 class="font-display font-bold uppercase text-2xl sm:text-3xl text-brand-ink">Artikel Terkini</h2>
-                <p class="mt-3 text-brand-muted">Seksyen blog akan dilaksanakan kemudian.</p>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-12 gap-5 mt-10">
-            @for($i = 0; $i < 3; $i++)
-                <div class="col-span-12 sm:col-span-6 lg:col-span-4">
-                    <div class="h-full rounded-xl border border-brand-tint overflow-hidden bg-white">
-                        <x-img-slot class="aspect-[16/9] rounded-none border-0">Imej Artikel</x-img-slot>
-                        <div class="p-5">
-                            <p class="text-xs uppercase tracking-wide text-brand-muted">Tarikh</p>
-                            <h3 class="mt-1 font-semibold text-brand-ink">Tajuk Artikel</h3>
-                            <p class="mt-2 text-sm text-brand-muted">Petikan ringkas artikel.</p>
-                        </div>
-                    </div>
-                </div>
-            @endfor
-        </div>
-    </div>
-</section>
-
 {{-- §10 CONTACT — info only; the contact form belongs to the main site --}}
 <section id="hubungi" class="bg-[#FFF7F1] py-16 sm:py-20">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -453,8 +424,7 @@
                 <div>
                     <dt class="font-display uppercase text-xs tracking-wide text-[#E2661F]">Alamat</dt>
                     <dd class="mt-1 leading-relaxed">
-                        No 17A, Tingkat Atas Ruangniaga Sinar Mekar Abadi (RSMA),<br>
-                        Jalan Kangsar, 33000 Kuala Kangsar, Perak.
+                        {!! site()->legal('address') !!}
                     </dd>
                 </div>
                 <div>
@@ -463,7 +433,7 @@
                 </div>
                 <div>
                     <dt class="font-display uppercase text-xs tracking-wide text-[#E2661F]">E-mel</dt>
-                    <dd class="mt-1"><a href="mailto:hello@nansolutions.com.my" class="font-semibold text-brand-ink hover:text-[#E2661F] break-all">hello@nansolutions.com.my</a></dd>
+                    <dd class="mt-1"><a href="mailto:{{ site()->legal('email') }}" class="font-semibold text-brand-ink hover:text-[#E2661F] break-all">{{ site()->legal('email') }}</a></dd>
                 </div>
                 <div>
                     <dt class="font-display uppercase text-xs tracking-wide text-[#E2661F]">Waktu Operasi</dt>
@@ -486,14 +456,13 @@
             <p class="mt-3 leading-relaxed max-w-sm">
                 Perkhidmatan pembaharuan insurans kenderaan, cukai jalan dan takaful dengan pilihan bayaran ansuran.
             </p>
-            <p class="mt-3 text-white/50 text-xs">No. Pendaftaran: 202003286749 | SA0554424-W</p>
+            <p class="mt-3 text-white/50 text-xs">No. Pendaftaran: {{ site()->legal('registration') }}</p>
         </div>
         <div class="col-span-6 sm:col-span-3">
             <h4 class="font-display uppercase text-[#F0813A] text-xs tracking-widest">Pautan</h4>
             <ul class="mt-3 space-y-2">
                 <li><a href="#tentang" class="hover:text-[#F0813A]">Tentang Kami</a></li>
                 <li><a href="#rakan" class="hover:text-[#F0813A]">Rakan Insurans</a></li>
-                <li><a href="#blog" class="hover:text-[#F0813A]">Blog</a></li>
                 <li><a href="#hubungi" class="hover:text-[#F0813A]">Hubungi Kami</a></li>
             </ul>
         </div>
