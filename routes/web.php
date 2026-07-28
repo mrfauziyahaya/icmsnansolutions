@@ -11,8 +11,9 @@ use App\Http\Controllers\WhatsAppNotificationController;
 use App\Http\Controllers\QuoteRequestController;
 use App\Http\Controllers\PaymentController;
 
-// Public landing page (the site's front door once nansolutions.com.my points here)
-Route::view('/', 'landing')->name('landing');
+// Public landing page. reniu.my gets its own Reniu-branded landing; every other
+// site (nansolutions) gets the default one.
+Route::get('/', fn () => view(site()->key() === 'reniu' ? 'reniu-landing' : 'landing'))->name('landing');
 
 // Legal pages (Terms & Conditions sub-pages)
 Route::view('/privacy-policy', 'legal.privacy-policy')->name('legal.privacy');

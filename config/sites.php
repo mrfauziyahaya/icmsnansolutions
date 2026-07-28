@@ -118,6 +118,9 @@ return [
             // Only the checkout + webhooks exist on this domain; everything
             // else 404s (see EnsureRouteAllowedForSite middleware).
             'routes' => [
+                // The Reniu landing page and its Terma & Syarat links.
+                'landing', 'legal.privacy', 'legal.refund', 'legal.delivery',
+                // Checkout + webhooks.
                 'pay.create', 'pay.store', 'pay.success', 'pay.failed', 'pay.webhook',
             ],
 

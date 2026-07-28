@@ -185,14 +185,35 @@ class MultiSiteTest extends TestCase
         $this->get('http://reniu.my/pay')->assertOk();
     }
 
-    public function test_reniu_root_redirects_to_its_checkout(): void
+    public function test_reniu_root_serves_the_reniu_landing(): void
     {
-        $this->get('http://reniu.my/')->assertRedirect(route('pay.create'));
+        $html = $this->get('http://reniu.my/')->assertOk()->getContent();
+
+        // Reniu-branded, and no NAN Solutions leakage.
+        $this->assertStringContainsString('Mengapa Reniu?', $html);
+        $this->assertStringNotContainsString('NAN Solutions', $html);
+    }
+
+    /** The landing's Terma & Syarat links must resolve on reniu, not 404. */
+    public function test_reniu_exposes_the_legal_pages(): void
+    {
+        $this->get('http://reniu.my/privacy-policy')->assertOk();
+        $this->get('http://reniu.my/cancellation-refund-policy')->assertOk();
+        $this->get('http://reniu.my/service-delivery-policy')->assertOk();
+    }
+
+    /** The Reniu landing must not link to routes reniu doesn't expose. */
+    public function test_reniu_landing_has_no_quote_or_lookup_links(): void
+    {
+        $html = $this->get('http://reniu.my/')->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('quote-request', $html);
+        $this->assertStringNotContainsString(route('lookup'), $html);
     }
 
     public function test_reniu_does_not_expose_nansolutions_pages(): void
     {
-        $this->get('http://reniu.my/privacy-policy')->assertNotFound();
+        $this->get('http://reniu.my/quote-request')->assertNotFound();
         $this->get('http://reniu.my/lookup')->assertNotFound();
         $this->get('http://reniu.my/login')->assertNotFound();
     }
