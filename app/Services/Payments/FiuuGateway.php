@@ -90,7 +90,14 @@ class FiuuGateway implements PaymentGateway, SiteAwareGateway
             'callbackurl' => $webhook,
         ];
 
-        $url = $this->paymentHost() . '/RMS/pay/' . $merchantId . '/?' . http_build_query($params);
+        // Fiuu's hosted page shows every channel enabled on the account. When a
+        // specific channel is selected (payment->method holds the Fiuu channel
+        // code, e.g. "ShopeePay"), pin the page to it via the URL path:
+        //   /RMS/pay/{merchant}/{channel}?...   (spec: {MerchantID}/{Payment_Method})
+        // The channel is NOT part of the vcode, so signing is unaffected.
+        $channel = filled($payment->method) ? rawurlencode($payment->method) : '';
+
+        $url = $this->paymentHost() . '/RMS/pay/' . $merchantId . '/' . $channel . '?' . http_build_query($params);
 
         $payment->update(['checkout_url' => $url]);
 
