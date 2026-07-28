@@ -69,10 +69,15 @@ class PaymentGatewayManager
      */
     public function checkoutOptions(?float $amount = null, ?string $site = null): array
     {
-        $site     = $site ?? $this->sites->key();
-        $bnplMin  = (float) config('services.payments.bnpl_min', 30);
-        $disabled = (array) config('services.payments.disabled', []);
-        $options  = [];
+        $site    = $site ?? $this->sites->key();
+        $bnplMin = (float) config('services.payments.bnpl_min', 30);
+        $options = [];
+
+        // Hidden gateways are per-site: Fiuu is hidden on NAN Solutions (the
+        // account is domain-bound to reniu.my) but must be offered on reniu.
+        // Falls back to the global env list when a site doesn't set its own.
+        $disabled = (array) ($this->sites->config('disabled_gateways', null, $site)
+            ?? config('services.payments.disabled', []));
 
         foreach ($this->sites->gateways($site) as $key => $definition) {
             if (! isset(self::DRIVERS[$key]) || in_array($key, $disabled, true)) {

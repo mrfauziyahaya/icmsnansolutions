@@ -10,8 +10,24 @@
     @endif
 
     <div class="bg-white shadow rounded-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p class="text-sm text-gray-500">{{ $quotes->total() }} permohonan</p>
+
+            <form method="GET" action="{{ route('quote-requests.index') }}" class="flex items-center gap-2">
+                <input type="search" name="search" value="{{ $search }}"
+                       placeholder="Cari nama, no. telefon, plate…"
+                       class="w-full sm:w-72 rounded-md border-gray-300 text-sm shadow-sm focus:border-orange-500 focus:ring-orange-500">
+                <button type="submit"
+                        class="inline-flex items-center rounded-md bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700">
+                    Cari
+                </button>
+                @if($search !== '')
+                    <a href="{{ route('quote-requests.index') }}"
+                       class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200">
+                        Reset
+                    </a>
+                @endif
+            </form>
         </div>
 
         <div class="overflow-x-auto">
@@ -65,7 +81,9 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-4 py-10 text-center text-gray-400">Tiada permohonan sebut harga.</td>
+                            <td colspan="6" class="px-4 py-10 text-center text-gray-400">
+                                {{ $search !== '' ? "Tiada keputusan untuk \"{$search}\"." : 'Tiada permohonan sebut harga.' }}
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>

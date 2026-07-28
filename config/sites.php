@@ -135,12 +135,17 @@ return [
                 'secret_key' => env('RENIU_TURNSTILE_SECRET_KEY'),
             ],
 
+            // Nothing hidden here — Fiuu is hidden on NAN Solutions but is the
+            // whole point of reniu, whose domain the Fiuu account is bound to.
+            'disabled_gateways' => [],
+
             'gateways' => [
                 // Card only on reniu — no FPX option.
                 'chip' => [
-                    'label'   => 'Credit Card',
+                    'label'   => 'Credit Card / Atome Card',
+                    // Single method, so this label is what the customer sees.
                     'methods' => [
-                        ['method' => 'card', 'label' => 'Kad Kredit / Debit'],
+                        ['method' => 'card', 'label' => 'Credit Card / Atome Card'],
                     ],
                     'config'  => [
                         'api_key'            => env('RENIU_CHIP_API_KEY'),
@@ -150,7 +155,7 @@ return [
                     ],
                 ],
                 'fiuu' => [
-                    'label'  => 'SPayLater',
+                    'label'  => 'SPayLater / Grab PayLater',
                     'config' => [
                         'merchant_id'         => env('RENIU_FIUU_MERCHANT_ID'),
                         'verify_key'          => env('RENIU_FIUU_VERIFY_KEY'),
@@ -168,7 +173,7 @@ return [
                     ],
                 ],
                 'atome' => [
-                    'label'  => 'Atome',
+                    'label'  => 'Atome PayLater',
                     'bnpl'   => true,
                     'config' => [
                         'partner_id'      => env('RENIU_ATOME_PARTNER_ID'),

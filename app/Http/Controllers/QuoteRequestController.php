@@ -111,11 +111,22 @@ class QuoteRequestController extends Controller
 
     // ── Admin ────────────────────────────────────────────────────────────────
 
-    public function index()
+    public function index(Request $request)
     {
-        $quotes = QuoteRequest::latest()->paginate(25);
+        $search = trim((string) $request->query('search', ''));
 
-        return view('quote.index', compact('quotes'));
+        $quotes = QuoteRequest::latest()
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('nama_pemilik', 'like', "%{$search}%")
+                        ->orWhere('whatsapp', 'like', "%{$search}%")
+                        ->orWhere('no_plate', 'like', "%{$search}%");
+                });
+            })
+            ->paginate(25)
+            ->withQueryString();   // keep ?search across pagination links
+
+        return view('quote.index', compact('quotes', 'search'));
     }
 
     public function show(QuoteRequest $quoteRequest)

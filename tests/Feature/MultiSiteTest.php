@@ -41,6 +41,16 @@ class MultiSiteTest extends TestCase
             'base_url'           => 'https://chip.test/api/v1',
             'webhook_public_key' => null,
         ]);
+        config()->set('sites.sites.reniu.gateways.senangpay.config', [
+            'client_id'  => 'reniu-snp',
+            'secret_key' => 'reniu-snp-secret',
+            'base_url'   => 'https://doku.test',
+        ]);
+        config()->set('sites.sites.reniu.gateways.fiuu.config', [
+            'merchant_id' => 'myreniuagency',
+            'verify_key'  => 'reniu-verify',
+            'secret_key'  => 'reniu-secret',
+        ]);
     }
 
     // ── Site resolution ──────────────────────────────────────────────────────
@@ -64,10 +74,43 @@ class MultiSiteTest extends TestCase
     public function test_gateway_labels_differ_per_site(): void
     {
         $this->assertSame('Fiuu', $this->sites()->gatewayLabel('fiuu', 'nansolutions'));
-        $this->assertSame('SPayLater', $this->sites()->gatewayLabel('fiuu', 'reniu'));
+        $this->assertSame('SPayLater / Grab PayLater', $this->sites()->gatewayLabel('fiuu', 'reniu'));
 
         $this->assertSame('CHIP', $this->sites()->gatewayLabel('chip', 'nansolutions'));
-        $this->assertSame('Credit Card', $this->sites()->gatewayLabel('chip', 'reniu'));
+        $this->assertSame('Credit Card / Atome Card', $this->sites()->gatewayLabel('chip', 'reniu'));
+    }
+
+    /** The four options reniu.my offers, exactly as the customer sees them. */
+    public function test_reniu_offers_all_four_gateways_with_their_labels(): void
+    {
+        $this->configureReniuGateways();
+
+        $labels = array_column(app(PaymentGatewayManager::class)->checkoutOptions(null, 'reniu'), 'label');
+
+        $this->assertEqualsCanonicalizing([
+            'Credit Card / Atome Card',
+            'Grab PayLater',
+            'SPayLater / Grab PayLater',
+            'Atome PayLater',
+        ], $labels);
+
+        $this->assertArrayNotHasKey('ahapay', $this->sites()->gateways('reniu'), 'AhaPay is NAN Solutions only');
+    }
+
+    /**
+     * Fiuu is hidden on NAN Solutions because the account is domain-bound to
+     * reniu.my — but that hiding used to be a global env list, which silently
+     * suppressed Fiuu on reniu too, the one site where it works.
+     */
+    public function test_fiuu_shows_on_reniu_but_stays_hidden_on_nansolutions(): void
+    {
+        $this->configureReniuGateways();
+
+        $reniu = array_column(app(PaymentGatewayManager::class)->checkoutOptions(null, 'reniu'), 'gateway');
+        $nan   = array_column(app(PaymentGatewayManager::class)->checkoutOptions(null, 'nansolutions'), 'gateway');
+
+        $this->assertContains('fiuu', $reniu);
+        $this->assertNotContains('fiuu', $nan);
     }
 
     public function test_drivers_resolve_their_own_sites_credentials(): void
@@ -90,7 +133,7 @@ class MultiSiteTest extends TestCase
 
         $labels = array_column(app(PaymentGatewayManager::class)->checkoutOptions(null, 'reniu'), 'label');
 
-        $this->assertContains('Kad Kredit / Debit', $labels, 'reniu CHIP is card-only');
+        $this->assertContains('Credit Card / Atome Card', $labels, 'reniu CHIP is card-only');
         $this->assertNotContains('CHIP — FPX (Maybank, CIMB, dll.)', $labels, 'FPX is a NAN Solutions option');
     }
 
