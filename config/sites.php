@@ -138,9 +138,9 @@ return [
                 'secret_key' => env('RENIU_TURNSTILE_SECRET_KEY'),
             ],
 
-            // Nothing hidden here — Fiuu is hidden on NAN Solutions but is the
-            // whole point of reniu, whose domain the Fiuu account is bound to.
-            'disabled_gateways' => [],
+            // Fiuu is the point of reniu (its account is domain-bound here), so
+            // it's NOT hidden. Atome is disabled temporarily while it's sorted out.
+            'disabled_gateways' => ['atome'],
 
             'gateways' => [
                 // Card only on reniu — no FPX option.

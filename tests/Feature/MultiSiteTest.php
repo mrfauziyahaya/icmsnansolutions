@@ -81,20 +81,32 @@ class MultiSiteTest extends TestCase
     }
 
     /** The four options reniu.my offers, exactly as the customer sees them. */
-    public function test_reniu_offers_all_four_gateways_with_their_labels(): void
+    public function test_reniu_offers_its_gateways_with_their_labels(): void
     {
         $this->configureReniuGateways();
 
         $labels = array_column(app(PaymentGatewayManager::class)->checkoutOptions(null, 'reniu'), 'label');
 
+        // Atome is temporarily disabled on reniu (disabled_gateways), so it's
+        // not offered even though it's configured.
         $this->assertEqualsCanonicalizing([
             'Credit Card / Atome Card',
             'Grab PayLater',
             'SPayLater / Grab PayLater',
-            'Atome PayLater',
         ], $labels);
 
         $this->assertArrayNotHasKey('ahapay', $this->sites()->gateways('reniu'), 'AhaPay is NAN Solutions only');
+    }
+
+    public function test_atome_is_temporarily_disabled_on_reniu(): void
+    {
+        $this->configureReniuGateways();
+
+        $gateways = array_column(app(PaymentGatewayManager::class)->checkoutOptions(null, 'reniu'), 'gateway');
+
+        // Still configured (label resolves), just not offered at checkout.
+        $this->assertNotContains('atome', $gateways);
+        $this->assertSame('Atome PayLater', $this->sites()->gatewayLabel('atome', 'reniu'));
     }
 
     /**
