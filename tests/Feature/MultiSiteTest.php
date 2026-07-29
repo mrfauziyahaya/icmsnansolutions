@@ -74,7 +74,7 @@ class MultiSiteTest extends TestCase
     public function test_gateway_labels_differ_per_site(): void
     {
         $this->assertSame('Fiuu', $this->sites()->gatewayLabel('fiuu', 'nansolutions'));
-        $this->assertSame('SPayLater / Grab PayLater', $this->sites()->gatewayLabel('fiuu', 'reniu'));
+        $this->assertSame('SPayLater', $this->sites()->gatewayLabel('fiuu', 'reniu'));
 
         $this->assertSame('CHIP', $this->sites()->gatewayLabel('chip', 'nansolutions'));
         $this->assertSame('Credit Card / Atome Card', $this->sites()->gatewayLabel('chip', 'reniu'));
@@ -92,7 +92,7 @@ class MultiSiteTest extends TestCase
         $this->assertEqualsCanonicalizing([
             'Credit Card / Atome Card',
             'Grab PayLater',
-            'SPayLater / Grab PayLater',
+            'SPayLater',
         ], $labels);
 
         $this->assertArrayNotHasKey('ahapay', $this->sites()->gateways('reniu'), 'AhaPay is NAN Solutions only');

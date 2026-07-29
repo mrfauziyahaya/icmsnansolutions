@@ -178,7 +178,7 @@ return [
                     ],
                 ],
                 'fiuu' => [
-                    'label'  => 'SPayLater / Grab PayLater',
+                    'label'  => 'SPayLater',
                     'config' => [
                         'merchant_id'         => env('RENIU_FIUU_MERCHANT_ID'),
                         'verify_key'          => env('RENIU_FIUU_VERIFY_KEY'),
