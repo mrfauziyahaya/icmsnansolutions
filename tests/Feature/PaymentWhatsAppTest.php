@@ -66,6 +66,15 @@ class PaymentWhatsAppTest extends TestCase
         });
     }
 
+    /** reniu payments use their own approved template; NAN payments don't. */
+    public function test_reniu_payments_use_the_reniu_template(): void
+    {
+        $payment = $this->pendingPayment();
+        $payment->update(['site' => 'reniu', 'status' => 'paid', 'paid_at' => now()]);
+
+        Http::assertSent(fn ($request) => $request['template']['name'] === 'payment_received_reniu');
+    }
+
     /** {{1}} name, {{2}} amount, {{3}} payment method — as the template expects. */
     public function test_it_sends_the_payer_name_amount_and_method_as_parameters(): void
     {

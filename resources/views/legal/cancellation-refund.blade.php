@@ -1,5 +1,6 @@
 <x-legal-layout title="Cancellation & Refund Policy">
-    <p>Have a question regarding NAN SOLUTIONS's refund policy? Please read below.</p>
+    @php $co = site()->legal('name'); @endphp
+    <p>Have a question regarding {{ $co }}'s refund policy? Please read below.</p>
 
     <h2>Refund Process</h2>
     <ul>

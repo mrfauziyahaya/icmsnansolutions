@@ -66,6 +66,9 @@ class WhatsAppService
         $phone  = $this->normalizePhone($this->adminNumber);
         $method = Payment::GATEWAY_LABELS[$payment->gateway] ?? ucfirst($payment->gateway);
 
+        // reniu.my payments use their own approved template; same three variables.
+        $template = $payment->site === 'reniu' ? 'payment_received_reniu' : 'payment_received';
+
         $params = [
             $payment->payer_name,
             number_format((float) $payment->amount, 2, '.', ''),
@@ -76,7 +79,7 @@ class WhatsAppService
         $error  = null;
 
         if ($phone) {
-            $result = $this->callTemplate($phone, 'payment_received', $params);
+            $result = $this->callTemplate($phone, $template, $params);
             if (! $result['success']) {
                 $status = 'failed';
                 $error  = $result['error'];
@@ -90,7 +93,7 @@ class WhatsAppService
             'client_id'       => null,
             'type'            => 'payment_received',
             'recipient_phone' => $phone ?? $this->adminNumber,
-            'message'         => 'payment_received: ' . implode(' | ', $params),
+            'message'         => $template . ': ' . implode(' | ', $params),
             'status'          => $status,
             'error'           => $error,
             'sent_at'         => now(),

@@ -152,6 +152,16 @@ class SiteManager
     }
 
     /**
+     * Company legal identity for the landing contact block and the legal pages:
+     * legal('name'), legal('entity'), legal('registration'), legal('address'),
+     * legal('email'). Kept per-site so reniu.my shows its own entity.
+     */
+    public function legal(?string $key = null, ?string $site = null): mixed
+    {
+        return $this->config('legal' . ($key ? ".{$key}" : ''), null, $site);
+    }
+
+    /**
      * Name on the copyright line. Separate from companyName() because a site can
      * trade under its own brand while the copyright stays with the operating
      * company — reniu.my shows the Reniu logo but the NAN Solutions copyright.

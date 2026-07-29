@@ -214,6 +214,20 @@ class MultiSiteTest extends TestCase
         $this->get('http://reniu.my/service-delivery-policy')->assertOk();
     }
 
+    /** The legal pages carry each site's own company identity. */
+    public function test_legal_pages_show_the_sites_own_company(): void
+    {
+        $reniu = $this->get('http://reniu.my/privacy-policy')->assertOk()->getContent();
+        $this->assertStringContainsString('MY RENIU AGENCY', $reniu);
+        $this->assertStringContainsString('hello@reniu.my', $reniu);
+        $this->assertStringNotContainsString('Nan Solutions', $reniu);
+
+        $nan = $this->get('http://nansolutions.com.my/privacy-policy')->assertOk()->getContent();
+        $this->assertStringContainsString('Nan Solutions', $nan);
+        $this->assertStringContainsString('hello@nansolutions.com.my', $nan);
+        $this->assertStringNotContainsString('RENIU', $nan);
+    }
+
     /** The Reniu landing must not link to routes reniu doesn't expose. */
     public function test_reniu_landing_has_no_quote_or_lookup_links(): void
     {
