@@ -28,7 +28,9 @@ class AhaPayStatusTest extends TestCase
     {
         parent::setUp();
 
-        config()->set('services.ahapay', [
+        // Drivers read credentials per-site via SiteManager, not config('services.*'),
+        // so seed the bag for whichever site the test request resolves to.
+        config()->set('sites.sites.' . site()->key() . '.gateways.ahapay.config', [
             'api_key'    => 'test-key',
             'secret_key' => null,
             'base_url'   => self::BASE,

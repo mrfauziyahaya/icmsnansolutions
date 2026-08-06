@@ -1,6 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-2xl font-bold text-gray-900">Payments</h2>
+        <h2 class="text-2xl font-bold text-gray-900">
+            Payments
+            @if(!empty($siteFilter))
+                <span class="ml-1 align-middle text-sm font-semibold text-orange-600">— {{ site()->label($siteFilter) }}</span>
+            @endif
+        </h2>
     </x-slot>
 
     @php
@@ -85,6 +90,7 @@
                     <tr>
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Tarikh</th>
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Rujukan</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-600">Laman</th>
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Nama</th>
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Telefon</th>
                         <th class="px-4 py-3 text-left font-semibold text-gray-600">Kaedah</th>
@@ -98,6 +104,9 @@
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ $payment->created_at->timezone('Asia/Kuala_Lumpur')->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 font-mono text-xs text-gray-600">{{ $payment->reference }}</td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">{{ $payment->siteLabel() }}</span>
+                            </td>
                             <td class="px-4 py-3 font-medium text-gray-900">{{ $payment->payer_name }}</td>
                             <td class="px-4 py-3 text-gray-700">{{ $payment->payer_phone }}</td>
                             <td class="px-4 py-3 text-gray-700">{{ $payment->gatewayLabel() }}</td>
@@ -113,7 +122,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="px-4 py-10 text-center text-gray-400">Tiada rekod pembayaran.</td></tr>
+                        <tr><td colspan="9" class="px-4 py-10 text-center text-gray-400">Tiada rekod pembayaran.</td></tr>
                     @endforelse
                 </tbody>
             </table>

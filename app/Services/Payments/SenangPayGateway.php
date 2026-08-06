@@ -31,15 +31,22 @@ use Illuminate\Support\Str;
  * header of that name, and sends the Signature without the "HMACSHA256=" prefix.
  * Verification uses that header rather than assuming our own request path.
  */
-class SenangPayGateway implements PaymentGateway
+class SenangPayGateway implements PaymentGateway, SiteAwareGateway
 {
+    use Concerns\ResolvesSiteCredentials;
+
+    protected function gatewayKey(): string
+    {
+        return 'senangpay';
+    }
+
     private const PAYMENT_PATH = '/checkout/v1/payment';
 
     public function isConfigured(): bool
     {
-        return filled(config('services.senangpay.client_id'))
-            && filled(config('services.senangpay.secret_key'))
-            && filled(config('services.senangpay.base_url'));
+        return filled($this->cfg('client_id'))
+            && filled($this->cfg('secret_key'))
+            && filled($this->cfg('base_url'));
     }
 
     public function createPayment(Payment $payment): string
@@ -82,7 +89,7 @@ class SenangPayGateway implements PaymentGateway
 
         $response = Http::withHeaders($headers)
             ->withBody($json, 'application/json')
-            ->post(rtrim(config('services.senangpay.base_url'), '/') . self::PAYMENT_PATH);
+            ->post(rtrim($this->cfg('base_url'), '/') . self::PAYMENT_PATH);
 
         if (! $response->successful()) {
             $err = $response->json('error.message') ?? $response->body();
@@ -109,54 +116,72 @@ class SenangPayGateway implements PaymentGateway
 
     public function verifyCallback(Request $request): array
     {
-        $secretKey = config('services.senangpay.secret_key');
+        $secretKey = $this->cfg('secret_key');
         $rawBody   = $request->getContent();
+        $received  = (string) $request->header('Signature');
 
-        $digest   = base64_encode(hash('sha256', $rawBody, true));
-        $received = (string) $request->header('Signature');
+        // The digest is Base64(SHA256(body)) — but DOKU may hash a canonical
+        // (minified / differently-escaped) form of the JSON, not the exact bytes
+        // we received. Try each so a formatting difference doesn't reject a
+        // genuine notification. Labelled so a match tells us which form is right.
+        $decoded        = json_decode($rawBody, true);
+        $digestVariants = ['raw' => base64_encode(hash('sha256', $rawBody, true))];
+        if (is_array($decoded)) {
+            $digestVariants['minified']           = base64_encode(hash('sha256', json_encode($decoded), true));
+            $digestVariants['minified_noslashes'] = base64_encode(hash('sha256', json_encode($decoded, JSON_UNESCAPED_SLASHES), true));
+            $digestVariants['minified_unicode']   = base64_encode(hash('sha256', json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), true));
+        }
 
-        // DOKU tells us which Request-Target it signed with, in a header of that
-        // name — trust that first. We used to assume it was the path we were
-        // POSTed to, which silently rejected every live notification.
-        //
-        // Taking the target from a header is safe: forging the signature still
-        // requires the secret key, so a wrong or hostile value just fails to match.
+        // DOKU announces its Request-Target in a header; it can also arrive doubled
+        // through a proxy ("path, path"), so include the first segment too.
+        $header = (string) $request->header('Request-Target');
         $targets = array_values(array_filter(array_unique([
-            $request->header('Request-Target'),
+            $header,
+            trim(explode(',', $header)[0]),
             $request->getPathInfo(),      // /webhooks/payments/senangpay
-            $request->getRequestUri(),    // as above, plus any query string
+            $request->getRequestUri(),
             $request->fullUrl(),
         ])));
 
-        foreach ($targets as $target) {
-            $component = "Client-Id:" . $request->header('Client-Id') . "\n"
-                . "Request-Id:" . $request->header('Request-Id') . "\n"
-                . "Request-Timestamp:" . $request->header('Request-Timestamp') . "\n"
-                . "Request-Target:" . $target . "\n"
-                . "Digest:" . $digest;
+        foreach ($digestVariants as $digestLabel => $digest) {
+            foreach ($targets as $target) {
+                $component = "Client-Id:" . $request->header('Client-Id') . "\n"
+                    . "Request-Id:" . $request->header('Request-Id') . "\n"
+                    . "Request-Timestamp:" . $request->header('Request-Timestamp') . "\n"
+                    . "Request-Target:" . $target . "\n"
+                    . "Digest:" . $digest;
 
-            // DOKU sends the Signature as raw base64 (no "HMACSHA256=" prefix) on
-            // notifications, though its request docs show the prefix — accept either.
-            $rawSignature = base64_encode(hash_hmac('sha256', $component, $secretKey, true));
+                // DOKU sends the Signature as raw base64 (no "HMACSHA256=" prefix)
+                // on notifications, though its request docs show it — accept either.
+                $rawSignature = base64_encode(hash_hmac('sha256', $component, $secretKey, true));
 
-            if (hash_equals('HMACSHA256=' . $rawSignature, $received) || hash_equals($rawSignature, $received)) {
-                $matched = $target;
-                break;
+                if (hash_equals('HMACSHA256=' . $rawSignature, $received) || hash_equals($rawSignature, $received)) {
+                    // TEMPORARY: record the winning formula (no PII) so we can pin
+                    // verifyCallback to exactly it and drop this brute-force.
+                    if ($digestLabel !== 'raw' || $target !== $request->getPathInfo()) {
+                        Log::info('senangPay (DOKU) signature matched a non-default formula.', [
+                            'digest_form' => $digestLabel,
+                            'target'      => $target,
+                            'site'        => $this->site(),
+                        ]);
+                    }
+                    $matched = true;
+                    break 2;
+                }
             }
         }
 
         if (! isset($matched)) {
-            // Fail closed. Deliberately no request body here — it carries the
-            // payer's name, email and phone, which must not reach the log file.
+            // Fail closed. No request body — it carries the payer's PII.
             Log::warning('senangPay (DOKU) signature verification failed.', [
                 'ip'                => $request->ip(),
                 'received'          => $received,
                 'targets_tried'     => $targets,
-                'client_id_header'  => $request->header('Client-Id'),
-                'client_id_matches' => $request->header('Client-Id') === config('services.senangpay.client_id'),
+                'digest_forms'      => array_keys($digestVariants),
+                'client_id_matches' => $request->header('Client-Id') === $this->cfg('client_id'),
+                'site'              => $this->site(),
                 'request_id'        => $request->header('Request-Id'),
                 'request_timestamp' => $request->header('Request-Timestamp'),
-                'digest_computed'   => $digest,
                 'body_bytes'        => strlen($rawBody),
             ]);
             throw new GatewayException('senangPay signature verification failed.');
@@ -201,8 +226,8 @@ class SenangPayGateway implements PaymentGateway
      */
     private function signedHeaders(string $path, string $jsonBody): array
     {
-        $clientId  = config('services.senangpay.client_id');
-        $secretKey = config('services.senangpay.secret_key');
+        $clientId  = $this->cfg('client_id');
+        $secretKey = $this->cfg('secret_key');
         $requestId = (string) Str::uuid();
         $timestamp = gmdate('Y-m-d\TH:i:s\Z');   // ISO-8601 UTC, e.g. 2020-10-21T03:38:28Z
         $digest    = base64_encode(hash('sha256', $jsonBody, true));

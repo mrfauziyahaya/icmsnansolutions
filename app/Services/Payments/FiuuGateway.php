@@ -20,25 +20,32 @@ use Illuminate\Support\Facades\Log;
  *   skey  (response)  = md5( paydate . domain . md5(tranID.orderid.status.domain.amount.currency) . appcode . secret_key )
  *   skey  (q_by_oid)  = md5( oID . domain . verify_key . amount )
  */
-class FiuuGateway implements PaymentGateway
+class FiuuGateway implements PaymentGateway, SiteAwareGateway
 {
+    use Concerns\ResolvesSiteCredentials;
+
+    protected function gatewayKey(): string
+    {
+        return 'fiuu';
+    }
+
     public function isConfigured(): bool
     {
-        return filled(config('services.fiuu.merchant_id'))
-            && filled(config('services.fiuu.verify_key'))
-            && filled(config('services.fiuu.secret_key'));
+        return filled($this->cfg('merchant_id'))
+            && filled($this->cfg('verify_key'))
+            && filled($this->cfg('secret_key'));
     }
 
     private function paymentHost(): string
     {
-        return config('services.fiuu.sandbox')
+        return $this->cfg('sandbox')
             ? 'https://sandbox-payment.fiuu.com'
             : 'https://pay.fiuu.com';
     }
 
     private function apiHost(): string
     {
-        return config('services.fiuu.sandbox')
+        return $this->cfg('sandbox')
             ? 'https://sandbox-api.fiuu.com'
             : 'https://api.fiuu.com';
     }
@@ -49,8 +56,8 @@ class FiuuGateway implements PaymentGateway
             throw new GatewayException('Fiuu is not configured.');
         }
 
-        $merchantId = config('services.fiuu.merchant_id');
-        $verifyKey  = config('services.fiuu.verify_key');
+        $merchantId = $this->cfg('merchant_id');
+        $verifyKey  = $this->cfg('verify_key');
         $amount     = number_format((float) $payment->amount, 2, '.', '');
         $orderId    = $payment->reference;
         $currency   = $payment->currency;
@@ -59,7 +66,7 @@ class FiuuGateway implements PaymentGateway
         // detect tampering. Currency is appended only if the merchant profile
         // has "extended format for Verify Payment" enabled.
         $vcodeSeed = $amount . $merchantId . $orderId . $verifyKey;
-        if (config('services.fiuu.vcode_with_currency')) {
+        if ($this->cfg('vcode_with_currency')) {
             $vcodeSeed .= $currency;
         }
         $vcode = md5($vcodeSeed);
@@ -83,7 +90,14 @@ class FiuuGateway implements PaymentGateway
             'callbackurl' => $webhook,
         ];
 
-        $url = $this->paymentHost() . '/RMS/pay/' . $merchantId . '/?' . http_build_query($params);
+        // Fiuu's hosted page shows every channel enabled on the account. When a
+        // specific channel is selected (payment->method holds the Fiuu channel
+        // code, e.g. "ShopeePay"), pin the page to it via the URL path:
+        //   /RMS/pay/{merchant}/{channel}?...   (spec: {MerchantID}/{Payment_Method})
+        // The channel is NOT part of the vcode, so signing is unaffected.
+        $channel = filled($payment->method) ? rawurlencode($payment->method) : '';
+
+        $url = $this->paymentHost() . '/RMS/pay/' . $merchantId . '/' . $channel . '?' . http_build_query($params);
 
         $payment->update(['checkout_url' => $url]);
 
@@ -102,7 +116,7 @@ class FiuuGateway implements PaymentGateway
         $paydate  = (string) $request->input('paydate');
         $skey     = (string) $request->input('skey');
 
-        $secretKey = config('services.fiuu.secret_key');
+        $secretKey = $this->cfg('secret_key');
 
         // Recompute the skey exactly as Fiuu documents it. A mismatch means the
         // payload was forged or altered — refuse it.
@@ -130,8 +144,8 @@ class FiuuGateway implements PaymentGateway
             throw new GatewayException('Fiuu is not configured.');
         }
 
-        $merchantId = config('services.fiuu.merchant_id');
-        $verifyKey  = config('services.fiuu.verify_key');
+        $merchantId = $this->cfg('merchant_id');
+        $verifyKey  = $this->cfg('verify_key');
         $amount     = number_format((float) $payment->amount, 2, '.', '');
         $orderId    = $payment->reference;
 

@@ -29,7 +29,8 @@ class SenangPayGatewayTest extends TestCase
     {
         parent::setUp();
 
-        config()->set('services.senangpay', [
+        // Credentials are per-site now (config/sites.php), not global services.*.
+        config()->set('sites.sites.nansolutions.gateways.senangpay.config', [
             'client_id'  => self::CLIENT_ID,
             'secret_key' => self::SECRET,
             'base_url'   => self::BASE_URL,
@@ -217,6 +218,38 @@ class SenangPayGatewayTest extends TestCase
         $this->expectException(GatewayException::class);
 
         app(SenangPayGateway::class)->verifyCallback($forged);
+    }
+
+    /**
+     * The suspected production cause: DOKU hashes the minified JSON for the
+     * digest, but the body we receive has whitespace. Hashing the raw bytes then
+     * mismatches. Verification must recover by trying the minified form.
+     */
+    public function test_verify_callback_accepts_a_digest_over_the_minified_body(): void
+    {
+        $payload = ['order' => ['invoice_number' => 'PAY-2026-0001'], 'transaction' => ['status' => 'SUCCESS', 'original_request_id' => 'txn-min']];
+
+        $pretty   = json_encode($payload, JSON_PRETTY_PRINT);   // what arrives, with whitespace
+        $minified = json_encode($payload);                       // what DOKU signed
+        $path     = '/webhooks/payments/senangpay';
+        $digest   = base64_encode(hash('sha256', $minified, true));
+
+        $component = "Client-Id:" . self::CLIENT_ID . "\n"
+            . "Request-Id:req-min\n"
+            . "Request-Timestamp:2026-07-28T03:38:28Z\n"
+            . "Request-Target:{$path}\n"
+            . "Digest:{$digest}";
+        $signature = base64_encode(hash_hmac('sha256', $component, self::SECRET, true));
+
+        $request = Request::create($path, 'POST', [], [], [], [
+            'HTTP_CLIENT_ID'         => self::CLIENT_ID,
+            'HTTP_REQUEST_ID'        => 'req-min',
+            'HTTP_REQUEST_TIMESTAMP' => '2026-07-28T03:38:28Z',
+            'HTTP_SIGNATURE'         => $signature,
+            'CONTENT_TYPE'           => 'application/json',
+        ], $pretty);
+
+        $this->assertSame('paid', app(SenangPayGateway::class)->verifyCallback($request)['status']);
     }
 
     /**

@@ -11,7 +11,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Must be a singleton: the middleware sets the active site on it and
+        // everything downstream (helpers, drivers, views) reads it back.
+        $this->app->singleton(\App\Services\SiteManager::class);
     }
 
     /**

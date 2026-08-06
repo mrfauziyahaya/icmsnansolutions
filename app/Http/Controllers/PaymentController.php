@@ -28,6 +28,17 @@ class PaymentController extends Controller
         ]);
     }
 
+    /**
+     * The site a webhook belongs to. Callbacks arrive on the domain we handed
+     * the gateway, so the host is authoritative; unknown hosts fall back to the
+     * default site rather than guessing.
+     */
+    private function siteForRequest(Request $request): string
+    {
+        return app(\App\Services\SiteManager::class)->keyForHost($request->getHost())
+            ?? app(\App\Services\SiteManager::class)->defaultKey();
+    }
+
     public function store(Request $request)
     {
         $min = (float) config('services.payments.min_amount');
@@ -59,9 +70,12 @@ class PaymentController extends Controller
             ]);
         }
 
+        $site = site()->key();
+
         // Recorded as pending first, so an abandoned or failed attempt is still on record.
         $payment = Payment::create([
-            'reference'   => Payment::nextReference(),
+            'reference'   => Payment::nextReference($site),
+            'site'        => $site,
             'payer_name'  => strtoupper($validated['payer_name']),
             'payer_email' => $validated['payer_email'],
             'payer_phone' => $validated['payer_phone'],
@@ -76,7 +90,7 @@ class PaymentController extends Controller
         ]);
 
         try {
-            $checkoutUrl = $this->gateways->driver($payment->gateway)->createPayment($payment);
+            $checkoutUrl = $this->gateways->driver($payment->gateway, $site)->createPayment($payment);
         } catch (GatewayException $e) {
             $payment->update(['status' => 'failed', 'failure_reason' => $e->getMessage()]);
             Log::error("Payment {$payment->reference} could not start: {$e->getMessage()}");
@@ -122,8 +136,11 @@ class PaymentController extends Controller
             return response()->json(['error' => 'unknown gateway'], 404);
         }
 
+        // Verify with the credentials of the site this callback arrived on.
+        $site = $this->siteForRequest($request);
+
         try {
-            $result = $this->gateways->driver($gateway)->verifyCallback($request);
+            $result = $this->gateways->driver($gateway, $site)->verifyCallback($request);
         } catch (GatewayException $e) {
             Log::error("Webhook [{$gateway}] rejected: {$e->getMessage()}");
             return response()->json(['error' => 'invalid'], 400);
@@ -134,6 +151,13 @@ class PaymentController extends Controller
         if (! $payment) {
             Log::warning("Webhook [{$gateway}] for unknown reference: " . ($result['reference'] ?? 'null'));
             return response()->json(['error' => 'not found'], 404);
+        }
+
+        // Fail closed: a callback delivered to one domain must never settle a
+        // payment belonging to another site.
+        if ($payment->site !== $site) {
+            Log::warning("Webhook [{$gateway}] site mismatch for {$payment->reference}: arrived on '{$site}', payment belongs to '{$payment->site}'.");
+            return response()->json(['error' => 'site mismatch'], 409);
         }
 
         // Idempotent: gateways retry, and a settled payment must not be reopened.
@@ -188,7 +212,13 @@ class PaymentController extends Controller
         $search = trim((string) $request->input('search', ''));
         $status = $request->input('status', '');
 
+        // Admin lives on NAN Solutions but lists payments from every site;
+        // ?site=reniu narrows it to one.
+        $siteFilter = $request->input('site', '');
+        $siteFilter = app(\App\Services\SiteManager::class)->exists($siteFilter) ? $siteFilter : '';
+
         $payments = Payment::query()
+            ->forSite($siteFilter ?: null)
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('reference', 'like', "%{$search}%")
@@ -202,14 +232,17 @@ class PaymentController extends Controller
             ->paginate(25)
             ->withQueryString();
 
+        // Totals respect the site filter so the cards match the list below.
+        $scoped = fn () => Payment::query()->forSite($siteFilter ?: null);
+
         $totals = [
-            'paid'    => Payment::where('status', 'paid')->sum('amount'),
-            'count'   => Payment::count(),
-            'pending' => Payment::where('status', 'pending')->count(),
-            'failed'  => Payment::where('status', 'failed')->count(),
+            'paid'    => $scoped()->where('status', 'paid')->sum('amount'),
+            'count'   => $scoped()->count(),
+            'pending' => $scoped()->where('status', 'pending')->count(),
+            'failed'  => $scoped()->where('status', 'failed')->count(),
         ];
 
-        return view('payments.index', compact('payments', 'search', 'status', 'totals'));
+        return view('payments.index', compact('payments', 'search', 'status', 'totals', 'siteFilter'));
     }
 
     public function show(Payment $payment)

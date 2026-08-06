@@ -16,6 +16,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'webhooks/payments/*',
         ]);
+
+        // Multi-domain: work out which site this request belongs to, then keep
+        // each domain to the routes it is allowed to serve.
+        $middleware->web(append: [
+            \App\Http\Middleware\ResolveCurrentSite::class,
+            \App\Http\Middleware\EnsureRouteAllowedForSite::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

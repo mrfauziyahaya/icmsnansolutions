@@ -13,11 +13,18 @@ use Illuminate\Support\Facades\Log;
  * Docs: https://docs.chip-in.asia/chip-collect/api-reference/purchases/create
  * Flow: POST /purchases/ -> checkout_url -> payer redirected -> success_callback webhook.
  */
-class ChipGateway implements PaymentGateway
+class ChipGateway implements PaymentGateway, SiteAwareGateway
 {
+    use Concerns\ResolvesSiteCredentials;
+
+    protected function gatewayKey(): string
+    {
+        return 'chip';
+    }
+
     public function isConfigured(): bool
     {
-        return filled(config('services.chip.api_key')) && filled(config('services.chip.brand_id'));
+        return filled($this->cfg('api_key')) && filled($this->cfg('brand_id'));
     }
 
     public function createPayment(Payment $payment): string
@@ -30,7 +37,7 @@ class ChipGateway implements PaymentGateway
         $amountInCents = (int) round($payment->amount * 100);
 
         $body = [
-            'brand_id' => config('services.chip.brand_id'),
+            'brand_id' => $this->cfg('brand_id'),
             'client'   => [
                 'email'      => $payment->payer_email,
                 'full_name'  => $payment->payer_name,
@@ -58,9 +65,9 @@ class ChipGateway implements PaymentGateway
             $body['payment_method_whitelist'] = $whitelist;
         }
 
-        $response = Http::withToken(config('services.chip.api_key'))
+        $response = Http::withToken($this->cfg('api_key'))
             ->acceptJson()
-            ->post(rtrim(config('services.chip.base_url'), '/') . '/purchases/', $body);
+            ->post(rtrim($this->cfg('base_url'), '/') . '/purchases/', $body);
 
         if (! $response->successful()) {
             $error = $response->json('message') ?? $response->body();
@@ -104,9 +111,9 @@ class ChipGateway implements PaymentGateway
             return ['status' => 'pending', 'reason' => 'No gateway reference to query.'];
         }
 
-        $response = Http::withToken(config('services.chip.api_key'))
+        $response = Http::withToken($this->cfg('api_key'))
             ->acceptJson()
-            ->get(rtrim(config('services.chip.base_url'), '/') . '/purchases/' . $payment->gateway_reference . '/');
+            ->get(rtrim($this->cfg('base_url'), '/') . '/purchases/' . $payment->gateway_reference . '/');
 
         if (! $response->successful()) {
             throw new GatewayException('CHIP getStatus failed: ' . $response->status());
@@ -150,7 +157,7 @@ class ChipGateway implements PaymentGateway
      */
     private function assertSignatureIsValid(Request $request): void
     {
-        $publicKey = config('services.chip.webhook_public_key');
+        $publicKey = $this->cfg('webhook_public_key');
 
         if (blank($publicKey)) {
             throw new GatewayException('CHIP webhook public key is not configured — refusing to trust callback.');

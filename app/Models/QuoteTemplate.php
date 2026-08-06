@@ -20,15 +20,45 @@ class QuoteTemplate extends Model
     /** Fixed title (no longer entered per quote). */
     public const TITLE = 'First Party Comprehensive';
 
-    /** Fixed insurance companies — the three comparison columns. */
-    public const COMPANIES = ['Zurich Takaful', 'Etiqa Takaful', 'Takaful Ikhlas'];
-
-    /** Logo (under public/) for each company column, keyed by index. */
-    public const COMPANY_LOGOS = [
-        'images/zurich-takaful.png',
-        'images/Logo-Insuran-3.webp',
-        'images/Logo-Insuran-5.webp',
+    /**
+     * Every insurance company that can be compared, mapped to its logo under
+     * public/ (null = no logo yet, show the name as text). The admin picks which
+     * of these appear as columns via the multi-select on the form.
+     */
+    public const ALL_COMPANIES = [
+        'ZURICH TAKAFUL'   => 'images/zurich-takaful.png',
+        'ETIQA TAKAFUL'    => 'images/Logo-Insuran-3.webp',
+        'TAKAFUL IKHLAS'   => 'images/Logo-Insuran-5.webp',
+        'TAKAFUL MALAYSIA' => 'images/takaful-malaysia-logo.png',
+        'KURNIA INSURANS'  => 'images/kurnia-insurance-logo.png',
     ];
+
+    /** Companies pre-ticked on a new quote. */
+    public const DEFAULT_SELECTED = ['ZURICH TAKAFUL', 'ETIQA TAKAFUL', 'TAKAFUL IKHLAS'];
+
+    /** Asset path for a company's logo, or null when the file isn't present. */
+    public static function logoFor(?string $company): ?string
+    {
+        $path = self::ALL_COMPANIES[$company] ?? null;
+
+        return $path && is_file(public_path($path)) ? $path : null;
+    }
+
+    /** Default column values for a company — first towing/PA option it offers. */
+    public static function defaultColumn(string $company): array
+    {
+        return [
+            'company'            => $company,
+            'value'              => 'market_value',
+            'towing'             => self::COMPANY_TOWING[$company][0] ?? 'unlimited',
+            'accident_assist'    => 'yes',
+            'ncd'                => '0',
+            'all_driver'         => 'yes',
+            'personal_accident'  => self::COMPANY_PA[$company][0] ?? 'no',
+            'vehicle_inspection' => 'no',
+            'insurance_takaful'  => null,
+        ];
+    }
 
     // ── Option lists (form dropdowns) + display labels (preview) ──────────────
 
@@ -37,11 +67,23 @@ class QuoteTemplate extends Model
         'agreed_value' => 'AGREED VALUE',
     ];
 
+    /** Every towing label. Which apply per company is COMPANY_TOWING below. */
     public const TOWING_OPTIONS = [
+        '100km'     => '100 KM',
         '150km'     => '150 KM',
         '200km'     => '200 KM',
         '300km'     => '300 KM',
         'unlimited' => 'UNLIMITED',
+        'no'        => 'NO',
+    ];
+
+    /** Towing options offered per company (keys of TOWING_OPTIONS, in order). */
+    public const COMPANY_TOWING = [
+        'ZURICH TAKAFUL'   => ['150km', '300km', 'unlimited'],
+        'ETIQA TAKAFUL'    => ['200km', 'unlimited', 'no'],
+        'TAKAFUL IKHLAS'   => ['150km', 'unlimited', 'no'],
+        'TAKAFUL MALAYSIA' => ['300km', 'unlimited', 'no'],
+        'KURNIA INSURANS'  => ['100km', 'unlimited'],
     ];
 
     public const YESNO_OPTIONS = [
@@ -49,11 +91,34 @@ class QuoteTemplate extends Model
         'no'  => 'NO',
     ];
 
+    /** No Claim Discount — the same fixed set for every company. */
+    public const NCD_OPTIONS = [
+        '0'     => '0%',
+        '25'    => '25%',
+        '35'    => '35%',
+        '38.33' => '38.33%',
+        '45'    => '45%',
+        '55'    => '55%',
+    ];
+
+    /** Every personal-accident label. Which apply per company: COMPANY_PA. */
     public const PA_OPTIONS = [
-        'no'        => 'NO',
-        'yes'       => 'YES',
-        'cash_care' => 'CASH CARE P.A.',
-        'z_drive'   => 'Z-DRIVE',
+        'no'              => 'NO',
+        'yes'             => 'YES',
+        'cash_care'       => 'CASH CARE P.A.',
+        'z_drive'         => 'Z-DRIVE',
+        'motorist_plan_3' => 'MOTORIST PLAN 3',
+        'motorist_plan_4' => 'MOTORIST PLAN 4',
+        'auto365'         => 'AUTO365',
+    ];
+
+    /** Personal-accident options offered per company (keys of PA_OPTIONS). */
+    public const COMPANY_PA = [
+        'ZURICH TAKAFUL'   => ['yes', 'no', 'cash_care', 'z_drive'],
+        'ETIQA TAKAFUL'    => ['yes', 'no', 'cash_care'],
+        'TAKAFUL IKHLAS'   => ['yes', 'no', 'cash_care'],
+        'TAKAFUL MALAYSIA' => ['yes', 'no', 'cash_care', 'motorist_plan_3', 'motorist_plan_4'],
+        'KURNIA INSURANS'  => ['auto365'],
     ];
 
     /**
@@ -81,19 +146,9 @@ class QuoteTemplate extends Model
                 'cermin'       => null,
                 'bencana_alam' => 'no',
                 'digital_copy' => 'yes',
-                'roadtax'      => null,
+                'roadtax'      => 70,
             ],
-            'columns' => array_map(fn ($company) => [
-                'company'            => $company,
-                'value'              => 'market_value',
-                'towing'             => '300km',
-                'accident_assist'    => 'yes',
-                'ncd'                => 0,
-                'all_driver'         => 'yes',
-                'personal_accident'  => 'no',
-                'vehicle_inspection' => 'no',
-                'insurance_takaful'  => null,
-            ], self::COMPANIES),
+            'columns' => array_map(fn ($company) => self::defaultColumn($company), self::DEFAULT_SELECTED),
         ];
     }
 
@@ -151,7 +206,7 @@ class QuoteTemplate extends Model
                 'value'              => self::VALUE_OPTIONS[$col['value'] ?? ''] ?? '-',
                 'towing'             => self::TOWING_OPTIONS[$col['towing'] ?? ''] ?? '-',
                 'accident_assist'    => self::YESNO_OPTIONS[$col['accident_assist'] ?? ''] ?? '-',
-                'ncd'                => number_format((float) ($col['ncd'] ?? 0), 2) . '%',
+                'ncd'                => self::NCD_OPTIONS[(string) ($col['ncd'] ?? '0')] ?? (number_format((float) ($col['ncd'] ?? 0), 2) . '%'),
                 'cermin'             => $shared['cermin'] ?? null,
                 'bencana_alam'       => self::YESNO_OPTIONS[$shared['bencana_alam'] ?? ''] ?? '-',
                 'all_driver'         => self::YESNO_OPTIONS[$col['all_driver'] ?? ''] ?? '-',

@@ -12,6 +12,7 @@ class Payment extends Model
 {
     protected $fillable = [
         'reference',
+        'site',
         'payer_name',
         'payer_email',
         'payer_phone',
@@ -75,9 +76,15 @@ class Payment extends Model
         return self::PURPOSE_LABELS[$this->purpose] ?? $this->purpose;
     }
 
+    /**
+     * Label as shown on this payment's own site (Fiuu is "Fiuu" on NAN
+     * Solutions but "SPayLater" on Reniu), falling back to the global map.
+     */
     public function gatewayLabel(): string
     {
-        return self::GATEWAY_LABELS[$this->gateway] ?? $this->gateway;
+        $label = site()->config("gateways.{$this->gateway}.label", null, $this->site);
+
+        return $label ?? (self::GATEWAY_LABELS[$this->gateway] ?? $this->gateway);
     }
 
     public function isPaid(): bool
@@ -103,7 +110,11 @@ class Payment extends Model
         }
 
         try {
-            $result = app(PaymentGatewayManager::class)->driver($this->gateway)->getStatus($this);
+            // Use the site this payment was made on, not the ambient one — the
+            // reconcile cron runs in CLI where there's no request host.
+            $result = app(PaymentGatewayManager::class)
+                ->driver($this->gateway, $this->site)
+                ->getStatus($this);
         } catch (GatewayException $e) {
             Log::warning("Reconcile {$this->reference} failed: {$e->getMessage()}");
             return false;
@@ -123,15 +134,34 @@ class Payment extends Model
     }
 
     /**
-     * PAY-YYYY-XXXX, sequential per year.
+     * PREFIX-YYYY-XXXX, sequential per year per site (PAY- for NAN Solutions,
+     * RNU- for Reniu) so references stay distinguishable in gateway dashboards
+     * even though both sites share this table.
      */
-    public static function nextReference(): string
+    public static function nextReference(?string $site = null): string
     {
-        $year = now()->year;
+        $site   = $site ?? site()->key();
+        $prefix = site()->referencePrefix($site);
+        $year   = now()->year;
 
-        return DB::transaction(function () use ($year) {
-            $count = self::whereYear('created_at', $year)->lockForUpdate()->count();
-            return 'PAY-' . $year . '-' . str_pad($count + 1, 4, '0', STR_PAD_LEFT);
+        return DB::transaction(function () use ($prefix, $year) {
+            $count = self::whereYear('created_at', $year)
+                ->where('reference', 'like', $prefix . '-%')
+                ->lockForUpdate()
+                ->count();
+
+            return $prefix . '-' . $year . '-' . str_pad($count + 1, 4, '0', STR_PAD_LEFT);
         });
+    }
+
+    /** Which site this payment was made on. */
+    public function siteLabel(): string
+    {
+        return site()->label($this->site);
+    }
+
+    public function scopeForSite($query, ?string $site)
+    {
+        return $site ? $query->where('site', $site) : $query;
     }
 }
