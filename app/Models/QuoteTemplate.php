@@ -20,15 +20,45 @@ class QuoteTemplate extends Model
     /** Fixed title (no longer entered per quote). */
     public const TITLE = 'First Party Comprehensive';
 
-    /** Fixed insurance companies — the three comparison columns. */
-    public const COMPANIES = ['Zurich Takaful', 'Etiqa Takaful', 'Takaful Ikhlas'];
-
-    /** Logo (under public/) for each company column, keyed by index. */
-    public const COMPANY_LOGOS = [
-        'images/zurich-takaful.png',
-        'images/Logo-Insuran-3.webp',
-        'images/Logo-Insuran-5.webp',
+    /**
+     * Every insurance company that can be compared, mapped to its logo under
+     * public/ (null = no logo yet, show the name as text). The admin picks which
+     * of these appear as columns via the multi-select on the form.
+     */
+    public const ALL_COMPANIES = [
+        'ZURICH TAKAFUL'   => 'images/zurich-takaful.png',
+        'ETIQA TAKAFUL'    => 'images/Logo-Insuran-3.webp',
+        'TAKAFUL IKHLAS'   => 'images/Logo-Insuran-5.webp',
+        'TAKAFUL MALAYSIA' => null,
+        'KURNIA INSURANS'  => null,
     ];
+
+    /** Companies pre-ticked on a new quote. */
+    public const DEFAULT_SELECTED = ['ZURICH TAKAFUL', 'ETIQA TAKAFUL', 'TAKAFUL IKHLAS'];
+
+    /** Asset path for a company's logo, or null when the file isn't present. */
+    public static function logoFor(?string $company): ?string
+    {
+        $path = self::ALL_COMPANIES[$company] ?? null;
+
+        return $path && is_file(public_path($path)) ? $path : null;
+    }
+
+    /** Default column values for a company (later tuned per insurer). */
+    public static function defaultColumn(string $company): array
+    {
+        return [
+            'company'            => $company,
+            'value'              => 'market_value',
+            'towing'             => '300km',
+            'accident_assist'    => 'yes',
+            'ncd'                => 0,
+            'all_driver'         => 'yes',
+            'personal_accident'  => 'no',
+            'vehicle_inspection' => 'no',
+            'insurance_takaful'  => null,
+        ];
+    }
 
     // ── Option lists (form dropdowns) + display labels (preview) ──────────────
 
@@ -83,17 +113,7 @@ class QuoteTemplate extends Model
                 'digital_copy' => 'yes',
                 'roadtax'      => null,
             ],
-            'columns' => array_map(fn ($company) => [
-                'company'            => $company,
-                'value'              => 'market_value',
-                'towing'             => '300km',
-                'accident_assist'    => 'yes',
-                'ncd'                => 0,
-                'all_driver'         => 'yes',
-                'personal_accident'  => 'no',
-                'vehicle_inspection' => 'no',
-                'insurance_takaful'  => null,
-            ], self::COMPANIES),
+            'columns' => array_map(fn ($company) => self::defaultColumn($company), self::DEFAULT_SELECTED),
         ];
     }
 

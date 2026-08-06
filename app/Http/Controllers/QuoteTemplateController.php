@@ -88,7 +88,9 @@ class QuoteTemplateController extends Controller
             'shared.digital_copy' => 'required|in:yes,no',
             'shared.roadtax'      => 'nullable|numeric|min:0',
 
-            'columns'                       => 'required|array|size:3',
+            // 1–5 columns, one per selected insurance company.
+            'columns'                       => 'required|array|min:1|max:5',
+            'columns.*.company'             => ['required', 'string', 'in:' . implode(',', array_keys(QuoteTemplate::ALL_COMPANIES))],
             'columns.*.value'               => 'required|in:market_value,agreed_value',
             'columns.*.towing'              => 'required|in:150km,200km,300km,unlimited',
             'columns.*.accident_assist'     => 'required|in:yes,no',
@@ -99,12 +101,8 @@ class QuoteTemplateController extends Controller
             'columns.*.insurance_takaful'   => 'nullable|numeric|min:0',
         ]);
 
-        // Company names are fixed — stamp them onto each column server-side.
-        $columns = $validated['columns'];
-        foreach ($columns as $i => &$col) {
-            $col['company'] = QuoteTemplate::COMPANIES[$i] ?? '';
-        }
-        unset($col);
+        // Keep the submitted order, drop any duplicate company selections.
+        $columns = collect($validated['columns'])->unique('company')->values()->all();
 
         return [
             'title'              => QuoteTemplate::TITLE,

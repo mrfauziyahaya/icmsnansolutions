@@ -12,6 +12,21 @@
         $pa    = \App\Models\QuoteTemplate::PA_OPTIONS;
         $inst  = \App\Models\QuoteTemplate::INSTALMENTS;
         $d     = $template->data;
+
+        // Build every selectable company, carrying its saved values when this
+        // quote already includes it, otherwise sensible defaults. A company is
+        // pre-ticked only if it's part of the saved (or blank) column set.
+        $saved     = collect($d['columns'])->keyBy('company');
+        $companies = [];
+        foreach (\App\Models\QuoteTemplate::ALL_COMPANIES as $name => $logoPath) {
+            $col = $saved->get($name);
+            $companies[] = [
+                'name'     => $name,
+                'logo'     => \App\Models\QuoteTemplate::logoFor($name) ? asset($logoPath) : null,
+                'selected' => $col !== null,
+                'col'      => \Illuminate\Support\Arr::except($col ?? \App\Models\QuoteTemplate::defaultColumn($name), ['company']),
+            ];
+        }
     @endphp
 
     @if($errors->any())
@@ -43,28 +58,43 @@
             </div>
         </div>
 
+        {{-- ── Company multi-select ────────────────────────────────────── --}}
+        <div class="bg-white shadow rounded-lg mt-6 p-5 sm:p-6">
+            <p class="text-sm font-medium text-gray-700 mb-3">
+                Pilih Syarikat Insurans
+                <span class="text-gray-400 font-normal">(pilih satu atau lebih — setiap satu jadi satu kolum)</span>
+            </p>
+            <div class="flex flex-wrap gap-2">
+                <template x-for="c in f.companies" :key="c.name">
+                    <label class="inline-flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer select-none transition"
+                           :class="c.selected ? 'border-orange-500 bg-orange-50 text-orange-800' : 'border-gray-300 text-gray-600 hover:border-gray-400'">
+                        <input type="checkbox" x-model="c.selected" class="rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                        <span class="text-sm font-medium" x-text="c.name"></span>
+                    </label>
+                </template>
+            </div>
+            <p x-show="selected().length === 0" x-cloak class="mt-2 text-xs text-red-600">Sila pilih sekurang-kurangnya satu syarikat.</p>
+        </div>
+
+        {{-- Hidden company name per selected column, in the same order. --}}
+        <template x-for="(c, i) in selected()" :key="'company-' + c.name">
+            <input type="hidden" :name="`columns[${i}][company]`" :value="c.name">
+        </template>
+
         {{-- ── Comparison grid ─────────────────────────────────────────── --}}
         <div class="bg-white shadow rounded-lg mt-6 overflow-x-auto">
-            <div class="min-w-[720px] p-4 sm:p-6">
+            <div class="p-4 sm:p-6" x-show="selected().length > 0" x-cloak>
 
-                {{-- fixed company headers (like the image) --}}
-                @php $tints = ['bg-sky-200', 'bg-yellow-200', 'bg-green-200']; @endphp
-                <div class="grid grid-cols-[160px_repeat(3,1fr)] gap-2 items-stretch sticky top-0 z-10 bg-white py-1">
+                {{-- company headers --}}
+                <div class="grid gap-2 items-stretch sticky top-0 z-10 bg-white py-1" :style="gridStyle">
                     <div class="flex items-center text-xs font-semibold uppercase tracking-wide text-gray-500">Sebut Harga</div>
-                    @php $logos = \App\Models\QuoteTemplate::COMPANY_LOGOS; @endphp
-                    @foreach(\App\Models\QuoteTemplate::COMPANIES as $i => $company)
-                        <div class="{{ $tints[$i % 3] }} rounded-md px-2 py-2 text-center text-sm font-bold uppercase text-gray-800">
-                            @if(($logos[$i] ?? null) && is_file(public_path($logos[$i])))
-                                <img src="{{ asset($logos[$i]) }}" alt="{{ $company }}" class="mx-auto mb-1 h-7 w-auto object-contain">
-                            @endif
-                            {{ $company }}
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <div class="rounded-md px-2 py-2 text-center text-sm font-bold uppercase text-gray-800" :class="tint(i)">
+                            <template x-if="c.logo"><img :src="c.logo" :alt="c.name" class="mx-auto mb-1 h-7 w-auto object-contain"></template>
+                            <span x-text="c.name"></span>
                         </div>
-                    @endforeach
+                    </template>
                 </div>
-
-                @php
-                    // [label, section?] rows are rendered by the partials below.
-                @endphp
 
                 {{-- SEBUT HARGA --}}
                 <x-quote-section>Sebut Harga</x-quote-section>
@@ -73,34 +103,34 @@
                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm text-right">
                 </x-quote-row-shared>
                 <x-quote-row label="Value">
-                    @foreach($d['columns'] as $i => $col)
-                        <select name="columns[{{ $i }}][value]" x-model="f.columns[{{ $i }}].value" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <select :name="`columns[${i}][value]`" x-model="c.col.value" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
                             @foreach($val as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
                         </select>
-                    @endforeach
+                    </template>
                 </x-quote-row>
 
                 {{-- INSURANCE BENEFITS --}}
                 <x-quote-section>Insurance Benefits</x-quote-section>
                 <x-quote-row label="Towing">
-                    @foreach($d['columns'] as $i => $col)
-                        <select name="columns[{{ $i }}][towing]" x-model="f.columns[{{ $i }}].towing" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <select :name="`columns[${i}][towing]`" x-model="c.col.towing" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
                             @foreach($tow as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
                         </select>
-                    @endforeach
+                    </template>
                 </x-quote-row>
                 <x-quote-row label="Accident / Breakdown Assist">
-                    @foreach($d['columns'] as $i => $col)
-                        <select name="columns[{{ $i }}][accident_assist]" x-model="f.columns[{{ $i }}].accident_assist" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <select :name="`columns[${i}][accident_assist]`" x-model="c.col.accident_assist" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
                             @foreach($yn as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
                         </select>
-                    @endforeach
+                    </template>
                 </x-quote-row>
                 <x-quote-row label="No Claim Discount (NCD) %">
-                    @foreach($d['columns'] as $i => $col)
-                        <input type="number" step="0.01" min="0" max="100" name="columns[{{ $i }}][ncd]" x-model.number="f.columns[{{ $i }}].ncd"
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <input type="number" step="0.01" min="0" max="100" :name="`columns[${i}][ncd]`" x-model.number="c.col.ncd"
                                class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
-                    @endforeach
+                    </template>
                 </x-quote-row>
 
                 {{-- ADD ON --}}
@@ -115,18 +145,18 @@
                     </select>
                 </x-quote-row-shared>
                 <x-quote-row label="All Driver">
-                    @foreach($d['columns'] as $i => $col)
-                        <select name="columns[{{ $i }}][all_driver]" x-model="f.columns[{{ $i }}].all_driver" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <select :name="`columns[${i}][all_driver]`" x-model="c.col.all_driver" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
                             @foreach($yn as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
                         </select>
-                    @endforeach
+                    </template>
                 </x-quote-row>
                 <x-quote-row label="Personal Accident">
-                    @foreach($d['columns'] as $i => $col)
-                        <select name="columns[{{ $i }}][personal_accident]" x-model="f.columns[{{ $i }}].personal_accident" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <select :name="`columns[${i}][personal_accident]`" x-model="c.col.personal_accident" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
                             @foreach($pa as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
                         </select>
-                    @endforeach
+                    </template>
                 </x-quote-row>
 
                 {{-- ROADTAX --}}
@@ -137,20 +167,20 @@
                     </select>
                 </x-quote-row-shared>
                 <x-quote-row label="Vehicle Inspection Required">
-                    @foreach($d['columns'] as $i => $col)
-                        <select name="columns[{{ $i }}][vehicle_inspection]" x-model="f.columns[{{ $i }}].vehicle_inspection" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <select :name="`columns[${i}][vehicle_inspection]`" x-model="c.col.vehicle_inspection" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
                             @foreach($yn as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
                         </select>
-                    @endforeach
+                    </template>
                 </x-quote-row>
 
                 {{-- TOTALS --}}
                 <x-quote-section>Jumlah</x-quote-section>
                 <x-quote-row label="Insurance / Takaful (RM)">
-                    @foreach($d['columns'] as $i => $col)
-                        <input type="number" step="0.01" min="0" name="columns[{{ $i }}][insurance_takaful]" x-model.number="f.columns[{{ $i }}].insurance_takaful"
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <input type="number" step="0.01" min="0" :name="`columns[${i}][insurance_takaful]`" x-model.number="c.col.insurance_takaful"
                                class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
-                    @endforeach
+                    </template>
                 </x-quote-row>
                 <x-quote-row-shared label="Roadtax 1 Tahun (RM)">
                     <input type="number" step="0.01" min="0" name="shared[roadtax]" x-model.number="f.shared.roadtax"
@@ -158,20 +188,20 @@
                 </x-quote-row-shared>
 
                 {{-- live computed totals --}}
-                <div class="grid grid-cols-[160px_repeat(3,1fr)] gap-2 mt-3 py-3 border-t-2 border-gray-200">
+                <div class="grid gap-2 mt-3 py-3 border-t-2 border-gray-200" :style="gridStyle">
                     <div class="text-sm font-bold text-gray-900">Jumlah Keseluruhan</div>
-                    <template x-for="i in [0,1,2]" :key="i">
-                        <div class="text-sm font-bold text-orange-700 text-right" x-text="'RM ' + total(i).toFixed(2)"></div>
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <div class="text-sm font-bold text-orange-700 text-right" x-text="'RM ' + total(c).toFixed(2)"></div>
                     </template>
                 </div>
 
                 <div class="mt-2 rounded-lg bg-gray-50 p-3 space-y-1.5">
                     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Bayaran Ansuran</p>
                     @foreach($inst as $key => $meta)
-                        <div class="grid grid-cols-[160px_repeat(3,1fr)] gap-2 text-sm">
+                        <div class="grid gap-2 text-sm" :style="gridStyle">
                             <div class="text-gray-600">{{ $meta['label'] }}</div>
-                            <template x-for="i in [0,1,2]" :key="i">
-                                <div class="text-right text-gray-800" x-text="'RM ' + instalment('{{ $key }}', total(i)).toFixed(2)"></div>
+                            <template x-for="(c, i) in selected()" :key="c.name">
+                                <div class="text-right text-gray-800" x-text="'RM ' + instalment('{{ $key }}', total(c)).toFixed(2)"></div>
                             </template>
                         </div>
                     @endforeach
@@ -181,7 +211,8 @@
 
         <div class="mt-6 flex items-center justify-end gap-3">
             <a href="{{ route('quote-templates.index') }}" class="rounded-md bg-gray-100 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-200">Batal</a>
-            <button type="submit" class="rounded-md bg-orange-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-orange-700">
+            <button type="submit" :disabled="selected().length === 0"
+                    class="rounded-md bg-orange-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed">
                 Simpan &amp; Pratonton
             </button>
         </div>
@@ -191,23 +222,35 @@
         function quoteForm() {
             return {
                 f: @js([
-                    'title'   => $template->title,
-                    'reg'     => $template->vehicle_reg_number,
-                    'model'   => $template->vehicle_model,
-                    'shared'  => $d['shared'],
-                    'columns' => $d['columns'],
+                    'reg'       => $template->vehicle_reg_number,
+                    'model'     => $template->vehicle_model,
+                    'shared'    => $d['shared'],
+                    'companies' => $companies,
                 ]),
-                total(i) {
-                    const c = this.f.columns[i];
+                tints: ['bg-sky-200', 'bg-yellow-200', 'bg-green-200'],
+
+                selected() {
+                    return this.f.companies.filter(c => c.selected);
+                },
+                get cols() {
+                    return Math.max(this.selected().length, 1);
+                },
+                get gridStyle() {
+                    return `grid-template-columns:160px repeat(${this.cols},minmax(120px,1fr))`;
+                },
+                tint(i) {
+                    return this.tints[i % this.tints.length];
+                },
+                total(c) {
                     const digital = this.f.shared.digital_copy === 'yes' ? 5 : 0;
-                    return (Number(c.insurance_takaful) || 0) + (Number(this.f.shared.roadtax) || 0) + digital;
+                    return (Number(c.col.insurance_takaful) || 0) + (Number(this.f.shared.roadtax) || 0) + digital;
                 },
                 instalment(provider, total) {
                     switch (provider) {
-                        case 'atome':         return total * 1.08;
-                        case 'ahapay':        return Math.round(total * 1.035);
-                        case 'spaylater':     return total * 1.02;
-                        default:              return total;   // directlending
+                        case 'atome':     return total * 1.08;
+                        case 'ahapay':    return Math.round(total * 1.035);
+                        case 'spaylater': return total * 1.02;
+                        default:          return total;   // directlending
                     }
                 },
             }
