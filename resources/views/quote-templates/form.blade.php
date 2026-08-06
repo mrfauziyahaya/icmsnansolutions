@@ -7,9 +7,8 @@
 
     @php
         $val   = \App\Models\QuoteTemplate::VALUE_OPTIONS;
-        $tow   = \App\Models\QuoteTemplate::TOWING_OPTIONS;
         $yn    = \App\Models\QuoteTemplate::YESNO_OPTIONS;
-        $pa    = \App\Models\QuoteTemplate::PA_OPTIONS;
+        $ncd   = \App\Models\QuoteTemplate::NCD_OPTIONS;
         $inst  = \App\Models\QuoteTemplate::INSTALMENTS;
         $d     = $template->data;
 
@@ -18,6 +17,7 @@
         // pre-ticked only if it's part of the saved (or blank) column set.
         $saved     = collect($d['columns'])->keyBy('company');
         $companies = [];
+        $mapOptions = fn (array $keys, array $labels) => array_map(fn ($k) => ['v' => $k, 'l' => $labels[$k]], $keys);
         foreach (\App\Models\QuoteTemplate::ALL_COMPANIES as $name => $logoPath) {
             $col = $saved->get($name);
             $companies[] = [
@@ -25,6 +25,9 @@
                 'logo'     => \App\Models\QuoteTemplate::logoFor($name) ? asset($logoPath) : null,
                 'selected' => $col !== null,
                 'col'      => \Illuminate\Support\Arr::except($col ?? \App\Models\QuoteTemplate::defaultColumn($name), ['company']),
+                // Towing and Personal Accident dropdowns differ per company.
+                'towingOptions' => $mapOptions(\App\Models\QuoteTemplate::COMPANY_TOWING[$name] ?? [], \App\Models\QuoteTemplate::TOWING_OPTIONS),
+                'paOptions'     => $mapOptions(\App\Models\QuoteTemplate::COMPANY_PA[$name] ?? [], \App\Models\QuoteTemplate::PA_OPTIONS),
             ];
         }
     @endphp
@@ -115,7 +118,9 @@
                 <x-quote-row label="Towing">
                     <template x-for="(c, i) in selected()" :key="c.name">
                         <select :name="`columns[${i}][towing]`" x-model="c.col.towing" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                            @foreach($tow as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
+                            <template x-for="opt in c.towingOptions" :key="opt.v">
+                                <option :value="opt.v" x-text="opt.l"></option>
+                            </template>
                         </select>
                     </template>
                 </x-quote-row>
@@ -128,8 +133,9 @@
                 </x-quote-row>
                 <x-quote-row label="No Claim Discount (NCD) %">
                     <template x-for="(c, i) in selected()" :key="c.name">
-                        <input type="number" step="0.01" min="0" max="100" :name="`columns[${i}][ncd]`" x-model.number="c.col.ncd"
-                               class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
+                        <select :name="`columns[${i}][ncd]`" x-model="c.col.ncd" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                            @foreach($ncd as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
+                        </select>
                     </template>
                 </x-quote-row>
 
@@ -154,7 +160,9 @@
                 <x-quote-row label="Personal Accident">
                     <template x-for="(c, i) in selected()" :key="c.name">
                         <select :name="`columns[${i}][personal_accident]`" x-model="c.col.personal_accident" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                            @foreach($pa as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
+                            <template x-for="opt in c.paOptions" :key="opt.v">
+                                <option :value="opt.v" x-text="opt.l"></option>
+                            </template>
                         </select>
                     </template>
                 </x-quote-row>

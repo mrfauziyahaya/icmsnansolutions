@@ -100,4 +100,47 @@ class QuoteTemplateTest extends TestCase
             $this->assertStringContainsString($company, $html);
         }
     }
+
+    /** Each company defaults to the first towing / PA option it actually offers. */
+    public function test_default_column_uses_each_companys_own_first_options(): void
+    {
+        $kurnia = QuoteTemplate::defaultColumn('KURNIA INSURANS');
+        $this->assertSame('100km', $kurnia['towing']);
+        $this->assertSame('auto365', $kurnia['personal_accident']);
+
+        $zurich = QuoteTemplate::defaultColumn('ZURICH TAKAFUL');
+        $this->assertSame('150km', $zurich['towing']);
+        $this->assertSame('yes', $zurich['personal_accident']);
+    }
+
+    public function test_new_quotes_default_roadtax_to_70(): void
+    {
+        $this->assertSame(70, QuoteTemplate::blankData()['shared']['roadtax']);
+    }
+
+    /** The form ships each company's own towing/PA options, so the dropdowns differ. */
+    public function test_form_carries_per_company_options(): void
+    {
+        $html = $this->actingAs($this->admin())->get(route('quote-templates.create'))->assertOk()->getContent();
+
+        // Kurnia-only values and Takaful Malaysia-only values must be present.
+        $this->assertStringContainsString('AUTO365', $html);
+        $this->assertStringContainsString('MOTORIST PLAN 3', $html);
+        $this->assertStringContainsString('100 KM', $html);
+        // NCD is now a fixed dropdown.
+        $this->assertStringContainsString('38.33%', $html);
+    }
+
+    /** The 38.33% NCD value must validate. */
+    public function test_it_accepts_the_38_33_ncd_value(): void
+    {
+        $payload = $this->payload(['ZURICH TAKAFUL']);
+        $payload['columns'][0]['ncd'] = '38.33';
+
+        $this->actingAs($this->admin())
+            ->post(route('quote-templates.store'), $payload)
+            ->assertRedirect();
+
+        $this->assertSame('38.33', (string) QuoteTemplate::sole()->data['columns'][0]['ncd']);
+    }
 }

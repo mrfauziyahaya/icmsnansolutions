@@ -92,11 +92,11 @@ class QuoteTemplateController extends Controller
             'columns'                       => 'required|array|min:1|max:5',
             'columns.*.company'             => ['required', 'string', 'in:' . implode(',', array_keys(QuoteTemplate::ALL_COMPANIES))],
             'columns.*.value'               => 'required|in:market_value,agreed_value',
-            'columns.*.towing'              => 'required|in:150km,200km,300km,unlimited',
+            'columns.*.towing'              => 'required|in:' . implode(',', array_keys(QuoteTemplate::TOWING_OPTIONS)),
             'columns.*.accident_assist'     => 'required|in:yes,no',
             'columns.*.ncd'                 => 'nullable|numeric|min:0|max:100',
             'columns.*.all_driver'          => 'required|in:yes,no',
-            'columns.*.personal_accident'   => 'required|in:no,yes,cash_care,z_drive',
+            'columns.*.personal_accident'   => 'required|in:' . implode(',', array_keys(QuoteTemplate::PA_OPTIONS)),
             'columns.*.vehicle_inspection'  => 'required|in:yes,no',
             'columns.*.insurance_takaful'   => 'nullable|numeric|min:0',
         ]);
