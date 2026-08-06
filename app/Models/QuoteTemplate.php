@@ -29,8 +29,8 @@ class QuoteTemplate extends Model
         'ZURICH TAKAFUL'   => 'images/zurich-takaful.png',
         'ETIQA TAKAFUL'    => 'images/Logo-Insuran-3.webp',
         'TAKAFUL IKHLAS'   => 'images/Logo-Insuran-5.webp',
-        'TAKAFUL MALAYSIA' => null,
-        'KURNIA INSURANS'  => null,
+        'TAKAFUL MALAYSIA' => 'images/takaful-malaysia-logo.png',
+        'KURNIA INSURANS'  => 'images/kurnia-insurance-logo.png',
     ];
 
     /** Companies pre-ticked on a new quote. */
