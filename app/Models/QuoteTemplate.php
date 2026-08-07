@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 
 class QuoteTemplate extends Model
 {
     protected $fillable = [
+        'type',
         'title',
         'vehicle_reg_number',
         'vehicle_model',
@@ -17,13 +19,11 @@ class QuoteTemplate extends Model
         'data' => 'array',
     ];
 
-    /** Fixed title (no longer entered per quote). */
-    public const TITLE = 'First Party Comprehensive';
+    public const DEFAULT_TYPE = 'comprehensive';
 
     /**
-     * Every insurance company that can be compared, mapped to its logo under
-     * public/ (null = no logo yet, show the name as text). The admin picks which
-     * of these appear as columns via the multi-select on the form.
+     * Every insurance company, mapped to its logo under public/ (null = no logo,
+     * show the name). Which appear on a quote is the admin's multi-select.
      */
     public const ALL_COMPANIES = [
         'ZURICH TAKAFUL'   => 'images/zurich-takaful.png',
@@ -33,42 +33,25 @@ class QuoteTemplate extends Model
         'KURNIA INSURANS'  => 'images/kurnia-insurance-logo.png',
     ];
 
-    /** Companies pre-ticked on a new quote. */
-    public const DEFAULT_SELECTED = ['ZURICH TAKAFUL', 'ETIQA TAKAFUL', 'TAKAFUL IKHLAS'];
+    /** The motor quote types only compare these three. */
+    public const MOTOR_COMPANIES = ['ZURICH TAKAFUL', 'ETIQA TAKAFUL', 'TAKAFUL MALAYSIA'];
 
-    /** Asset path for a company's logo, or null when the file isn't present. */
-    public static function logoFor(?string $company): ?string
-    {
-        $path = self::ALL_COMPANIES[$company] ?? null;
-
-        return $path && is_file(public_path($path)) ? $path : null;
-    }
-
-    /** Default column values for a company — first towing/PA option it offers. */
-    public static function defaultColumn(string $company): array
-    {
-        return [
-            'company'            => $company,
-            'value'              => 'market_value',
-            'towing'             => self::COMPANY_TOWING[$company][0] ?? 'unlimited',
-            'accident_assist'    => 'yes',
-            'ncd'                => '0',
-            'all_driver'         => 'yes',
-            'personal_accident'  => self::COMPANY_PA[$company][0] ?? 'no',
-            'vehicle_inspection' => 'no',
-            'insurance_takaful'  => null,
-        ];
-    }
-
-    // ── Option lists (form dropdowns) + display labels (preview) ──────────────
+    // ── Option maps ───────────────────────────────────────────────────────────
 
     public const VALUE_OPTIONS = [
         'market_value' => 'MARKET VALUE',
         'agreed_value' => 'AGREED VALUE',
     ];
 
-    /** Every towing label. Which apply per company is COMPANY_TOWING below. */
+    public const YESNO_OPTIONS = ['yes' => 'YES', 'no' => 'NO'];
+
+    public const ROADTAX_PERIOD_OPTIONS = ['1_year' => '1 TAHUN', '6_months' => '6 BULAN'];
+
+    /** All towing labels; which apply is per type / per company below. */
     public const TOWING_OPTIONS = [
+        'no_towing' => 'NO TOWING',
+        '30km'      => '30 KM',
+        '50km'      => '50 KM',
         '100km'     => '100 KM',
         '150km'     => '150 KM',
         '200km'     => '200 KM',
@@ -77,7 +60,7 @@ class QuoteTemplate extends Model
         'no'        => 'NO',
     ];
 
-    /** Towing options offered per company (keys of TOWING_OPTIONS, in order). */
+    /** Towing per company for the comprehensive type (others use a fixed list). */
     public const COMPANY_TOWING = [
         'ZURICH TAKAFUL'   => ['150km', '300km', 'unlimited'],
         'ETIQA TAKAFUL'    => ['200km', 'unlimited', 'no'],
@@ -86,22 +69,14 @@ class QuoteTemplate extends Model
         'KURNIA INSURANS'  => ['100km', 'unlimited'],
     ];
 
-    public const YESNO_OPTIONS = [
-        'yes' => 'YES',
-        'no'  => 'NO',
-    ];
-
-    /** No Claim Discount — the same fixed set for every company. */
     public const NCD_OPTIONS = [
-        '0'     => '0%',
-        '25'    => '25%',
-        '35'    => '35%',
-        '38.33' => '38.33%',
-        '45'    => '45%',
-        '55'    => '55%',
+        '0' => '0%', '25' => '25%', '35' => '35%', '38.33' => '38.33%', '45' => '45%', '55' => '55%',
     ];
 
-    /** Every personal-accident label. Which apply per company: COMPANY_PA. */
+    public const NCD_MOTOR_OPTIONS = [
+        '0' => '0%', '15' => '15%', '20' => '20%', '25' => '25%', '30' => '30%', '38.33' => '38.33%', '45' => '45%', '55' => '55%',
+    ];
+
     public const PA_OPTIONS = [
         'no'              => 'NO',
         'yes'             => 'YES',
@@ -112,7 +87,6 @@ class QuoteTemplate extends Model
         'auto365'         => 'AUTO365',
     ];
 
-    /** Personal-accident options offered per company (keys of PA_OPTIONS). */
     public const COMPANY_PA = [
         'ZURICH TAKAFUL'   => ['yes', 'no', 'cash_care', 'z_drive'],
         'ETIQA TAKAFUL'    => ['yes', 'no', 'cash_care'],
@@ -121,10 +95,16 @@ class QuoteTemplate extends Model
         'KURNIA INSURANS'  => ['auto365'],
     ];
 
-    /**
-     * Installment providers and how each marks up the grand total.
-     * @var array<string, array{label: string, apply: callable}>
-     */
+    /** Multi-select benefits on the motor quotes (each shows as its own line). */
+    public const ADDITIONAL_BENEFITS = [
+        'helmet'      => 'Helmet Replacement RM50',
+        'pa5500'      => 'Personal Accident RM5500',
+        'perils'      => 'Limited Special Perils Allowance RM1000',
+        'towing_cost' => 'Breakdown/Emergency Towing Cost RM160',
+        'none'        => 'None',
+    ];
+
+    /** @var array<string, array{label: string}> */
     public const INSTALMENTS = [
         'atome'         => ['label' => 'ATOME / GRAB PAYLATER'],
         'ahapay'        => ['label' => 'AHAPAY'],
@@ -132,44 +112,250 @@ class QuoteTemplate extends Model
         'directlending' => ['label' => 'DIRECT LENDING'],
     ];
 
-    /** Fields entered once and shown across all three columns. */
-    public const SHARED_FIELDS = ['sum_covered', 'cermin', 'bencana_alam', 'digital_copy', 'roadtax'];
+    /**
+     * Field registry — scope (shared once vs per company), input type, label,
+     * and which option map to use. Per-company/per-type option lists are
+     * resolved by optionsFor().
+     */
+    public const FIELDS = [
+        'sum_covered'         => ['scope' => 'company', 'input' => 'number',      'label' => 'Sum Covered (RM)'],
+        'value'               => ['scope' => 'company', 'input' => 'select',      'label' => 'Value',                       'options' => 'value'],
+        'towing'              => ['scope' => 'company', 'input' => 'select',      'label' => 'Towing',                      'options' => 'towing'],
+        'accident_assist'     => ['scope' => 'company', 'input' => 'select',      'label' => 'Accident / Breakdown Assist', 'options' => 'yesno'],
+        'ncd'                 => ['scope' => 'company', 'input' => 'select',      'label' => 'No Claim Discount (NCD) %',   'options' => 'ncd'],
+        'all_driver'          => ['scope' => 'company', 'input' => 'select',      'label' => 'All Driver',                  'options' => 'yesno'],
+        'all_rider'           => ['scope' => 'company', 'input' => 'select',      'label' => 'All Rider',                   'options' => 'yesno'],
+        'personal_accident'   => ['scope' => 'company', 'input' => 'select',      'label' => 'Personal Accident',           'options' => 'pa'],
+        'additional_benefits' => ['scope' => 'company', 'input' => 'multiselect', 'label' => 'Additional Benefits',         'options' => 'additional_benefits'],
+        'add_on_benefit'      => ['scope' => 'company', 'input' => 'select',      'label' => 'Add On Benefit',              'options' => 'yesno'],
+        'cermin'              => ['scope' => 'shared',  'input' => 'number',      'label' => 'Cermin (RM)'],
+        'bencana_alam'        => ['scope' => 'shared',  'input' => 'select',      'label' => 'Bencana Alam',                'options' => 'yesno'],
+        'digital_copy'        => ['scope' => 'shared',  'input' => 'select',      'label' => 'Digital Copy (MyJPJ)',        'options' => 'yesno'],
+        'vehicle_inspection'  => ['scope' => 'company', 'input' => 'select',      'label' => 'Vehicle Inspection Required', 'options' => 'yesno'],
+        'insurance_takaful'   => ['scope' => 'company', 'input' => 'number',      'label' => 'Insurance / Takaful (RM)'],
+        'roadtax_period'      => ['scope' => 'shared',  'input' => 'select',      'label' => 'Tempoh Roadtax',              'options' => 'roadtax_period'],
+        'roadtax'             => ['scope' => 'shared',  'input' => 'number',      'label' => 'Roadtax (RM)'],
+    ];
+
+    // ── Types ───────────────────────────────────────────────────────────────
+
+    /** @return array<string, array<string, mixed>> */
+    public static function types(): array
+    {
+        $all   = array_keys(self::ALL_COMPANIES);
+        $motor = self::MOTOR_COMPANIES;
+
+        return [
+            'comprehensive' => [
+                'label'     => '1st Party Comprehensive',
+                'title'     => 'First Party Comprehensive',
+                'companies' => $all,
+                'ncd'       => self::NCD_OPTIONS,
+                'sections'  => [
+                    'Sebut Harga'        => ['sum_covered', 'value'],
+                    'Insurance Benefits' => ['towing', 'accident_assist', 'ncd'],
+                    'Add On'             => ['cermin', 'bencana_alam', 'all_driver', 'personal_accident'],
+                    'Roadtax'            => ['digital_copy', 'vehicle_inspection'],
+                    'Jumlah'             => ['insurance_takaful', 'roadtax_period', 'roadtax'],
+                ],
+            ],
+            'third_party_fire_theft' => [
+                'label'     => '3rd Party',
+                'title'     => '3rd Party Fire & Theft',
+                'companies' => $all,
+                'ncd'       => self::NCD_OPTIONS,
+                'towing'    => ['no_towing', 'unlimited'],
+                'sections'  => [
+                    'Sebut Harga'        => ['sum_covered', 'value'],
+                    'Insurance Benefits' => ['towing', 'accident_assist', 'ncd'],
+                    'Add On'             => ['personal_accident'],
+                    'Roadtax'            => ['digital_copy', 'vehicle_inspection'],
+                    'Jumlah'             => ['insurance_takaful', 'roadtax_period', 'roadtax'],
+                ],
+            ],
+            'motor_first_party' => [
+                'label'     => '1st Party (Motor)',
+                'title'     => 'First Party Comprehensive',
+                'companies' => $motor,
+                'ncd'       => self::NCD_MOTOR_OPTIONS,
+                'towing'    => ['no_towing', 'unlimited', '50km', '30km'],
+                'sections'  => [
+                    'Sebut Harga'        => ['sum_covered', 'value'],
+                    'Insurance Benefits' => ['all_rider', 'accident_assist', 'ncd', 'additional_benefits'],
+                    'Add On'             => ['add_on_benefit', 'towing'],
+                    'Roadtax'            => ['digital_copy', 'vehicle_inspection'],
+                    'Jumlah'             => ['insurance_takaful', 'roadtax_period', 'roadtax'],
+                ],
+            ],
+            'motor_third_party' => [
+                'label'     => '3rd Party (Motor)',
+                'title'     => 'Motor Third Party',
+                'companies' => $motor,
+                'ncd'       => self::NCD_MOTOR_OPTIONS,
+                'sections'  => [
+                    'Sebut Harga'        => ['sum_covered'],
+                    'Insurance Benefits' => ['all_rider', 'accident_assist', 'ncd', 'additional_benefits'],
+                    'Add On'             => ['add_on_benefit'],
+                    'Roadtax'            => ['digital_copy', 'vehicle_inspection'],
+                    'Jumlah'             => ['insurance_takaful', 'roadtax_period', 'roadtax'],
+                ],
+            ],
+        ];
+    }
+
+    public static function typeExists(string $type): bool
+    {
+        return array_key_exists($type, self::types());
+    }
+
+    public static function typeConfig(?string $type): array
+    {
+        return self::types()[$type] ?? self::types()[self::DEFAULT_TYPE];
+    }
+
+    public function title(): string
+    {
+        return $this->title ?: self::typeConfig($this->type)['title'];
+    }
+
+    /** Companies this quote type compares. */
+    public static function companiesForType(string $type): array
+    {
+        return self::typeConfig($type)['companies'];
+    }
+
+    /** Field keys of the given scope used anywhere in a type's sections. */
+    public static function fieldKeys(string $type, string $scope): array
+    {
+        $keys = [];
+        foreach (self::typeConfig($type)['sections'] as $rows) {
+            foreach ($rows as $key) {
+                if ((self::FIELDS[$key]['scope'] ?? null) === $scope) {
+                    $keys[] = $key;
+                }
+            }
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    // ── Options ───────────────────────────────────────────────────────────────
 
     /**
-     * A blank template ready for the create form.
+     * The [value => label] option map for a select/multiselect field, resolved
+     * for the given type and (for per-company fields) company.
      */
-    public static function blankData(): array
+    public static function optionsFor(string $field, string $type, ?string $company = null): array
     {
+        $source = self::FIELDS[$field]['options'] ?? null;
+        $config = self::typeConfig($type);
+
+        // Pull labels in the exact order the keys are listed (not the label map's).
+        $ordered = fn (array $keys, array $labels) => array_reduce(
+            $keys,
+            fn ($carry, $k) => $carry + [$k => $labels[$k] ?? $k],
+            []
+        );
+
+        return match ($source) {
+            'value'          => self::VALUE_OPTIONS,
+            'yesno'          => self::YESNO_OPTIONS,
+            'roadtax_period' => self::ROADTAX_PERIOD_OPTIONS,
+            'ncd'            => $config['ncd'] ?? self::NCD_OPTIONS,
+            'additional_benefits' => self::ADDITIONAL_BENEFITS,
+            'pa'             => $ordered(self::COMPANY_PA[$company] ?? [], self::PA_OPTIONS),
+            'towing'         => $ordered($config['towing'] ?? self::COMPANY_TOWING[$company] ?? [], self::TOWING_OPTIONS),
+            default          => [],
+        };
+    }
+
+    /** Options as an ordered [{v,l}] list (for Alpine x-for). */
+    public static function optionList(string $field, string $type, ?string $company = null): array
+    {
+        $out = [];
+        foreach (self::optionsFor($field, $type, $company) as $v => $l) {
+            $out[] = ['v' => (string) $v, 'l' => $l];
+        }
+
+        return $out;
+    }
+
+    // ── Defaults ────────────────────────────────────────────────────────────
+
+    public static function logoFor(?string $company): ?string
+    {
+        $path = self::ALL_COMPANIES[$company] ?? null;
+
+        return $path && is_file(public_path($path)) ? $path : null;
+    }
+
+    /** Default value for one company field, for a type + company. */
+    public static function fieldDefault(string $field, string $type, string $company): mixed
+    {
+        return match ($field) {
+            'value'               => 'market_value',
+            'towing'              => array_key_first(self::optionsFor('towing', $type, $company)) ?? 'unlimited',
+            'ncd'                 => '0',
+            'accident_assist',
+            'all_driver',
+            'all_rider'           => 'yes',
+            'add_on_benefit'      => 'no',
+            'vehicle_inspection'  => 'no',
+            'personal_accident'   => array_key_first(self::optionsFor('pa', $type, $company)) ?? 'no',
+            'additional_benefits' => [],
+            default               => null,   // sum_covered, insurance_takaful
+        };
+    }
+
+    /** Default company column for a type. */
+    public static function defaultColumn(string $type, string $company): array
+    {
+        $col = ['company' => $company];
+        foreach (self::fieldKeys($type, 'company') as $field) {
+            $col[$field] = self::fieldDefault($field, $type, $company);
+        }
+
+        return $col;
+    }
+
+    public static function sharedDefault(string $field): mixed
+    {
+        return match ($field) {
+            'bencana_alam'   => 'no',
+            'digital_copy'   => 'yes',
+            'roadtax'        => 70,
+            'roadtax_period' => '1_year',
+            default          => null,   // cermin
+        };
+    }
+
+    /** A blank template for a type, with the first three companies pre-ticked. */
+    public static function blankData(string $type = self::DEFAULT_TYPE): array
+    {
+        $shared = [];
+        foreach (self::fieldKeys($type, 'shared') as $field) {
+            $shared[$field] = self::sharedDefault($field);
+        }
+
+        $preselect = array_slice(self::companiesForType($type), 0, 3);
+
         return [
-            'shared' => [
-                'sum_covered'  => null,
-                'cermin'       => null,
-                'bencana_alam' => 'no',
-                'digital_copy' => 'yes',
-                'roadtax'      => 70,
-            ],
-            'columns' => array_map(fn ($company) => self::defaultColumn($company), self::DEFAULT_SELECTED),
+            'shared'  => $shared,
+            'columns' => array_map(fn ($c) => self::defaultColumn($type, $c), $preselect),
         ];
     }
 
     // ── Calculations ──────────────────────────────────────────────────────────
 
-    /**
-     * Grand total for one column: insurance + roadtax + RM5 if a digital MyJPJ
-     * copy is taken.
-     */
     public function columnTotal(array $column): float
     {
-        $shared   = $this->data['shared'] ?? [];
-        $roadtax  = (float) ($shared['roadtax'] ?? 0);
-        $digital  = ($shared['digital_copy'] ?? 'no') === 'yes' ? 5 : 0;
+        $shared  = $this->data['shared'] ?? [];
+        $roadtax = (float) ($shared['roadtax'] ?? 0);
+        $digital = ($shared['digital_copy'] ?? 'no') === 'yes' ? 5 : 0;
 
         return round((float) ($column['insurance_takaful'] ?? 0) + $roadtax + $digital, 2);
     }
 
-    /**
-     * Instalment amount for a given provider on a grand total.
-     */
     public static function instalment(string $provider, float $total): float
     {
         return match ($provider) {
@@ -181,45 +367,83 @@ class QuoteTemplate extends Model
         };
     }
 
-    /**
-     * Everything the preview needs, computed from the stored inputs.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function computedColumns(): array
+    // ── Preview ───────────────────────────────────────────────────────────────
+
+    /** Display string(s) for one field on one column/shared value. */
+    public function display(string $field, string $type, array $col, array $shared): string|array
     {
+        $def   = self::FIELDS[$field];
+        $scope = $def['scope'];
+        $raw   = $scope === 'shared' ? ($shared[$field] ?? null) : ($col[$field] ?? null);
+
+        if ($def['input'] === 'number') {
+            return is_null($raw) || $raw === '' || (float) $raw == 0 ? '-' : 'RM ' . number_format((float) $raw, 2);
+        }
+
+        if ($def['input'] === 'multiselect') {
+            $labels = array_map(fn ($k) => self::ADDITIONAL_BENEFITS[$k] ?? $k, array_values((array) $raw));
+            $labels = array_filter($labels, fn ($l) => $l !== 'None');
+
+            return $labels ?: ['-'];
+        }
+
+        $company = $col['company'] ?? null;
+
+        return self::optionsFor($field, $type, $company)[$raw] ?? '-';
+    }
+
+    /**
+     * Everything the preview needs, laid out as sections → rows → per-company
+     * cells, plus company headers, totals and instalments.
+     */
+    public function previewData(): array
+    {
+        $type    = $this->type ?: self::DEFAULT_TYPE;
         $shared  = $this->data['shared'] ?? [];
         $columns = $this->data['columns'] ?? [];
-        $out     = [];
 
-        foreach ($columns as $col) {
-            $total = $this->columnTotal($col);
+        $companies = array_map(fn ($c) => [
+            'company' => $c['company'] ?? '',
+            'logo'    => self::logoFor($c['company'] ?? null),
+        ], $columns);
 
-            $instalments = [];
-            foreach (self::INSTALMENTS as $key => $meta) {
-                $instalments[$key] = self::instalment($key, $total);
+        $sections = [];
+        foreach (self::typeConfig($type)['sections'] as $name => $rows) {
+            $renderedRows = [];
+            foreach ($rows as $field) {
+                $def = self::FIELDS[$field];
+                $row = [
+                    'label' => $def['label'],
+                    'scope' => $def['scope'],
+                    'input' => $def['input'],
+                ];
+                if ($def['scope'] === 'shared') {
+                    $row['value'] = $this->display($field, $type, [], $shared);
+                } else {
+                    $row['cells'] = array_map(fn ($col) => $this->display($field, $type, $col, $shared), $columns);
+                }
+                $renderedRows[] = $row;
             }
+            $sections[] = ['name' => $name, 'rows' => $renderedRows];
+        }
 
-            $out[] = [
-                'company'            => $col['company'] ?? '',
-                'sum_covered'        => $shared['sum_covered'] ?? null,
-                'value'              => self::VALUE_OPTIONS[$col['value'] ?? ''] ?? '-',
-                'towing'             => self::TOWING_OPTIONS[$col['towing'] ?? ''] ?? '-',
-                'accident_assist'    => self::YESNO_OPTIONS[$col['accident_assist'] ?? ''] ?? '-',
-                'ncd'                => self::NCD_OPTIONS[(string) ($col['ncd'] ?? '0')] ?? (number_format((float) ($col['ncd'] ?? 0), 2) . '%'),
-                'cermin'             => $shared['cermin'] ?? null,
-                'bencana_alam'       => self::YESNO_OPTIONS[$shared['bencana_alam'] ?? ''] ?? '-',
-                'all_driver'         => self::YESNO_OPTIONS[$col['all_driver'] ?? ''] ?? '-',
-                'personal_accident'  => self::PA_OPTIONS[$col['personal_accident'] ?? ''] ?? '-',
-                'digital_copy'       => self::YESNO_OPTIONS[$shared['digital_copy'] ?? ''] ?? '-',
-                'vehicle_inspection' => self::YESNO_OPTIONS[$col['vehicle_inspection'] ?? ''] ?? '-',
-                'insurance_takaful'  => (float) ($col['insurance_takaful'] ?? 0),
-                'roadtax'            => (float) ($shared['roadtax'] ?? 0),
-                'total'              => $total,
-                'instalments'        => $instalments,
+        $totals      = array_map(fn ($col) => $this->columnTotal($col), $columns);
+        $instalments = [];
+        foreach (self::INSTALMENTS as $key => $meta) {
+            $instalments[] = [
+                'label'  => $meta['label'],
+                'values' => array_map(fn ($t) => self::instalment($key, $t), $totals),
             ];
         }
 
-        return $out;
+        return [
+            'type'        => $type,
+            'title'       => $this->title(),
+            'companies'   => $companies,
+            'sections'    => $sections,
+            'totals'      => $totals,
+            'instalments' => $instalments,
+            'roadtax_period' => self::ROADTAX_PERIOD_OPTIONS[$shared['roadtax_period'] ?? '1_year'] ?? '1 TAHUN',
+        ];
     }
 }

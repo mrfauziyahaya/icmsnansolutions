@@ -24,11 +24,17 @@ class QuoteTemplateController extends Controller
         return view('quote-templates.index', compact('templates', 'search'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
+        $type = $request->query('type', QuoteTemplate::DEFAULT_TYPE);
+        if (! QuoteTemplate::typeExists($type)) {
+            $type = QuoteTemplate::DEFAULT_TYPE;
+        }
+
         $template = new QuoteTemplate([
-            'title' => QuoteTemplate::TITLE,
-            'data'  => QuoteTemplate::blankData(),
+            'type'  => $type,
+            'title' => QuoteTemplate::typeConfig($type)['title'],
+            'data'  => QuoteTemplate::blankData($type),
         ]);
 
         return view('quote-templates.form', ['template' => $template]);
@@ -36,9 +42,12 @@ class QuoteTemplateController extends Controller
 
     public function store(Request $request)
     {
-        $data = $this->validated($request);
+        $type = $request->input('type', QuoteTemplate::DEFAULT_TYPE);
+        if (! QuoteTemplate::typeExists($type)) {
+            $type = QuoteTemplate::DEFAULT_TYPE;
+        }
 
-        $template = QuoteTemplate::create($data);
+        $template = QuoteTemplate::create($this->validated($request, $type));
 
         return redirect()->route('quote-templates.show', $template)
             ->with('status', 'Sebut harga berjaya disimpan.');
@@ -51,7 +60,7 @@ class QuoteTemplateController extends Controller
 
     public function update(Request $request, QuoteTemplate $quoteTemplate)
     {
-        $quoteTemplate->update($this->validated($request));
+        $quoteTemplate->update($this->validated($request, $quoteTemplate->type ?: QuoteTemplate::DEFAULT_TYPE));
 
         return redirect()->route('quote-templates.show', $quoteTemplate)
             ->with('status', 'Sebut harga berjaya dikemaskini.');
@@ -61,7 +70,7 @@ class QuoteTemplateController extends Controller
     {
         return view('quote-templates.preview', [
             'template' => $quoteTemplate,
-            'columns'  => $quoteTemplate->computedColumns(),
+            'preview'  => $quoteTemplate->previewData(),
         ]);
     }
 
@@ -74,44 +83,67 @@ class QuoteTemplateController extends Controller
     }
 
     /**
-     * Validate the flat form input and reshape it into the stored data blob.
+     * Build validation rules from the type's schema, then reshape the flat form
+     * input into the stored data blob.
      */
-    private function validated(Request $request): array
+    private function validated(Request $request, string $type): array
     {
-        $validated = $request->validate([
+        $companies = QuoteTemplate::companiesForType($type);
+
+        $rules = [
             'vehicle_reg_number' => 'required|string|max:30',
             'vehicle_model'      => 'nullable|string|max:100',
+            'columns'            => 'required|array|min:1|max:' . count($companies),
+            'columns.*.company'  => 'required|string|in:' . implode(',', $companies),
+        ];
 
-            'shared.sum_covered'  => 'nullable|numeric|min:0',
-            'shared.cermin'       => 'nullable|numeric|min:0',
-            'shared.bencana_alam' => 'required|in:yes,no',
-            'shared.digital_copy' => 'required|in:yes,no',
-            'shared.roadtax'      => 'nullable|numeric|min:0',
+        foreach (QuoteTemplate::fieldKeys($type, 'shared') as $field) {
+            $rules['shared.' . $field] = $this->fieldRule($field, $type);
+        }
+        foreach (QuoteTemplate::fieldKeys($type, 'company') as $field) {
+            if (QuoteTemplate::FIELDS[$field]['input'] === 'multiselect') {
+                $rules['columns.*.' . $field]         = 'nullable|array';
+                $rules['columns.*.' . $field . '.*']  = 'in:' . implode(',', array_keys(QuoteTemplate::ADDITIONAL_BENEFITS));
+            } else {
+                $rules['columns.*.' . $field] = $this->fieldRule($field, $type);
+            }
+        }
 
-            // 1–5 columns, one per selected insurance company.
-            'columns'                       => 'required|array|min:1|max:5',
-            'columns.*.company'             => ['required', 'string', 'in:' . implode(',', array_keys(QuoteTemplate::ALL_COMPANIES))],
-            'columns.*.value'               => 'required|in:market_value,agreed_value',
-            'columns.*.towing'              => 'required|in:' . implode(',', array_keys(QuoteTemplate::TOWING_OPTIONS)),
-            'columns.*.accident_assist'     => 'required|in:yes,no',
-            'columns.*.ncd'                 => 'nullable|numeric|min:0|max:100',
-            'columns.*.all_driver'          => 'required|in:yes,no',
-            'columns.*.personal_accident'   => 'required|in:' . implode(',', array_keys(QuoteTemplate::PA_OPTIONS)),
-            'columns.*.vehicle_inspection'  => 'required|in:yes,no',
-            'columns.*.insurance_takaful'   => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validate($rules);
 
-        // Keep the submitted order, drop any duplicate company selections.
+        // Keep the submitted order, drop duplicate company selections.
         $columns = collect($validated['columns'])->unique('company')->values()->all();
 
         return [
-            'title'              => QuoteTemplate::TITLE,
+            'type'               => $type,
+            'title'              => QuoteTemplate::typeConfig($type)['title'],
             'vehicle_reg_number' => strtoupper($validated['vehicle_reg_number']),
             'vehicle_model'      => $validated['vehicle_model'] ?? null,
             'data'               => [
-                'shared'  => $validated['shared'],
+                'shared'  => $validated['shared'] ?? [],
                 'columns' => $columns,
             ],
         ];
+    }
+
+    private function fieldRule(string $field, string $type): string
+    {
+        $def = QuoteTemplate::FIELDS[$field];
+
+        if ($def['input'] === 'number') {
+            return 'nullable|numeric|min:0';
+        }
+
+        $keys = match ($def['options'] ?? null) {
+            'value'          => array_keys(QuoteTemplate::VALUE_OPTIONS),
+            'yesno'          => array_keys(QuoteTemplate::YESNO_OPTIONS),
+            'roadtax_period' => array_keys(QuoteTemplate::ROADTAX_PERIOD_OPTIONS),
+            'ncd'            => array_keys(QuoteTemplate::typeConfig($type)['ncd'] ?? QuoteTemplate::NCD_OPTIONS),
+            'towing'         => array_keys(QuoteTemplate::TOWING_OPTIONS),
+            'pa'             => array_keys(QuoteTemplate::PA_OPTIONS),
+            default          => [],
+        };
+
+        return 'required|in:' . implode(',', $keys);
     }
 }
