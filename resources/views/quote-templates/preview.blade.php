@@ -4,7 +4,7 @@
             <h2 class="text-2xl font-bold text-gray-900">Pratonton Sebut Harga</h2>
             <div class="flex items-center gap-2">
                 <a href="{{ route('quote-templates.edit', $template) }}" class="rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">Edit</a>
-                <button onclick="window.print()" class="rounded-md bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">Cetak</button>
+                <button onclick="window.printQuote()" class="rounded-md bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">Cetak</button>
                 <a href="{{ route('quote-templates.index') }}" class="rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">Kembali</a>
             </div>
         </div>
@@ -27,7 +27,7 @@
         $n    = count($columns);
     @endphp
 
-    <div class="mx-auto max-w-4xl bg-white shadow print:shadow-none">
+    <div id="quote-print" class="mx-auto max-w-4xl bg-white shadow print:shadow-none">
         <table class="w-full border-collapse text-[11px] sm:text-xs">
             {{-- logo --}}
             <tbody>
@@ -61,7 +61,7 @@
                         @php $logo_i = \App\Models\QuoteTemplate::logoFor($c['company'] ?? null); @endphp
                         <td class="border border-gray-300 bg-white px-3 py-2 text-center align-middle">
                             @if($logo_i)
-                                <img src="{{ asset($logo_i) }}" alt="{{ $c['company'] }}" class="mx-auto h-10 w-auto object-contain">
+                                <img src="{{ asset($logo_i) }}" alt="{{ $c['company'] }}" class="mx-auto h-20 w-auto object-contain">
                             @endif
                         </td>
                     @endforeach
@@ -147,7 +147,7 @@
                     @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-right">{!! $rm($c['insurance_takaful']) !!}</td>@endforeach
                 </tr>
                 <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">ROADTAX (1 TAHUN)</td>
+                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">ROADTAX ({{ $columns[0]['roadtax_period'] ?? '1 TAHUN' }})</td>
                     @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-right">{!! $rm($c['roadtax']) !!}</td>@endforeach
                 </tr>
                 <tr class="font-bold">
@@ -166,4 +166,36 @@
             </tbody>
         </table>
     </div>
+
+    {{-- Print to a single A4 landscape page: scale the sheet down to fit the
+         printable area (more companies = narrower columns, never a 2nd page). --}}
+    <style>
+        @media print {
+            @page { size: A4 landscape; margin: 8mm; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            #quote-print { box-shadow: none !important; }
+        }
+    </style>
+    <script>
+        (function () {
+            const el = document.getElementById('quote-print');
+            const PX_PER_MM = 96 / 25.4;
+            const pageW = (297 - 16) * PX_PER_MM;   // A4 landscape width  − 8mm margins
+            const pageH = (210 - 16) * PX_PER_MM;   // A4 landscape height − 8mm margins
+
+            function fit() {
+                if (!el) return;
+                el.style.transform = '';
+                const r = el.getBoundingClientRect();
+                const scale = Math.min(pageW / r.width, pageH / r.height, 1);
+                el.style.transformOrigin = 'top left';
+                el.style.transform = 'scale(' + scale.toFixed(3) + ')';
+            }
+            function reset() { if (el) el.style.transform = ''; }
+
+            window.addEventListener('beforeprint', fit);
+            window.addEventListener('afterprint', reset);
+            window.printQuote = function () { fit(); window.print(); reset(); };
+        })();
+    </script>
 </x-app-layout>

@@ -24,9 +24,10 @@ class QuoteTemplateTest extends TestCase
     private function payload(array $companies): array
     {
         $columns = [];
-        foreach ($companies as $name) {
+        foreach ($companies as $j => $name) {
             $columns[] = [
                 'company'            => $name,
+                'sum_covered'        => 50000 + $j,          // per-company now
                 'value'              => 'market_value',
                 'towing'             => '300km',
                 'accident_assist'    => 'yes',
@@ -41,7 +42,7 @@ class QuoteTemplateTest extends TestCase
         return [
             'vehicle_reg_number' => 'wxy1234',
             'vehicle_model'      => 'Test Model',
-            'shared'             => ['sum_covered' => 50000, 'cermin' => 0, 'bencana_alam' => 'no', 'digital_copy' => 'yes', 'roadtax' => 90],
+            'shared'             => ['cermin' => 0, 'bencana_alam' => 'no', 'digital_copy' => 'yes', 'roadtax' => 90, 'roadtax_period' => '1_year'],
             'columns'            => $columns,
         ];
     }
@@ -129,6 +130,30 @@ class QuoteTemplateTest extends TestCase
         $this->assertStringContainsString('100 KM', $html);
         // NCD is now a fixed dropdown.
         $this->assertStringContainsString('38.33%', $html);
+    }
+
+    /** Sum Covered is stored per company now, not shared. */
+    public function test_sum_covered_is_stored_per_company(): void
+    {
+        $this->actingAs($this->admin())
+            ->post(route('quote-templates.store'), $this->payload(['ZURICH TAKAFUL', 'ETIQA TAKAFUL']))
+            ->assertRedirect();
+
+        $cols = QuoteTemplate::sole()->computedColumns();
+        $this->assertSame(50000.0, (float) $cols[0]['sum_covered']);
+        $this->assertSame(50001.0, (float) $cols[1]['sum_covered']);
+    }
+
+    public function test_roadtax_period_is_stored_and_labelled(): void
+    {
+        $payload = $this->payload(['ZURICH TAKAFUL']);
+        $payload['shared']['roadtax_period'] = '6_months';
+
+        $this->actingAs($this->admin())
+            ->post(route('quote-templates.store'), $payload)
+            ->assertRedirect();
+
+        $this->assertSame('6 BULAN', QuoteTemplate::sole()->computedColumns()[0]['roadtax_period']);
     }
 
     /** The 38.33% NCD value must validate. */

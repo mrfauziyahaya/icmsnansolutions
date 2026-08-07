@@ -49,6 +49,7 @@ class QuoteTemplate extends Model
     {
         return [
             'company'            => $company,
+            'sum_covered'        => null,
             'value'              => 'market_value',
             'towing'             => self::COMPANY_TOWING[$company][0] ?? 'unlimited',
             'accident_assist'    => 'yes',
@@ -132,8 +133,14 @@ class QuoteTemplate extends Model
         'directlending' => ['label' => 'DIRECT LENDING'],
     ];
 
-    /** Fields entered once and shown across all three columns. */
-    public const SHARED_FIELDS = ['sum_covered', 'cermin', 'bencana_alam', 'digital_copy', 'roadtax'];
+    /** Roadtax coverage period (label reflects the choice on the preview). */
+    public const ROADTAX_PERIOD_OPTIONS = [
+        '1_year'   => '1 TAHUN',
+        '6_months' => '6 BULAN',
+    ];
+
+    /** Fields entered once and shown across all columns. */
+    public const SHARED_FIELDS = ['cermin', 'bencana_alam', 'digital_copy', 'roadtax', 'roadtax_period'];
 
     /**
      * A blank template ready for the create form.
@@ -142,11 +149,11 @@ class QuoteTemplate extends Model
     {
         return [
             'shared' => [
-                'sum_covered'  => null,
-                'cermin'       => null,
-                'bencana_alam' => 'no',
-                'digital_copy' => 'yes',
-                'roadtax'      => 70,
+                'cermin'         => null,
+                'bencana_alam'   => 'no',
+                'digital_copy'   => 'yes',
+                'roadtax'        => 70,
+                'roadtax_period' => '1_year',
             ],
             'columns' => array_map(fn ($company) => self::defaultColumn($company), self::DEFAULT_SELECTED),
         ];
@@ -202,7 +209,7 @@ class QuoteTemplate extends Model
 
             $out[] = [
                 'company'            => $col['company'] ?? '',
-                'sum_covered'        => $shared['sum_covered'] ?? null,
+                'sum_covered'        => $col['sum_covered'] ?? null,
                 'value'              => self::VALUE_OPTIONS[$col['value'] ?? ''] ?? '-',
                 'towing'             => self::TOWING_OPTIONS[$col['towing'] ?? ''] ?? '-',
                 'accident_assist'    => self::YESNO_OPTIONS[$col['accident_assist'] ?? ''] ?? '-',
@@ -215,6 +222,7 @@ class QuoteTemplate extends Model
                 'vehicle_inspection' => self::YESNO_OPTIONS[$col['vehicle_inspection'] ?? ''] ?? '-',
                 'insurance_takaful'  => (float) ($col['insurance_takaful'] ?? 0),
                 'roadtax'            => (float) ($shared['roadtax'] ?? 0),
+                'roadtax_period'     => self::ROADTAX_PERIOD_OPTIONS[$shared['roadtax_period'] ?? '1_year'] ?? '1 TAHUN',
                 'total'              => $total,
                 'instalments'        => $instalments,
             ];

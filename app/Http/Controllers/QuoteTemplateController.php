@@ -82,15 +82,16 @@ class QuoteTemplateController extends Controller
             'vehicle_reg_number' => 'required|string|max:30',
             'vehicle_model'      => 'nullable|string|max:100',
 
-            'shared.sum_covered'  => 'nullable|numeric|min:0',
-            'shared.cermin'       => 'nullable|numeric|min:0',
-            'shared.bencana_alam' => 'required|in:yes,no',
-            'shared.digital_copy' => 'required|in:yes,no',
-            'shared.roadtax'      => 'nullable|numeric|min:0',
+            'shared.cermin'         => 'nullable|numeric|min:0',
+            'shared.bencana_alam'   => 'required|in:yes,no',
+            'shared.digital_copy'   => 'required|in:yes,no',
+            'shared.roadtax'        => 'nullable|numeric|min:0',
+            'shared.roadtax_period' => 'required|in:' . implode(',', array_keys(QuoteTemplate::ROADTAX_PERIOD_OPTIONS)),
 
             // 1–5 columns, one per selected insurance company.
             'columns'                       => 'required|array|min:1|max:5',
             'columns.*.company'             => ['required', 'string', 'in:' . implode(',', array_keys(QuoteTemplate::ALL_COMPANIES))],
+            'columns.*.sum_covered'         => 'nullable|numeric|min:0',
             'columns.*.value'               => 'required|in:market_value,agreed_value',
             'columns.*.towing'              => 'required|in:' . implode(',', array_keys(QuoteTemplate::TOWING_OPTIONS)),
             'columns.*.accident_assist'     => 'required|in:yes,no',

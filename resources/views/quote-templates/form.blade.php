@@ -9,6 +9,7 @@
         $val   = \App\Models\QuoteTemplate::VALUE_OPTIONS;
         $yn    = \App\Models\QuoteTemplate::YESNO_OPTIONS;
         $ncd   = \App\Models\QuoteTemplate::NCD_OPTIONS;
+        $rtp   = \App\Models\QuoteTemplate::ROADTAX_PERIOD_OPTIONS;
         $inst  = \App\Models\QuoteTemplate::INSTALMENTS;
         $d     = $template->data;
 
@@ -88,23 +89,29 @@
         <div class="bg-white shadow rounded-lg mt-6 overflow-x-auto">
             <div class="p-4 sm:p-6" x-show="selected().length > 0" x-cloak>
 
-                {{-- company headers --}}
-                <div class="grid gap-2 items-stretch sticky top-0 z-10 bg-white py-1" :style="gridStyle">
-                    <div class="flex items-center text-xs font-semibold uppercase tracking-wide text-gray-500">Sebut Harga</div>
+                {{-- company headers: logo on white above, name in the coloured card --}}
+                <div class="grid gap-2 items-end sticky top-0 z-10 bg-white py-1" :style="gridStyle">
+                    <div class="flex items-end text-xs font-semibold uppercase tracking-wide text-gray-500 pb-2">Sebut Harga</div>
                     <template x-for="(c, i) in selected()" :key="c.name">
-                        <div class="rounded-md px-2 py-2 text-center text-sm font-bold uppercase text-gray-800" :class="tint(i)">
-                            <template x-if="c.logo"><img :src="c.logo" :alt="c.name" class="mx-auto mb-1 h-7 w-auto object-contain"></template>
-                            <span x-text="c.name"></span>
+                        <div>
+                            <div class="h-16 flex items-center justify-center">
+                                <template x-if="c.logo"><img :src="c.logo" :alt="c.name" class="max-h-14 w-auto object-contain"></template>
+                            </div>
+                            <div class="rounded-md px-2 py-2 text-center text-sm font-bold uppercase text-gray-800" :class="tint(i)">
+                                <span x-text="c.name"></span>
+                            </div>
                         </div>
                     </template>
                 </div>
 
                 {{-- SEBUT HARGA --}}
                 <x-quote-section>Sebut Harga</x-quote-section>
-                <x-quote-row-shared label="Sum Covered (RM)">
-                    <input type="number" step="0.01" min="0" name="shared[sum_covered]" x-model.number="f.shared.sum_covered"
-                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm text-right">
-                </x-quote-row-shared>
+                <x-quote-row label="Sum Covered (RM)">
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <input type="number" step="0.01" min="0" :name="`columns[${i}][sum_covered]`" x-model.number="c.col.sum_covered"
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm text-right">
+                    </template>
+                </x-quote-row>
                 <x-quote-row label="Value">
                     <template x-for="(c, i) in selected()" :key="c.name">
                         <select :name="`columns[${i}][value]`" x-model="c.col.value" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
@@ -190,7 +197,12 @@
                                class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
                     </template>
                 </x-quote-row>
-                <x-quote-row-shared label="Roadtax 1 Tahun (RM)">
+                <x-quote-row-shared label="Tempoh Roadtax">
+                    <select name="shared[roadtax_period]" x-model="f.shared.roadtax_period" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                        @foreach($rtp as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
+                    </select>
+                </x-quote-row-shared>
+                <x-quote-row-shared label="Roadtax (RM)">
                     <input type="number" step="0.01" min="0" name="shared[roadtax]" x-model.number="f.shared.roadtax"
                            class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
                 </x-quote-row-shared>
