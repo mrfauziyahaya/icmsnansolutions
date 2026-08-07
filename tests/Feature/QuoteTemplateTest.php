@@ -8,9 +8,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The admin quote comparison builder. The columns shown are driven by a
- * multi-select of insurance companies, so the stored quote must hold exactly
- * the companies the admin ticked — in order, no more, no fewer.
+ * The admin quote comparison builder. Four quote types, each with its own
+ * companies, rows and option lists, all driven by the type schema.
  */
 class QuoteTemplateTest extends TestCase
 {
@@ -21,151 +20,146 @@ class QuoteTemplateTest extends TestCase
         return User::factory()->create();
     }
 
-    private function payload(array $companies): array
+    /** A valid payload for a type using each field's defaults. */
+    private function payloadFor(string $type, array $companies): array
     {
+        $shared = [];
+        foreach (QuoteTemplate::fieldKeys($type, 'shared') as $f) {
+            $shared[$f] = QuoteTemplate::sharedDefault($f) ?? ($f === 'cermin' ? 0 : '');
+        }
+
         $columns = [];
-        foreach ($companies as $j => $name) {
-            $columns[] = [
-                'company'            => $name,
-                'sum_covered'        => 50000 + $j,          // per-company now
-                'value'              => 'market_value',
-                'towing'             => '300km',
-                'accident_assist'    => 'yes',
-                'ncd'                => 25,
-                'all_driver'         => 'yes',
-                'personal_accident'  => 'no',
-                'vehicle_inspection' => 'no',
-                'insurance_takaful'  => 1200,
-            ];
+        foreach ($companies as $name) {
+            $col = QuoteTemplate::defaultColumn($type, $name);
+            $col['insurance_takaful'] = 1200;
+            $col['sum_covered']       = 50000;
+            $columns[] = $col;
         }
 
         return [
+            'type'               => $type,
             'vehicle_reg_number' => 'wxy1234',
             'vehicle_model'      => 'Test Model',
-            'shared'             => ['cermin' => 0, 'bencana_alam' => 'no', 'digital_copy' => 'yes', 'roadtax' => 90, 'roadtax_period' => '1_year'],
+            'shared'             => $shared,
             'columns'            => $columns,
         ];
     }
 
-    public function test_it_stores_only_the_selected_companies(): void
+    public function test_each_type_can_be_created(): void
     {
-        $this->actingAs($this->admin())
-            ->post(route('quote-templates.store'), $this->payload(['ZURICH TAKAFUL', 'KURNIA INSURANS']))
-            ->assertRedirect();
+        foreach (QuoteTemplate::types() as $type => $cfg) {
+            $companies = array_slice($cfg['companies'], 0, 2);
 
-        $t = QuoteTemplate::sole();
-        $this->assertCount(2, $t->data['columns']);
-        $this->assertSame(['ZURICH TAKAFUL', 'KURNIA INSURANS'], array_column($t->data['columns'], 'company'));
-        $this->assertSame('WXY1234', $t->vehicle_reg_number);   // upper-cased
+            $this->actingAs($this->admin())
+                ->post(route('quote-templates.store'), $this->payloadFor($type, $companies))
+                ->assertRedirect();
+
+            $t = QuoteTemplate::where('type', $type)->latest()->first();
+            $this->assertNotNull($t, "type {$type} was not stored");
+            $this->assertSame($cfg['title'], $t->title);
+            $this->assertCount(2, $t->data['columns']);
+        }
     }
 
-    public function test_it_accepts_a_single_company(): void
+    public function test_create_form_renders_the_requested_type(): void
     {
+        $html = $this->actingAs($this->admin())
+            ->get(route('quote-templates.create', ['type' => 'motor_first_party']))
+            ->assertOk()->getContent();
+
+        // Motor-only companies, and motor-only fields.
+        $this->assertStringContainsString('ZURICH TAKAFUL', $html);
+        $this->assertStringNotContainsString('KURNIA INSURANS', $html);   // not a motor company
+        $this->assertStringContainsString('All Rider', $html);
+        $this->assertStringContainsString('Additional Benefits', $html);
+        $this->assertStringContainsString('Add On Benefit', $html);
+    }
+
+    public function test_motor_rejects_a_non_motor_company(): void
+    {
+        // Kurnia isn't offered on motor types.
+        $payload = $this->payloadFor('motor_first_party', ['ZURICH TAKAFUL']);
+        $payload['columns'][0]['company'] = 'KURNIA INSURANS';
+
         $this->actingAs($this->admin())
-            ->post(route('quote-templates.store'), $this->payload(['TAKAFUL MALAYSIA']))
+            ->post(route('quote-templates.store'), $payload)
+            ->assertSessionHasErrors('columns.0.company');
+    }
+
+    public function test_additional_benefits_are_stored_per_company(): void
+    {
+        $payload = $this->payloadFor('motor_first_party', ['ZURICH TAKAFUL', 'ETIQA TAKAFUL']);
+        $payload['columns'][0]['additional_benefits'] = ['helmet', 'pa5500'];
+        $payload['columns'][1]['additional_benefits'] = ['towing_cost'];
+
+        $this->actingAs($this->admin())
+            ->post(route('quote-templates.store'), $payload)
             ->assertRedirect();
 
-        $this->assertCount(1, QuoteTemplate::sole()->data['columns']);
+        $cols = QuoteTemplate::where('type', 'motor_first_party')->sole()->data['columns'];
+        $this->assertSame(['helmet', 'pa5500'], $cols[0]['additional_benefits']);
+        $this->assertSame(['towing_cost'], $cols[1]['additional_benefits']);
+    }
+
+    public function test_additional_benefits_reject_an_unknown_value(): void
+    {
+        $payload = $this->payloadFor('motor_first_party', ['ZURICH TAKAFUL']);
+        $payload['columns'][0]['additional_benefits'] = ['not_a_benefit'];
+
+        $this->actingAs($this->admin())
+            ->post(route('quote-templates.store'), $payload)
+            ->assertSessionHasErrors('columns.0.additional_benefits.0');
+    }
+
+    /** 3rd Party (Motor) has no Value row and no Towing row. */
+    public function test_motor_third_party_omits_value_and_towing(): void
+    {
+        $company = QuoteTemplate::fieldKeys('motor_third_party', 'company');
+        $this->assertNotContains('value', $company);
+        $this->assertNotContains('towing', $company);
+        $this->assertContains('add_on_benefit', $company);
+    }
+
+    public function test_motor_towing_options_are_in_the_specified_order(): void
+    {
+        $keys = array_keys(QuoteTemplate::optionsFor('towing', 'motor_first_party', 'ZURICH TAKAFUL'));
+        $this->assertSame(['no_towing', 'unlimited', '50km', '30km'], $keys);
+    }
+
+    public function test_motor_ncd_has_the_extended_set(): void
+    {
+        $html = $this->actingAs($this->admin())
+            ->get(route('quote-templates.create', ['type' => 'motor_first_party']))->getContent();
+
+        $this->assertStringContainsString('15%', $html);
+        $this->assertStringContainsString('20%', $html);
+        $this->assertStringContainsString('30%', $html);
+    }
+
+    public function test_preview_lays_out_sections_and_benefit_lines(): void
+    {
+        $payload = $this->payloadFor('motor_first_party', ['ZURICH TAKAFUL']);
+        $payload['columns'][0]['additional_benefits'] = ['helmet', 'perils'];
+
+        $this->actingAs($this->admin())->post(route('quote-templates.store'), $payload)->assertRedirect();
+        $t = QuoteTemplate::where('type', 'motor_first_party')->sole();
+
+        $html = $this->actingAs($this->admin())->get(route('quote-templates.show', $t))->assertOk()->getContent();
+        $this->assertStringContainsString('Helmet Replacement RM50', $html);
+        $this->assertStringContainsString('Limited Special Perils Allowance RM1000', $html);
     }
 
     public function test_it_rejects_zero_companies(): void
     {
+        $payload = $this->payloadFor('comprehensive', []);
+
         $this->actingAs($this->admin())
-            ->post(route('quote-templates.store'), $this->payload([]))
+            ->post(route('quote-templates.store'), $payload)
             ->assertSessionHasErrors('columns');
-
-        $this->assertSame(0, QuoteTemplate::count());
-    }
-
-    public function test_it_rejects_an_unknown_company(): void
-    {
-        $this->actingAs($this->admin())
-            ->post(route('quote-templates.store'), $this->payload(['SOME RANDOM INSURER']))
-            ->assertSessionHasErrors('columns.0.company');
-    }
-
-    public function test_duplicate_company_selections_are_collapsed(): void
-    {
-        $this->actingAs($this->admin())
-            ->post(route('quote-templates.store'), $this->payload(['ETIQA TAKAFUL', 'ETIQA TAKAFUL']))
-            ->assertRedirect();
-
-        $this->assertCount(1, QuoteTemplate::sole()->data['columns']);
-    }
-
-    public function test_the_create_form_renders_the_company_multiselect(): void
-    {
-        $html = $this->actingAs($this->admin())->get(route('quote-templates.create'))->assertOk()->getContent();
-
-        foreach (array_keys(QuoteTemplate::ALL_COMPANIES) as $company) {
-            $this->assertStringContainsString($company, $html);
-        }
-    }
-
-    /** Each company defaults to the first towing / PA option it actually offers. */
-    public function test_default_column_uses_each_companys_own_first_options(): void
-    {
-        $kurnia = QuoteTemplate::defaultColumn('KURNIA INSURANS');
-        $this->assertSame('100km', $kurnia['towing']);
-        $this->assertSame('auto365', $kurnia['personal_accident']);
-
-        $zurich = QuoteTemplate::defaultColumn('ZURICH TAKAFUL');
-        $this->assertSame('150km', $zurich['towing']);
-        $this->assertSame('yes', $zurich['personal_accident']);
     }
 
     public function test_new_quotes_default_roadtax_to_70(): void
     {
-        $this->assertSame(70, QuoteTemplate::blankData()['shared']['roadtax']);
-    }
-
-    /** The form ships each company's own towing/PA options, so the dropdowns differ. */
-    public function test_form_carries_per_company_options(): void
-    {
-        $html = $this->actingAs($this->admin())->get(route('quote-templates.create'))->assertOk()->getContent();
-
-        // Kurnia-only values and Takaful Malaysia-only values must be present.
-        $this->assertStringContainsString('AUTO365', $html);
-        $this->assertStringContainsString('MOTORIST PLAN 3', $html);
-        $this->assertStringContainsString('100 KM', $html);
-        // NCD is now a fixed dropdown.
-        $this->assertStringContainsString('38.33%', $html);
-    }
-
-    /** Sum Covered is stored per company now, not shared. */
-    public function test_sum_covered_is_stored_per_company(): void
-    {
-        $this->actingAs($this->admin())
-            ->post(route('quote-templates.store'), $this->payload(['ZURICH TAKAFUL', 'ETIQA TAKAFUL']))
-            ->assertRedirect();
-
-        $cols = QuoteTemplate::sole()->computedColumns();
-        $this->assertSame(50000.0, (float) $cols[0]['sum_covered']);
-        $this->assertSame(50001.0, (float) $cols[1]['sum_covered']);
-    }
-
-    public function test_roadtax_period_is_stored_and_labelled(): void
-    {
-        $payload = $this->payload(['ZURICH TAKAFUL']);
-        $payload['shared']['roadtax_period'] = '6_months';
-
-        $this->actingAs($this->admin())
-            ->post(route('quote-templates.store'), $payload)
-            ->assertRedirect();
-
-        $this->assertSame('6 BULAN', QuoteTemplate::sole()->computedColumns()[0]['roadtax_period']);
-    }
-
-    /** The 38.33% NCD value must validate. */
-    public function test_it_accepts_the_38_33_ncd_value(): void
-    {
-        $payload = $this->payload(['ZURICH TAKAFUL']);
-        $payload['columns'][0]['ncd'] = '38.33';
-
-        $this->actingAs($this->admin())
-            ->post(route('quote-templates.store'), $payload)
-            ->assertRedirect();
-
-        $this->assertSame('38.33', (string) QuoteTemplate::sole()->data['columns'][0]['ncd']);
+        $this->assertSame(70, QuoteTemplate::blankData('comprehensive')['shared']['roadtax']);
     }
 }

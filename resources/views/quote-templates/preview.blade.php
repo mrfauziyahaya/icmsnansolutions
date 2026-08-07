@@ -19,18 +19,17 @@
             ? \Illuminate\Support\Facades\Storage::url($setting->logo_path)
             : (is_file(public_path('images/logo.png')) ? asset('images/logo.png') : null);
 
-        $money = fn($v) => is_null($v) || $v === '' || (float) $v == 0
-            ? ['RM', '-']
-            : ['RM', number_format((float) $v, 2)];
+        $rm = fn($v) => is_null($v) || $v === '' || (float) $v == 0 ? 'RM -' : 'RM ' . number_format((float) $v, 2);
 
-        $inst = \App\Models\QuoteTemplate::INSTALMENTS;
-        $n    = count($columns);
+        $companies = $preview['companies'];
+        $n         = count($companies);
+        $tints     = ['bg-sky-200', 'bg-yellow-200', 'bg-green-200'];
     @endphp
 
     <div id="quote-print" class="mx-auto max-w-4xl bg-white shadow print:shadow-none">
         <table class="w-full border-collapse text-[11px] sm:text-xs">
-            {{-- logo --}}
             <tbody>
+                {{-- logo --}}
                 <tr>
                     <td colspan="{{ $n + 1 }}" class="border border-gray-300 p-3 text-center">
                         @if($logo)
@@ -44,7 +43,7 @@
                 {{-- title --}}
                 <tr>
                     <td colspan="{{ $n + 1 }}" class="border border-gray-300 bg-yellow-400 px-3 py-2 text-center text-sm font-bold uppercase tracking-wide">
-                        {{ $template->title }}
+                        {{ $preview['title'] }}
                     </td>
                 </tr>
 
@@ -54,121 +53,70 @@
                     <td colspan="{{ max($n - 1, 1) }}" class="border border-gray-300 bg-yellow-300 px-3 py-2">Model: {{ $template->vehicle_model ?: '—' }}</td>
                 </tr>
 
-                {{-- company logos (looked up by the column's own company) --}}
+                {{-- company logos (on white) --}}
                 <tr>
                     <td class="border border-gray-300 bg-white px-3 py-2"></td>
-                    @foreach($columns as $i => $c)
-                        @php $logo_i = \App\Models\QuoteTemplate::logoFor($c['company'] ?? null); @endphp
+                    @foreach($companies as $c)
                         <td class="border border-gray-300 bg-white px-3 py-2 text-center align-middle">
-                            @if($logo_i)
-                                <img src="{{ asset($logo_i) }}" alt="{{ $c['company'] }}" class="mx-auto h-20 w-auto object-contain">
+                            @if($c['logo'])
+                                <img src="{{ asset($c['logo']) }}" alt="{{ $c['company'] }}" class="mx-auto h-20 w-auto object-contain">
                             @endif
                         </td>
                     @endforeach
                 </tr>
 
-                {{-- company header --}}
+                {{-- company names --}}
                 <tr>
                     <td class="border border-gray-300 bg-white px-3 py-2"></td>
-                    @php $tints = ['bg-sky-200', 'bg-yellow-200', 'bg-green-200']; @endphp
-                    @foreach($columns as $i => $c)
+                    @foreach($companies as $i => $c)
                         <td class="border border-gray-300 {{ $tints[$i % 3] }} px-3 py-2 text-center font-bold uppercase">{{ $c['company'] ?: '—' }}</td>
                     @endforeach
                 </tr>
 
-                @php
-                    // helper to print a currency cell
-                    $rm = function ($v) use ($money) {
-                        [$pre, $num] = $money($v);
-                        return '<div class="flex justify-between gap-2"><span>' . $pre . '</span><span>' . $num . '</span></div>';
-                    };
-                @endphp
+                {{-- sections --}}
+                @foreach($preview['sections'] as $section)
+                    <x-quote-preview-head :span="$n + 1">{{ $section['name'] }}</x-quote-preview-head>
+                    @foreach($section['rows'] as $row)
+                        <tr>
+                            <td class="border border-gray-300 px-3 py-1.5 font-semibold uppercase">{{ $row['label'] }}</td>
+                            @if($row['scope'] === 'shared')
+                                <td colspan="{{ $n }}" class="border border-gray-300 px-3 py-1.5 text-center">
+                                    {{ $row['input'] === 'number' ? $rm($row['value']) : $row['value'] }}
+                                </td>
+                            @else
+                                @foreach($row['cells'] as $cell)
+                                    <td class="border border-gray-300 px-3 py-1.5 {{ $row['input'] === 'number' ? 'text-right' : 'text-center' }}">
+                                        @if(is_array($cell))
+                                            @foreach($cell as $line)<div>{{ $line }}</div>@endforeach
+                                        @else
+                                            {{ $cell }}
+                                        @endif
+                                    </td>
+                                @endforeach
+                            @endif
+                        </tr>
+                    @endforeach
+                @endforeach
 
-                {{-- ── SEBUT HARGA ── --}}
-                <x-quote-preview-head :span="$n + 1">Sebut Harga</x-quote-preview-head>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">SUM COVERED</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-right">{!! $rm($c['sum_covered']) !!}</td>@endforeach
-                </tr>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">VALUE</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-center">{{ $c['value'] }}</td>@endforeach
-                </tr>
-
-                {{-- ── INSURANCE BENEFITS ── --}}
-                <x-quote-preview-head :span="$n + 1">Insurance Benefits</x-quote-preview-head>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">TOWING</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-center">{{ $c['towing'] }}</td>@endforeach
-                </tr>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">ACCIDENT / BREAKDOWN ASSIST</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-center">{{ $c['accident_assist'] }}</td>@endforeach
-                </tr>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">NO CLAIM DISCOUNT (NCD)</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-center">{{ $c['ncd'] }}</td>@endforeach
-                </tr>
-
-                {{-- ── ADD ON ── --}}
-                <x-quote-preview-head :span="$n + 1">Add On</x-quote-preview-head>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">CERMIN</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-right">{!! $rm($c['cermin']) !!}</td>@endforeach
-                </tr>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">BENCANA ALAM</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-center">{{ $c['bencana_alam'] }}</td>@endforeach
-                </tr>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">ALL DRIVER</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-center">{{ $c['all_driver'] }}</td>@endforeach
-                </tr>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">PERSONAL ACCIDENT</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-center">{{ $c['personal_accident'] }}</td>@endforeach
-                </tr>
-
-                {{-- ── ROADTAX ── --}}
-                <x-quote-preview-head :span="$n + 1">Roadtax</x-quote-preview-head>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">DIGITAL COPY (MYJPJ)</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-center">{{ $c['digital_copy'] }}</td>@endforeach
-                </tr>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">VEHICLE INSPECTION REQUIRED</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-center">{{ $c['vehicle_inspection'] }}</td>@endforeach
-                </tr>
-
-                {{-- ── TOTALS ── --}}
-                <tr><td colspan="{{ $n + 1 }}" class="p-1"></td></tr>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">INSURANCE - TAKAFUL</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-right">{!! $rm($c['insurance_takaful']) !!}</td>@endforeach
-                </tr>
-                <tr>
-                    <td class="border border-gray-300 px-3 py-1.5 font-semibold">ROADTAX ({{ $columns[0]['roadtax_period'] ?? '1 TAHUN' }})</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-right">{!! $rm($c['roadtax']) !!}</td>@endforeach
-                </tr>
+                {{-- grand total --}}
                 <tr class="font-bold">
-                    <td class="border border-gray-300 px-3 py-2">JUMLAH KESELURUHAN</td>
-                    @foreach($columns as $c)<td class="border border-gray-300 px-3 py-2 text-right">{!! $rm($c['total']) !!}</td>@endforeach
+                    <td class="border border-gray-300 px-3 py-2 uppercase">Jumlah Keseluruhan</td>
+                    @foreach($preview['totals'] as $t)<td class="border border-gray-300 px-3 py-2 text-right">{{ $rm($t) }}</td>@endforeach
                 </tr>
 
-                {{-- ── INSTALMENTS ── --}}
+                {{-- instalments --}}
                 <x-quote-preview-head :span="$n + 1">Jumlah Keseluruhan Bayaran Ansuran</x-quote-preview-head>
-                @foreach($inst as $key => $meta)
+                @foreach($preview['instalments'] as $row)
                     <tr>
-                        <td class="border border-gray-300 px-3 py-1.5 font-semibold">{{ $meta['label'] }}</td>
-                        @foreach($columns as $c)<td class="border border-gray-300 px-3 py-1.5 text-right">{!! $rm($c['instalments'][$key]) !!}</td>@endforeach
+                        <td class="border border-gray-300 px-3 py-1.5 font-semibold">{{ $row['label'] }}</td>
+                        @foreach($row['values'] as $v)<td class="border border-gray-300 px-3 py-1.5 text-right">{{ $rm($v) }}</td>@endforeach
                     </tr>
                 @endforeach
             </tbody>
         </table>
     </div>
 
-    {{-- Print to a single A4 landscape page: scale the sheet down to fit the
-         printable area (more companies = narrower columns, never a 2nd page). --}}
+    {{-- Print to a single A4 landscape page. --}}
     <style>
         @media print {
             @page { size: A4 landscape; margin: 8mm; }
@@ -180,8 +128,8 @@
         (function () {
             const el = document.getElementById('quote-print');
             const PX_PER_MM = 96 / 25.4;
-            const pageW = (297 - 16) * PX_PER_MM;   // A4 landscape width  − 8mm margins
-            const pageH = (210 - 16) * PX_PER_MM;   // A4 landscape height − 8mm margins
+            const pageW = (297 - 16) * PX_PER_MM;
+            const pageH = (210 - 16) * PX_PER_MM;
 
             function fit() {
                 if (!el) return;
