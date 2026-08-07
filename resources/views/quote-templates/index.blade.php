@@ -39,7 +39,11 @@
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 font-semibold text-gray-900">{{ $t->vehicle_reg_number }}</td>
                             <td class="px-4 py-3 text-gray-700">{{ $t->vehicle_model ?: '—' }}</td>
-                            <td class="px-4 py-3 text-gray-700">{{ $t->title }}</td>
+                            <td class="px-4 py-3 text-gray-700">
+                                <span class="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
+                                    {{ \App\Models\QuoteTemplate::typeConfig($t->type)['label'] }}
+                                </span>
+                            </td>
                             <td class="px-4 py-3 text-gray-500">{{ $t->updated_at->timezone('Asia/Kuala_Lumpur')->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">

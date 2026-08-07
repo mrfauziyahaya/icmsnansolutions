@@ -1,18 +1,39 @@
 <x-app-layout>
+    @php
+        $QT   = \App\Models\QuoteTemplate::class;
+        $type = $template->type ?: $QT::DEFAULT_TYPE;
+        $cfg  = $QT::typeConfig($type);
+        $d    = $template->data;
+        $F    = $QT::FIELDS;
+
+        // Every selectable company for this type, carrying saved values (or
+        // defaults), plus its own resolved select/multiselect option lists.
+        $companyFields = $QT::fieldKeys($type, 'company');
+        $saved         = collect($d['columns'])->keyBy('company');
+        $companies     = [];
+        foreach ($QT::companiesForType($type) as $name) {
+            $col     = $saved->get($name);
+            $options = [];
+            foreach ($companyFields as $field) {
+                if (in_array($F[$field]['input'], ['select', 'multiselect'])) {
+                    $options[$field] = $QT::optionList($field, $type, $name);
+                }
+            }
+            $companies[] = [
+                'name'     => $name,
+                'logo'     => $QT::logoFor($name) ? asset($QT::ALL_COMPANIES[$name]) : null,
+                'selected' => $col !== null,
+                'col'      => \Illuminate\Support\Arr::except($col ?? $QT::defaultColumn($type, $name), ['company']),
+                'options'  => $options,
+            ];
+        }
+    @endphp
+
     <x-slot name="header">
         <h2 class="text-2xl font-bold text-gray-900">
-            {{ $template->exists ? 'Edit Sebut Harga' : 'Sebut Harga Baru' }}
+            {{ $template->exists ? 'Edit' : 'Baru' }} — {{ $cfg['label'] }}
         </h2>
     </x-slot>
-
-    @php
-        $val   = \App\Models\QuoteTemplate::VALUE_OPTIONS;
-        $tow   = \App\Models\QuoteTemplate::TOWING_OPTIONS;
-        $yn    = \App\Models\QuoteTemplate::YESNO_OPTIONS;
-        $pa    = \App\Models\QuoteTemplate::PA_OPTIONS;
-        $inst  = \App\Models\QuoteTemplate::INSTALMENTS;
-        $d     = $template->data;
-    @endphp
 
     @if($errors->any())
         <div class="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
@@ -25,10 +46,11 @@
           x-data="quoteForm()">
         @csrf
         @if($template->exists) @method('PUT') @endif
+        <input type="hidden" name="type" value="{{ $type }}">
 
         {{-- ── Header info ─────────────────────────────────────────────── --}}
         <div class="bg-white shadow rounded-lg p-5 sm:p-6 space-y-5">
-            <p class="text-center text-sm font-bold uppercase tracking-wide text-gray-500">{{ \App\Models\QuoteTemplate::TITLE }}</p>
+            <p class="text-center text-sm font-bold uppercase tracking-wide text-gray-500">{{ $cfg['title'] }}</p>
             <div class="grid sm:grid-cols-2 gap-5">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">No. Pendaftaran Kenderaan <span class="text-red-500">*</span></label>
@@ -43,135 +65,109 @@
             </div>
         </div>
 
+        {{-- ── Company multi-select ────────────────────────────────────── --}}
+        <div class="bg-white shadow rounded-lg mt-6 p-5 sm:p-6">
+            <p class="text-sm font-medium text-gray-700 mb-3">
+                Pilih Syarikat Insurans
+                <span class="text-gray-400 font-normal">(pilih satu atau lebih — setiap satu jadi satu kolum)</span>
+            </p>
+            <div class="flex flex-wrap gap-2">
+                <template x-for="c in f.companies" :key="c.name">
+                    <label class="inline-flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer select-none transition"
+                           :class="c.selected ? 'border-orange-500 bg-orange-50 text-orange-800' : 'border-gray-300 text-gray-600 hover:border-gray-400'">
+                        <input type="checkbox" x-model="c.selected" class="rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                        <span class="text-sm font-medium" x-text="c.name"></span>
+                    </label>
+                </template>
+            </div>
+            <p x-show="selected().length === 0" x-cloak class="mt-2 text-xs text-red-600">Sila pilih sekurang-kurangnya satu syarikat.</p>
+        </div>
+
+        {{-- Hidden company name per selected column, in order. --}}
+        <template x-for="(c, i) in selected()" :key="'company-' + c.name">
+            <input type="hidden" :name="`columns[${i}][company]`" :value="c.name">
+        </template>
+
         {{-- ── Comparison grid ─────────────────────────────────────────── --}}
         <div class="bg-white shadow rounded-lg mt-6 overflow-x-auto">
-            <div class="min-w-[720px] p-4 sm:p-6">
+            <div class="p-4 sm:p-6" x-show="selected().length > 0" x-cloak>
 
-                {{-- fixed company headers (like the image) --}}
-                @php $tints = ['bg-sky-200', 'bg-yellow-200', 'bg-green-200']; @endphp
-                <div class="grid grid-cols-[160px_repeat(3,1fr)] gap-2 items-stretch sticky top-0 z-10 bg-white py-1">
-                    <div class="flex items-center text-xs font-semibold uppercase tracking-wide text-gray-500">Sebut Harga</div>
-                    @php $logos = \App\Models\QuoteTemplate::COMPANY_LOGOS; @endphp
-                    @foreach(\App\Models\QuoteTemplate::COMPANIES as $i => $company)
-                        <div class="{{ $tints[$i % 3] }} rounded-md px-2 py-2 text-center text-sm font-bold uppercase text-gray-800">
-                            @if(($logos[$i] ?? null) && is_file(public_path($logos[$i])))
-                                <img src="{{ asset($logos[$i]) }}" alt="{{ $company }}" class="mx-auto mb-1 h-7 w-auto object-contain">
-                            @endif
-                            {{ $company }}
+                {{-- company headers: logo on white above, name in the coloured card --}}
+                <div class="grid gap-2 items-end sticky top-0 z-10 bg-white py-1" :style="gridStyle">
+                    <div class="flex items-end text-xs font-semibold uppercase tracking-wide text-gray-500 pb-2">Sebut Harga</div>
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <div>
+                            <div class="h-16 flex items-center justify-center">
+                                <template x-if="c.logo"><img :src="c.logo" :alt="c.name" class="max-h-14 w-auto object-contain"></template>
+                            </div>
+                            <div class="rounded-md px-2 py-2 text-center text-sm font-bold uppercase text-gray-800" :class="tint(i)">
+                                <span x-text="c.name"></span>
+                            </div>
                         </div>
-                    @endforeach
+                    </template>
                 </div>
 
-                @php
-                    // [label, section?] rows are rendered by the partials below.
-                @endphp
+                @foreach($cfg['sections'] as $section => $rows)
+                    <x-quote-section>{{ $section }}</x-quote-section>
+                    @foreach($rows as $field)
+                        @php $def = $F[$field]; @endphp
 
-                {{-- SEBUT HARGA --}}
-                <x-quote-section>Sebut Harga</x-quote-section>
-                <x-quote-row-shared label="Sum Covered (RM)">
-                    <input type="number" step="0.01" min="0" name="shared[sum_covered]" x-model.number="f.shared.sum_covered"
-                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm text-right">
-                </x-quote-row-shared>
-                <x-quote-row label="Value">
-                    @foreach($d['columns'] as $i => $col)
-                        <select name="columns[{{ $i }}][value]" x-model="f.columns[{{ $i }}].value" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                            @foreach($val as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
-                        </select>
+                        @if($def['scope'] === 'shared')
+                            <x-quote-row-shared label="{{ $def['label'] }}">
+                                @if($def['input'] === 'number')
+                                    <input type="number" step="0.01" min="0" name="shared[{{ $field }}]" x-model.number="f.shared.{{ $field }}"
+                                           class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
+                                @else
+                                    <select name="shared[{{ $field }}]" x-model="f.shared.{{ $field }}" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                                        @foreach($QT::optionsFor($field, $type) as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
+                                    </select>
+                                @endif
+                            </x-quote-row-shared>
+                        @else
+                            <x-quote-row label="{{ $def['label'] }}">
+                                <template x-for="(c, i) in selected()" :key="c.name">
+                                    @if($def['input'] === 'number')
+                                        <input type="number" step="0.01" min="0" :name="`columns[${i}][{{ $field }}]`" x-model.number="c.col.{{ $field }}"
+                                               class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
+                                    @elseif($def['input'] === 'multiselect')
+                                        <div class="space-y-1">
+                                            <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
+                                                <label class="flex items-start gap-1.5 text-xs text-gray-700">
+                                                    <input type="checkbox" :value="opt.v" x-model="c.col.{{ $field }}"
+                                                           :name="`columns[${i}][{{ $field }}][]`"
+                                                           class="mt-0.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                                                    <span x-text="opt.l"></span>
+                                                </label>
+                                            </template>
+                                        </div>
+                                    @else
+                                        <select :name="`columns[${i}][{{ $field }}]`" x-model="c.col.{{ $field }}" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                                            <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
+                                                <option :value="opt.v" x-text="opt.l"></option>
+                                            </template>
+                                        </select>
+                                    @endif
+                                </template>
+                            </x-quote-row>
+                        @endif
                     @endforeach
-                </x-quote-row>
-
-                {{-- INSURANCE BENEFITS --}}
-                <x-quote-section>Insurance Benefits</x-quote-section>
-                <x-quote-row label="Towing">
-                    @foreach($d['columns'] as $i => $col)
-                        <select name="columns[{{ $i }}][towing]" x-model="f.columns[{{ $i }}].towing" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                            @foreach($tow as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
-                        </select>
-                    @endforeach
-                </x-quote-row>
-                <x-quote-row label="Accident / Breakdown Assist">
-                    @foreach($d['columns'] as $i => $col)
-                        <select name="columns[{{ $i }}][accident_assist]" x-model="f.columns[{{ $i }}].accident_assist" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                            @foreach($yn as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
-                        </select>
-                    @endforeach
-                </x-quote-row>
-                <x-quote-row label="No Claim Discount (NCD) %">
-                    @foreach($d['columns'] as $i => $col)
-                        <input type="number" step="0.01" min="0" max="100" name="columns[{{ $i }}][ncd]" x-model.number="f.columns[{{ $i }}].ncd"
-                               class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
-                    @endforeach
-                </x-quote-row>
-
-                {{-- ADD ON --}}
-                <x-quote-section>Add On</x-quote-section>
-                <x-quote-row-shared label="Cermin (RM)">
-                    <input type="number" step="0.01" min="0" name="shared[cermin]" x-model.number="f.shared.cermin"
-                           class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
-                </x-quote-row-shared>
-                <x-quote-row-shared label="Bencana Alam">
-                    <select name="shared[bencana_alam]" x-model="f.shared.bencana_alam" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                        @foreach($yn as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
-                    </select>
-                </x-quote-row-shared>
-                <x-quote-row label="All Driver">
-                    @foreach($d['columns'] as $i => $col)
-                        <select name="columns[{{ $i }}][all_driver]" x-model="f.columns[{{ $i }}].all_driver" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                            @foreach($yn as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
-                        </select>
-                    @endforeach
-                </x-quote-row>
-                <x-quote-row label="Personal Accident">
-                    @foreach($d['columns'] as $i => $col)
-                        <select name="columns[{{ $i }}][personal_accident]" x-model="f.columns[{{ $i }}].personal_accident" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                            @foreach($pa as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
-                        </select>
-                    @endforeach
-                </x-quote-row>
-
-                {{-- ROADTAX --}}
-                <x-quote-section>Roadtax</x-quote-section>
-                <x-quote-row-shared label="Digital Copy (MyJPJ)">
-                    <select name="shared[digital_copy]" x-model="f.shared.digital_copy" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                        @foreach($yn as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
-                    </select>
-                </x-quote-row-shared>
-                <x-quote-row label="Vehicle Inspection Required">
-                    @foreach($d['columns'] as $i => $col)
-                        <select name="columns[{{ $i }}][vehicle_inspection]" x-model="f.columns[{{ $i }}].vehicle_inspection" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                            @foreach($yn as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
-                        </select>
-                    @endforeach
-                </x-quote-row>
-
-                {{-- TOTALS --}}
-                <x-quote-section>Jumlah</x-quote-section>
-                <x-quote-row label="Insurance / Takaful (RM)">
-                    @foreach($d['columns'] as $i => $col)
-                        <input type="number" step="0.01" min="0" name="columns[{{ $i }}][insurance_takaful]" x-model.number="f.columns[{{ $i }}].insurance_takaful"
-                               class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
-                    @endforeach
-                </x-quote-row>
-                <x-quote-row-shared label="Roadtax 1 Tahun (RM)">
-                    <input type="number" step="0.01" min="0" name="shared[roadtax]" x-model.number="f.shared.roadtax"
-                           class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
-                </x-quote-row-shared>
+                @endforeach
 
                 {{-- live computed totals --}}
-                <div class="grid grid-cols-[160px_repeat(3,1fr)] gap-2 mt-3 py-3 border-t-2 border-gray-200">
+                <div class="grid gap-2 mt-3 py-3 border-t-2 border-gray-200" :style="gridStyle">
                     <div class="text-sm font-bold text-gray-900">Jumlah Keseluruhan</div>
-                    <template x-for="i in [0,1,2]" :key="i">
-                        <div class="text-sm font-bold text-orange-700 text-right" x-text="'RM ' + total(i).toFixed(2)"></div>
+                    <template x-for="(c, i) in selected()" :key="c.name">
+                        <div class="text-sm font-bold text-orange-700 text-right" x-text="'RM ' + total(c).toFixed(2)"></div>
                     </template>
                 </div>
 
                 <div class="mt-2 rounded-lg bg-gray-50 p-3 space-y-1.5">
                     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Bayaran Ansuran</p>
-                    @foreach($inst as $key => $meta)
-                        <div class="grid grid-cols-[160px_repeat(3,1fr)] gap-2 text-sm">
+                    @foreach($QT::INSTALMENTS as $key => $meta)
+                        <div class="grid gap-2 text-sm" :style="gridStyle">
                             <div class="text-gray-600">{{ $meta['label'] }}</div>
-                            <template x-for="i in [0,1,2]" :key="i">
-                                <div class="text-right text-gray-800" x-text="'RM ' + instalment('{{ $key }}', total(i)).toFixed(2)"></div>
+                            <template x-for="(c, i) in selected()" :key="c.name">
+                                <div class="text-right text-gray-800" x-text="'RM ' + instalment('{{ $key }}', total(c)).toFixed(2)"></div>
                             </template>
                         </div>
                     @endforeach
@@ -181,7 +177,8 @@
 
         <div class="mt-6 flex items-center justify-end gap-3">
             <a href="{{ route('quote-templates.index') }}" class="rounded-md bg-gray-100 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-200">Batal</a>
-            <button type="submit" class="rounded-md bg-orange-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-orange-700">
+            <button type="submit" :disabled="selected().length === 0"
+                    class="rounded-md bg-orange-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed">
                 Simpan &amp; Pratonton
             </button>
         </div>
@@ -191,23 +188,27 @@
         function quoteForm() {
             return {
                 f: @js([
-                    'title'   => $template->title,
-                    'reg'     => $template->vehicle_reg_number,
-                    'model'   => $template->vehicle_model,
-                    'shared'  => $d['shared'],
-                    'columns' => $d['columns'],
+                    'reg'       => $template->vehicle_reg_number,
+                    'model'     => $template->vehicle_model,
+                    'shared'    => $d['shared'],
+                    'companies' => $companies,
                 ]),
-                total(i) {
-                    const c = this.f.columns[i];
+                tints: ['bg-sky-200', 'bg-yellow-200', 'bg-green-200'],
+
+                selected() { return this.f.companies.filter(c => c.selected); },
+                get cols() { return Math.max(this.selected().length, 1); },
+                get gridStyle() { return `grid-template-columns:160px repeat(${this.cols},minmax(120px,1fr))`; },
+                tint(i) { return this.tints[i % this.tints.length]; },
+                total(c) {
                     const digital = this.f.shared.digital_copy === 'yes' ? 5 : 0;
-                    return (Number(c.insurance_takaful) || 0) + (Number(this.f.shared.roadtax) || 0) + digital;
+                    return (Number(c.col.insurance_takaful) || 0) + (Number(this.f.shared.roadtax) || 0) + digital;
                 },
                 instalment(provider, total) {
                     switch (provider) {
-                        case 'atome':         return total * 1.08;
-                        case 'ahapay':        return Math.round(total * 1.035);
-                        case 'spaylater':     return total * 1.02;
-                        default:              return total;   // directlending
+                        case 'atome':     return total * 1.08;
+                        case 'ahapay':    return Math.round(total * 1.035);
+                        case 'spaylater': return total * 1.02;
+                        default:          return total;   // directlending
                     }
                 },
             }
