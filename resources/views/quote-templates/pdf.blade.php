@@ -8,34 +8,45 @@
     $n         = count($companies);
     $cols      = $n + 1;
 
-    // Same halving rule as the on-screen preview: spans must total the grid or
-    // the row overflows, and the 50% widths keep both cells even on an odd grid.
-    $regSpan   = (int) ceil($cols / 2);
-    $modelSpan = max($cols - $regSpan, 1);
+    // Same split as the on-screen preview: Reg over the label column, Model over
+    // the insurer columns. Spans total the grid, the row halves evenly, and the
+    // insurer columns stay equal.
+    $regSpan   = 1;
+    $modelSpan = max($n, 1);
+    $colW      = $n > 0 ? round(50 / $n, 4) : 50;
 
-    // Fit to one A4 landscape page: the taller the quote, the tighter the type.
+    // Fit one A4 portrait page. Portrait is tall but narrow, so width is the
+    // binding constraint: each extra insurer splits the same 50% of ~194mm.
+    // Height only starts to matter on the longest quote types.
     $rowCount = 6 + 2 + count($preview['instalments']);
     foreach ($preview['sections'] as $s) {
         $rowCount += 1 + count($s['rows']);
     }
-    [$fontSize, $rowPad, $logoH] = match (true) {
-        $rowCount > 30 => ['6.5pt', '1.5px', '26px'],
-        $rowCount > 26 => ['7.5pt', '2px',   '30px'],
-        $rowCount > 22 => ['8.5pt', '3px',   '36px'],
-        default        => ['9.5pt', '4px',   '42px'],
+
+    $byWidth = match (true) {
+        $n >= 5 => 6.5,
+        $n === 4 => 7.5,
+        $n === 3 => 8.5,
+        default  => 9.5,
     };
+    $byHeight = match (true) {
+        $rowCount > 40 => 7.0,
+        $rowCount > 34 => 8.0,
+        default        => 10.0,
+    };
+    $fontSize = min($byWidth, $byHeight) . 'pt';
+    $rowPad   = min($byWidth, $byHeight) >= 8.5 ? '4px' : '2.5px';
+    $logoH    = $n >= 4 ? '30px' : ($n === 3 ? '36px' : '44px');
 
     $tints = ['#bae6fd', '#fef08a', '#bbf7d0'];
     $rm    = fn ($v) => is_null($v) || $v === '' || (float) $v == 0 ? 'RM -' : 'RM ' . number_format((float) $v, 2);
-
-    $cellW = $n > 0 ? round(50 / $n, 4) . '%' : '50%';
 @endphp
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 landscape; margin: 8mm; }
+        @page { size: A4 portrait; margin: 8mm; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: DejaVu Sans, sans-serif; font-size: {{ $fontSize }}; color: #1a1a1a; }
 
@@ -61,6 +72,11 @@
 </head>
 <body>
 <table>
+    {{-- Label column at half the table; insurers share the other half equally. --}}
+    <colgroup>
+        <col style="width:50%">
+        @foreach($companies as $c)<col style="width:{{ $colW }}%">@endforeach
+    </colgroup>
     {{-- company logo --}}
     <tr>
         <td colspan="{{ $cols }}" class="center brand">
@@ -79,15 +95,15 @@
 
     {{-- vehicle --}}
     <tr class="bold upper">
-        <td colspan="{{ $regSpan }}" style="width:50%" class="vehicle">Vehicle Reg Num: {{ $template->vehicle_reg_number }}</td>
-        <td colspan="{{ $modelSpan }}" style="width:50%" class="vehicle">Model: {{ $template->vehicle_model ?: '—' }}</td>
+        <td colspan="{{ $regSpan }}" class="vehicle">Vehicle Reg Num: {{ $template->vehicle_reg_number }}</td>
+        <td colspan="{{ $modelSpan }}" class="vehicle">Model: {{ $template->vehicle_model ?: '—' }}</td>
     </tr>
 
     {{-- insurer logos --}}
     <tr>
-        <td style="width:50%"></td>
+        <td></td>
         @foreach($companies as $c)
-            <td style="width:{{ $cellW }}" class="center co-logo">
+            <td class="center co-logo">
                 @if($c['pdf_logo'])<img src="{{ $c['pdf_logo'] }}" alt="">@endif
             </td>
         @endforeach

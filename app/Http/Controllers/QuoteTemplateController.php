@@ -78,7 +78,7 @@ class QuoteTemplateController extends Controller
     }
 
     /**
-     * The quote as a downloadable PDF, sized to one A4 landscape page.
+     * The quote as a downloadable PDF, sized to one A4 portrait page.
      *
      * dompdf loads images off the filesystem rather than by URL, so the logos
      * are re-pointed at absolute paths here instead of in previewData(), which
@@ -109,7 +109,7 @@ class QuoteTemplateController extends Controller
             'preview'   => $preview,
             'setting'   => $setting,
             'brandLogo' => $brandLogo,
-        ])->setPaper('a4', 'landscape')->download($filename);
+        ])->setPaper('a4', 'portrait')->download($filename);
     }
 
     public function destroy(QuoteTemplate $quoteTemplate)

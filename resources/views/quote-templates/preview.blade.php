@@ -25,17 +25,26 @@
         $n         = count($companies);
         $tints     = ['bg-sky-200', 'bg-yellow-200', 'bg-green-200'];
 
-        // Reg and model share the full table width. Spans must total the grid
-        // ($n + 1) or the row overflows — with one company the old fixed
-        // "2 + 1" spilled a phantom third column. An odd grid can't be halved by
-        // colspan alone, so the 50% widths keep the two cells even regardless.
-        $cols     = $n + 1;
-        $regSpan  = (int) ceil($cols / 2);
-        $modelSpan = max($cols - $regSpan, 1);
+        // Reg sits over the label column, Model over every insurer column. With
+        // the label column at half the table that splits the row evenly while
+        // the insurer columns stay equal — colspan alone cannot do both, and
+        // splitting mid-grid instead would leave one insurer twice as wide.
+        // Spans must also total the grid ($n + 1) or the row overflows, which is
+        // what pushed Model outside the table on a single-insurer quote.
+        $cols      = $n + 1;
+        $regSpan   = 1;
+        $modelSpan = max($n, 1);
+        $colW      = $n > 0 ? round(50 / $n, 4) : 50;
     @endphp
 
     <div id="quote-print" class="mx-auto max-w-4xl bg-white shadow print:shadow-none">
         <table class="w-full border-collapse text-[11px] sm:text-xs">
+            {{-- Fixes the label column at half the table so every insurer gets
+                 the same width, and the vehicle row splits evenly. --}}
+            <colgroup>
+                <col style="width:50%">
+                @foreach($companies as $c)<col style="width:{{ $colW }}%">@endforeach
+            </colgroup>
             <tbody>
                 {{-- logo --}}
                 <tr>
@@ -57,8 +66,8 @@
 
                 {{-- reg + model --}}
                 <tr class="font-bold uppercase">
-                    <td colspan="{{ $regSpan }}" style="width:50%" class="border border-gray-300 bg-yellow-300 px-3 py-2">Vehicle Reg Num: {{ $template->vehicle_reg_number }}</td>
-                    <td colspan="{{ $modelSpan }}" style="width:50%" class="border border-gray-300 bg-yellow-300 px-3 py-2">Model: {{ $template->vehicle_model ?: '—' }}</td>
+                    <td colspan="{{ $regSpan }}" class="border border-gray-300 bg-yellow-300 px-3 py-2">Vehicle Reg Num: {{ $template->vehicle_reg_number }}</td>
+                    <td colspan="{{ $modelSpan }}" class="border border-gray-300 bg-yellow-300 px-3 py-2">Model: {{ $template->vehicle_model ?: '—' }}</td>
                 </tr>
 
                 {{-- company logos (on white) --}}
