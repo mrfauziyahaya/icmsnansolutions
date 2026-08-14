@@ -158,8 +158,137 @@ class QuoteTemplateTest extends TestCase
             ->assertSessionHasErrors('columns');
     }
 
-    public function test_new_quotes_default_roadtax_to_70(): void
+    public function test_a_new_quote_starts_blank_rather_than_guessing(): void
     {
-        $this->assertSame(70, QuoteTemplate::blankData('comprehensive')['shared']['roadtax']);
+        $blank = QuoteTemplate::blankData('comprehensive');
+
+        // Roadtax is quoted per vehicle, so it must be entered, not assumed.
+        $this->assertNull($blank['shared']['roadtax']);
+
+        // No insurer is pre-ticked — the agent chooses who to compare.
+        $this->assertSame([], $blank['columns']);
+    }
+
+    public function test_optional_selects_default_to_unanswered(): void
+    {
+        $column = QuoteTemplate::defaultColumn('comprehensive', 'ZURICH TAKAFUL');
+
+        foreach (['towing', 'personal_accident', 'vehicle_inspection'] as $field) {
+            $this->assertNull($column[$field], "{$field} should start unanswered");
+        }
+
+        // Fields outside the optional set keep their defaults.
+        $this->assertSame('market_value', $column['value']);
+        $this->assertSame('yes', $column['accident_assist']);
+    }
+
+    public function test_an_optional_select_may_be_submitted_blank(): void
+    {
+        $payload = $this->payloadFor('comprehensive', ['ZURICH TAKAFUL']);
+        $payload['columns'][0]['towing']             = '';
+        $payload['columns'][0]['personal_accident']  = '';
+        $payload['columns'][0]['vehicle_inspection'] = '';
+
+        $this->actingAs($this->admin())
+            ->post(route('quote-templates.store'), $payload)
+            ->assertSessionHasNoErrors();
+
+        $column = QuoteTemplate::firstOrFail()->data['columns'][0];
+        $this->assertNull($column['towing']);
+    }
+
+    public function test_a_required_select_still_cannot_be_blank(): void
+    {
+        $payload = $this->payloadFor('comprehensive', ['ZURICH TAKAFUL']);
+        $payload['columns'][0]['value'] = '';
+
+        $this->actingAs($this->admin())
+            ->post(route('quote-templates.store'), $payload)
+            ->assertSessionHasErrors('columns.0.value');
+    }
+
+    public function test_an_unanswered_select_shows_a_dash_on_the_quote(): void
+    {
+        $template = QuoteTemplate::create($this->storedPayload('comprehensive', ['ZURICH TAKAFUL']));
+
+        $rows = collect($template->previewData()['sections'])
+            ->flatMap(fn ($section) => $section['rows'])
+            ->keyBy('label');
+
+        $this->assertSame('-', $rows['Towing']['cells'][0]);
+    }
+
+    public function test_the_pdf_downloads(): void
+    {
+        $template = QuoteTemplate::create($this->storedPayload('comprehensive', ['ZURICH TAKAFUL']));
+
+        $response = $this->actingAs($this->admin())
+            ->get(route('quote-templates.pdf', $template));
+
+        $response->assertOk();
+        $this->assertSame('application/pdf', $response->headers->get('content-type'));
+        $this->assertStringContainsString('.pdf', $response->headers->get('content-disposition'));
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
+    /**
+     * A single-company quote used to spill a phantom column: the vehicle row
+     * spanned a fixed 2 + 1 against a 2-column grid, pushing "Model" past the
+     * table. Every row must span exactly the grid, at any company count.
+     */
+    public function test_the_preview_table_never_overflows_its_grid(): void
+    {
+        foreach ([1, 2, 3] as $count) {
+            $companies = array_slice(array_keys(QuoteTemplate::ALL_COMPANIES), 0, $count);
+            $template  = QuoteTemplate::create($this->storedPayload('comprehensive', $companies));
+
+            $html = $this->actingAs($this->admin())
+                ->get(route('quote-templates.show', $template))
+                ->assertOk()
+                ->getContent();
+
+            $table = $this->quoteTable($html);
+            preg_match_all('#<tr\b.*?</tr>#s', $table, $rows);
+            $this->assertNotEmpty($rows[0], "no rows rendered for {$count} company/ies");
+
+            foreach ($rows[0] as $row) {
+                preg_match_all('#<td\b([^>]*)>#', $row, $cells);
+                if (! $cells[1]) {
+                    continue;
+                }
+
+                $span = 0;
+                foreach ($cells[1] as $attributes) {
+                    $span += preg_match('#colspan="(\d+)"#', $attributes, $m) ? (int) $m[1] : 1;
+                }
+
+                $this->assertSame($count + 1, $span, "row spans {$span} of " . ($count + 1) . " with {$count} company/ies");
+            }
+        }
+    }
+
+    /** The quote table only, so surrounding layout markup can't skew the count. */
+    private function quoteTable(string $html): string
+    {
+        $start = strpos($html, 'id="quote-print"');
+        $this->assertNotFalse($start, 'quote table not found in preview');
+
+        $end = strpos($html, '</table>', $start);
+
+        return substr($html, $start, $end - $start);
+    }
+
+    /** The stored shape (what validated() writes), for model-level assertions. */
+    private function storedPayload(string $type, array $companies): array
+    {
+        $form = $this->payloadFor($type, $companies);
+
+        return [
+            'type'               => $type,
+            'title'              => QuoteTemplate::typeConfig($type)['title'],
+            'vehicle_reg_number' => strtoupper($form['vehicle_reg_number']),
+            'vehicle_model'      => $form['vehicle_model'],
+            'data'               => ['shared' => $form['shared'], 'columns' => $form['columns']],
+        ];
     }
 }

@@ -4,7 +4,7 @@
             <h2 class="text-2xl font-bold text-gray-900">Pratonton Sebut Harga</h2>
             <div class="flex items-center gap-2">
                 <a href="{{ route('quote-templates.edit', $template) }}" class="rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">Edit</a>
-                <button onclick="window.printQuote()" class="rounded-md bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">Cetak</button>
+                <a href="{{ route('quote-templates.pdf', $template) }}" class="rounded-md bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">Muat Turun PDF</a>
                 <a href="{{ route('quote-templates.index') }}" class="rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">Kembali</a>
             </div>
         </div>
@@ -24,6 +24,14 @@
         $companies = $preview['companies'];
         $n         = count($companies);
         $tints     = ['bg-sky-200', 'bg-yellow-200', 'bg-green-200'];
+
+        // Reg and model share the full table width. Spans must total the grid
+        // ($n + 1) or the row overflows — with one company the old fixed
+        // "2 + 1" spilled a phantom third column. An odd grid can't be halved by
+        // colspan alone, so the 50% widths keep the two cells even regardless.
+        $cols     = $n + 1;
+        $regSpan  = (int) ceil($cols / 2);
+        $modelSpan = max($cols - $regSpan, 1);
     @endphp
 
     <div id="quote-print" class="mx-auto max-w-4xl bg-white shadow print:shadow-none">
@@ -49,8 +57,8 @@
 
                 {{-- reg + model --}}
                 <tr class="font-bold uppercase">
-                    <td colspan="2" class="border border-gray-300 bg-yellow-300 px-3 py-2">Vehicle Reg Num: {{ $template->vehicle_reg_number }}</td>
-                    <td colspan="{{ max($n - 1, 1) }}" class="border border-gray-300 bg-yellow-300 px-3 py-2">Model: {{ $template->vehicle_model ?: '—' }}</td>
+                    <td colspan="{{ $regSpan }}" style="width:50%" class="border border-gray-300 bg-yellow-300 px-3 py-2">Vehicle Reg Num: {{ $template->vehicle_reg_number }}</td>
+                    <td colspan="{{ $modelSpan }}" style="width:50%" class="border border-gray-300 bg-yellow-300 px-3 py-2">Model: {{ $template->vehicle_model ?: '—' }}</td>
                 </tr>
 
                 {{-- company logos (on white) --}}
@@ -116,7 +124,7 @@
         </table>
     </div>
 
-    {{-- Print to a single A4 landscape page. --}}
+    {{-- Ctrl+P still works; the PDF download is the supported one-page output. --}}
     <style>
         @media print {
             @page { size: A4 landscape; margin: 8mm; }
@@ -124,26 +132,4 @@
             #quote-print { box-shadow: none !important; }
         }
     </style>
-    <script>
-        (function () {
-            const el = document.getElementById('quote-print');
-            const PX_PER_MM = 96 / 25.4;
-            const pageW = (297 - 16) * PX_PER_MM;
-            const pageH = (210 - 16) * PX_PER_MM;
-
-            function fit() {
-                if (!el) return;
-                el.style.transform = '';
-                const r = el.getBoundingClientRect();
-                const scale = Math.min(pageW / r.width, pageH / r.height, 1);
-                el.style.transformOrigin = 'top left';
-                el.style.transform = 'scale(' + scale.toFixed(3) + ')';
-            }
-            function reset() { if (el) el.style.transform = ''; }
-
-            window.addEventListener('beforeprint', fit);
-            window.addEventListener('afterprint', reset);
-            window.printQuote = function () { fit(); window.print(); reset(); };
-        })();
-    </script>
 </x-app-layout>
