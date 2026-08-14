@@ -93,7 +93,7 @@
                                 </td>
                             @else
                                 @foreach($row['cells'] as $cell)
-                                    <td class="border border-gray-300 px-3 py-1.5 {{ $row['input'] === 'number' ? 'text-right' : 'text-center' }}">
+                                    <td class="border border-gray-300 px-3 py-1.5 text-center">
                                         @if(is_array($cell))
                                             @foreach($cell as $line)<div>{{ $line }}</div>@endforeach
                                         @else
@@ -109,7 +109,7 @@
                 {{-- grand total --}}
                 <tr class="font-bold">
                     <td class="border border-gray-300 px-3 py-2 uppercase">Jumlah Keseluruhan</td>
-                    @foreach($preview['totals'] as $t)<td class="border border-gray-300 px-3 py-2 text-right">{{ $rm($t) }}</td>@endforeach
+                    @foreach($preview['totals'] as $t)<td class="border border-gray-300 px-3 py-2 text-center">{{ $rm($t) }}</td>@endforeach
                 </tr>
 
                 {{-- instalments --}}
@@ -117,7 +117,7 @@
                 @foreach($preview['instalments'] as $row)
                     <tr>
                         <td class="border border-gray-300 px-3 py-1.5 font-semibold">{{ $row['label'] }}</td>
-                        @foreach($row['values'] as $v)<td class="border border-gray-300 px-3 py-1.5 text-right">{{ $rm($v) }}</td>@endforeach
+                        @foreach($row['values'] as $v)<td class="border border-gray-300 px-3 py-1.5 text-center">{{ $rm($v) }}</td>@endforeach
                     </tr>
                 @endforeach
             </tbody>

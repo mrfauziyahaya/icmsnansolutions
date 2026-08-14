@@ -43,7 +43,6 @@
         td { border: 1px solid #d1d5db; padding: {{ $rowPad }} 6px; vertical-align: middle; word-wrap: break-word; }
 
         .center { text-align: center; }
-        .right  { text-align: right; }
         .bold   { font-weight: bold; }
         .upper  { text-transform: uppercase; }
 
@@ -112,7 +111,7 @@
                     <td colspan="{{ $n }}" class="center">{{ $row['input'] === 'number' ? $rm($row['value']) : $row['value'] }}</td>
                 @else
                     @foreach($row['cells'] as $cell)
-                        <td class="{{ $row['input'] === 'number' ? 'right' : 'center' }}">
+                        <td class="center">
                             @if(is_array($cell))
                                 @foreach($cell as $line)<div>{{ $line }}</div>@endforeach
                             @else
@@ -128,7 +127,7 @@
     {{-- grand total --}}
     <tr class="total">
         <td class="upper">Jumlah Keseluruhan</td>
-        @foreach($preview['totals'] as $t)<td class="right">{{ $rm($t) }}</td>@endforeach
+        @foreach($preview['totals'] as $t)<td class="center">{{ $rm($t) }}</td>@endforeach
     </tr>
 
     {{-- instalments --}}
@@ -136,7 +135,7 @@
     @foreach($preview['instalments'] as $row)
         <tr>
             <td class="bold">{{ $row['label'] }}</td>
-            @foreach($row['values'] as $v)<td class="right">{{ $rm($v) }}</td>@endforeach
+            @foreach($row['values'] as $v)<td class="center">{{ $rm($v) }}</td>@endforeach
         </tr>
     @endforeach
 </table>
