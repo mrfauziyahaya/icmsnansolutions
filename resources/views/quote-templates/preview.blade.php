@@ -76,7 +76,7 @@
                     @foreach($companies as $c)
                         <td class="border border-gray-300 bg-white px-3 py-2 text-center align-middle">
                             @if($c['logo'])
-                                <img src="{{ asset($c['logo']) }}" alt="{{ $c['company'] }}" class="mx-auto h-20 w-auto object-contain">
+                                <img src="{{ asset($c['logo']) }}" alt="{{ $c['company'] }}" class="mx-auto h-60 w-auto object-contain">
                             @endif
                         </td>
                     @endforeach
@@ -97,8 +97,10 @@
                         <tr>
                             <td class="border border-gray-300 px-3 py-1.5 font-semibold uppercase">{{ $row['label'] }}</td>
                             @if($row['scope'] === 'shared')
+                                {{-- display() has already formatted this; re-running $rm
+                                     would cast "RM 90.00" to 0 and print "RM -". --}}
                                 <td colspan="{{ $n }}" class="border border-gray-300 px-3 py-1.5 text-center">
-                                    {{ $row['input'] === 'number' ? $rm($row['value']) : $row['value'] }}
+                                    {{ $row['value'] }}
                                 </td>
                             @else
                                 @foreach($row['cells'] as $cell)

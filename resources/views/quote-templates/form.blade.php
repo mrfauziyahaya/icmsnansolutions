@@ -107,8 +107,8 @@
                     <div class="flex items-end text-xs font-semibold uppercase tracking-wide text-gray-500 pb-2">Sebut Harga</div>
                     <template x-for="(c, i) in selected()" :key="c.name">
                         <div>
-                            <div class="h-16 flex items-center justify-center">
-                                <template x-if="c.logo"><img :src="c.logo" :alt="c.name" class="max-h-14 w-auto object-contain"></template>
+                            <div class="h-[11.5rem] flex items-center justify-center">
+                                <template x-if="c.logo"><img :src="c.logo" :alt="c.name" class="max-h-[10.5rem] w-auto object-contain"></template>
                             </div>
                             <div class="rounded-md px-2 py-2 text-center text-sm font-bold uppercase text-gray-800" :class="tint(i)">
                                 <span x-text="c.name"></span>

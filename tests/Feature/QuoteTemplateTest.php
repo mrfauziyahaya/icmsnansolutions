@@ -278,6 +278,84 @@ class QuoteTemplateTest extends TestCase
         return substr($html, $start, $end - $start);
     }
 
+    /**
+     * Shared number rows are formatted once by display(). The views used to run
+     * the money formatter over that result, casting "RM 90.00" to 0 and printing
+     * "RM -", so Roadtax and Cermin never showed their value.
+     */
+    public function test_a_shared_number_shows_its_value_on_the_quote(): void
+    {
+        $payload = $this->storedPayload('comprehensive', ['ZURICH TAKAFUL']);
+        $payload['data']['shared']['roadtax'] = 90;
+        $payload['data']['shared']['cermin']  = 250;
+        $template = QuoteTemplate::create($payload);
+
+        $html = $this->actingAs($this->admin())
+            ->get(route('quote-templates.show', $template))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('RM 90.00', $html);
+        $this->assertStringContainsString('RM 250.00', $html);
+
+        // The bug rendered every shared number as this instead.
+        $rows = collect($template->previewData()['sections'])
+            ->flatMap(fn ($section) => $section['rows'])
+            ->keyBy('label');
+        $this->assertSame('RM 90.00', $rows['Roadtax (RM)']['value']);
+    }
+
+    public function test_allianz_is_offered_on_every_quote_type(): void
+    {
+        foreach (array_keys(QuoteTemplate::types()) as $type) {
+            $this->assertContains('ALLIANZ', QuoteTemplate::companiesForType($type), "missing on {$type}");
+        }
+    }
+
+    public function test_allianz_option_lists_differ_by_quote_type(): void
+    {
+        // Comprehensive: towing mirrors Takaful Ikhlas, PA is Enhanced Road Warrior.
+        $this->assertSame(
+            QuoteTemplate::optionsFor('towing', 'comprehensive', 'TAKAFUL IKHLAS'),
+            QuoteTemplate::optionsFor('towing', 'comprehensive', 'ALLIANZ')
+        );
+        $this->assertSame(
+            ['enhanced_road_warrior' => 'ENHANCED ROAD WARRIOR'],
+            QuoteTemplate::optionsFor('personal_accident', 'comprehensive', 'ALLIANZ')
+        );
+
+        // 1st Party Motor overrides both, for Allianz only.
+        $this->assertSame(
+            ['unlimited' => 'UNLIMITED', 'no' => 'NO'],
+            QuoteTemplate::optionsFor('towing', 'motor_first_party', 'ALLIANZ')
+        );
+        $this->assertSame(
+            ['bike_warrior' => 'BIKE WARRIOR', 'no' => 'NO'],
+            QuoteTemplate::optionsFor('personal_accident', 'motor_first_party', 'ALLIANZ')
+        );
+
+        // The override must not leak to the other insurers on that type.
+        $this->assertSame(
+            ['no_towing' => 'NO TOWING', 'unlimited' => 'UNLIMITED', '50km' => '50 KM', '30km' => '30 KM'],
+            QuoteTemplate::optionsFor('towing', 'motor_first_party', 'ZURICH TAKAFUL')
+        );
+    }
+
+    public function test_a_quote_can_be_saved_with_allianz(): void
+    {
+        $payload = $this->payloadFor('motor_first_party', ['ALLIANZ']);
+        $payload['columns'][0]['towing']            = 'unlimited';
+        $payload['columns'][0]['personal_accident'] = 'bike_warrior';
+
+        $this->actingAs($this->admin())
+            ->post(route('quote-templates.store'), $payload)
+            ->assertSessionHasNoErrors();
+
+        $column = QuoteTemplate::firstOrFail()->data['columns'][0];
+        $this->assertSame('ALLIANZ', $column['company']);
+        $this->assertSame('bike_warrior', $column['personal_accident']);
+    }
+
     /** The stored shape (what validated() writes), for model-level assertions. */
     private function storedPayload(string $type, array $companies): array
     {

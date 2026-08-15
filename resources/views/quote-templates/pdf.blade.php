@@ -36,7 +36,27 @@
     };
     $fontSize = min($byWidth, $byHeight) . 'pt';
     $rowPad   = min($byWidth, $byHeight) >= 8.5 ? '4px' : '2.5px';
-    $logoH    = $n >= 4 ? '30px' : ($n === 3 ? '36px' : '44px');
+
+    // Logo box, tripled. dompdf ignores max-height on an <img>, so each logo is
+    // given explicit width/height computed from its own aspect ratio — otherwise
+    // it draws at intrinsic size (Zurich's is 2250x1871).
+    $logoH = ($n >= 4 ? 30 : ($n === 3 ? 36 : 44)) * 3;
+    $pageW = (210 - 16) / 25.4 * 96;                        // A4 portrait usable width, px
+    $boxW  = max(($pageW * 0.5 / max($n, 1)) - 14, 24);     // insurers share half the table
+
+    $fit = function (?string $path, float $maxW, float $maxH): ?array {
+        if (! $path || ! is_file($path)) {
+            return null;
+        }
+        $size = @getimagesize($path);
+        if (! $size || empty($size[0]) || empty($size[1])) {
+            return null;
+        }
+        $scale = min($maxW / $size[0], $maxH / $size[1]);
+
+        return [max((int) round($size[0] * $scale), 1), max((int) round($size[1] * $scale), 1)];
+    };
+    $brandDim = $fit($brandLogo, 320, 52);
 
     $tints = ['#bae6fd', '#fef08a', '#bbf7d0'];
     $rm    = fn ($v) => is_null($v) || $v === '' || (float) $v == 0 ? 'RM -' : 'RM ' . number_format((float) $v, 2);
@@ -58,14 +78,12 @@
         .upper  { text-transform: uppercase; }
 
         .brand      { padding: 8px; }
-        .brand img  { max-height: 52px; width: auto; }
         .brand span { font-size: 15pt; font-weight: bold; color: #1f2937; }
 
         .title    { background: #facc15; font-size: 11pt; letter-spacing: 0.4px; padding: 5px; }
         .vehicle  { background: #fde047; }
         .section  { background: #f97316; color: #fff; letter-spacing: 0.4px; padding: 3px; }
-        .co-logo  { background: #fff; height: {{ $logoH }}; }
-        .co-logo img { max-height: {{ $logoH }}; width: auto; }
+        .co-logo  { background: #fff; }
         .co-name  { font-size: 8pt; }
         .total    { font-weight: bold; }
     </style>
@@ -80,8 +98,8 @@
     {{-- company logo --}}
     <tr>
         <td colspan="{{ $cols }}" class="center brand">
-            @if($brandLogo)
-                <img src="{{ $brandLogo }}" alt="">
+            @if($brandDim)
+                <img src="{{ $brandLogo }}" width="{{ $brandDim[0] }}" height="{{ $brandDim[1] }}" alt="">
             @else
                 <span>{{ $setting->company_name ?: 'NAN SOLUTIONS' }}</span>
             @endif
@@ -103,8 +121,9 @@
     <tr>
         <td></td>
         @foreach($companies as $c)
+            @php $dim = $fit($c['pdf_logo'], $boxW, $logoH); @endphp
             <td class="center co-logo">
-                @if($c['pdf_logo'])<img src="{{ $c['pdf_logo'] }}" alt="">@endif
+                @if($dim)<img src="{{ $c['pdf_logo'] }}" width="{{ $dim[0] }}" height="{{ $dim[1] }}" alt="">@endif
             </td>
         @endforeach
     </tr>
@@ -124,7 +143,8 @@
             <tr>
                 <td class="bold upper">{{ $row['label'] }}</td>
                 @if($row['scope'] === 'shared')
-                    <td colspan="{{ $n }}" class="center">{{ $row['input'] === 'number' ? $rm($row['value']) : $row['value'] }}</td>
+                    {{-- Already formatted by display(); $rm here would print "RM -". --}}
+                    <td colspan="{{ $n }}" class="center">{{ $row['value'] }}</td>
                 @else
                     @foreach($row['cells'] as $cell)
                         <td class="center">

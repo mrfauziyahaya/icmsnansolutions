@@ -31,10 +31,11 @@ class QuoteTemplate extends Model
         'TAKAFUL IKHLAS'   => 'images/Logo-Insuran-5.webp',
         'TAKAFUL MALAYSIA' => 'images/takaful-malaysia-logo.png',
         'KURNIA INSURANS'  => 'images/kurnia-insurance-logo.png',
+        'ALLIANZ'          => 'images/Allianz.jpeg',
     ];
 
-    /** The motor quote types only compare these three. */
-    public const MOTOR_COMPANIES = ['ZURICH TAKAFUL', 'ETIQA TAKAFUL', 'TAKAFUL MALAYSIA'];
+    /** The motor quote types compare these. */
+    public const MOTOR_COMPANIES = ['ZURICH TAKAFUL', 'ETIQA TAKAFUL', 'TAKAFUL MALAYSIA', 'ALLIANZ'];
 
     // ── Option maps ───────────────────────────────────────────────────────────
 
@@ -67,6 +68,7 @@ class QuoteTemplate extends Model
         'TAKAFUL IKHLAS'   => ['150km', 'unlimited', 'no'],
         'TAKAFUL MALAYSIA' => ['300km', 'unlimited', 'no'],
         'KURNIA INSURANS'  => ['100km', 'unlimited'],
+        'ALLIANZ'          => ['150km', 'unlimited', 'no'],   // same list as Takaful Ikhlas
     ];
 
     public const NCD_OPTIONS = [
@@ -78,13 +80,15 @@ class QuoteTemplate extends Model
     ];
 
     public const PA_OPTIONS = [
-        'no'              => 'NO',
-        'yes'             => 'YES',
-        'cash_care'       => 'CASH CARE P.A.',
-        'z_drive'         => 'Z-DRIVE',
-        'motorist_plan_3' => 'MOTORIST PLAN 3',
-        'motorist_plan_4' => 'MOTORIST PLAN 4',
-        'auto365'         => 'AUTO365',
+        'no'                    => 'NO',
+        'yes'                   => 'YES',
+        'cash_care'             => 'CASH CARE P.A.',
+        'z_drive'               => 'Z-DRIVE',
+        'motorist_plan_3'       => 'MOTORIST PLAN 3',
+        'motorist_plan_4'       => 'MOTORIST PLAN 4',
+        'auto365'               => 'AUTO365',
+        'enhanced_road_warrior' => 'ENHANCED ROAD WARRIOR',
+        'bike_warrior'          => 'BIKE WARRIOR',
     ];
 
     public const COMPANY_PA = [
@@ -93,6 +97,7 @@ class QuoteTemplate extends Model
         'TAKAFUL IKHLAS'   => ['yes', 'no', 'cash_care'],
         'TAKAFUL MALAYSIA' => ['yes', 'no', 'cash_care', 'motorist_plan_3', 'motorist_plan_4'],
         'KURNIA INSURANS'  => ['auto365'],
+        'ALLIANZ'          => ['enhanced_road_warrior'],
     ];
 
     /** Multi-select benefits on the motor quotes (each shows as its own line). */
@@ -191,10 +196,13 @@ class QuoteTemplate extends Model
                 'companies' => $motor,
                 'ncd'       => self::NCD_MOTOR_OPTIONS,
                 'towing'    => ['no_towing', 'unlimited', '50km', '30km'],
+                // Allianz quotes different cover on this type than the others.
+                'company_towing' => ['ALLIANZ' => ['unlimited', 'no']],
+                'company_pa'     => ['ALLIANZ' => ['bike_warrior', 'no']],
                 'sections'  => [
                     'Sebut Harga'        => ['sum_covered', 'value'],
                     'Insurance Benefits' => ['all_rider', 'accident_assist', 'ncd', 'additional_benefits'],
-                    'Add On'             => ['add_on_benefit', 'towing'],
+                    'Add On'             => ['add_on_benefit', 'towing', 'personal_accident'],
                     'Roadtax'            => ['digital_copy', 'vehicle_inspection'],
                     'Jumlah'             => ['insurance_takaful', 'roadtax_period', 'roadtax'],
                 ],
@@ -275,8 +283,18 @@ class QuoteTemplate extends Model
             'roadtax_period' => self::ROADTAX_PERIOD_OPTIONS,
             'ncd'            => $config['ncd'] ?? self::NCD_OPTIONS,
             'additional_benefits' => self::ADDITIONAL_BENEFITS,
-            'pa'             => $ordered(self::COMPANY_PA[$company] ?? [], self::PA_OPTIONS),
-            'towing'         => $ordered($config['towing'] ?? self::COMPANY_TOWING[$company] ?? [], self::TOWING_OPTIONS),
+            // A type may override a single company's list (company_* in the type
+            // config), otherwise its own list for every company ('towing'),
+            // otherwise the company's default. Allianz needs this: on 1st Party
+            // Motor its towing and PA differ from the other insurers on that type.
+            'pa'             => $ordered(
+                $config['company_pa'][$company] ?? self::COMPANY_PA[$company] ?? [],
+                self::PA_OPTIONS
+            ),
+            'towing'         => $ordered(
+                $config['company_towing'][$company] ?? $config['towing'] ?? self::COMPANY_TOWING[$company] ?? [],
+                self::TOWING_OPTIONS
+            ),
             default          => [],
         };
     }
