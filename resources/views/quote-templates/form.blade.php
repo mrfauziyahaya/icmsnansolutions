@@ -19,11 +19,21 @@
                     $options[$field] = $QT::optionList($field, $type, $name);
                 }
             }
+            $values = \Illuminate\Support\Arr::except($col ?? $QT::defaultColumn($type, $name), ['company']);
+
+            // An unanswered select must bind to the blank <option value="">, and
+            // x-model cannot match null against it.
+            foreach ($values as $key => $value) {
+                if ($value === null && ($F[$key]['input'] ?? null) === 'select') {
+                    $values[$key] = '';
+                }
+            }
+
             $companies[] = [
                 'name'     => $name,
                 'logo'     => $QT::logoFor($name) ? asset($QT::ALL_COMPANIES[$name]) : null,
                 'selected' => $col !== null,
-                'col'      => \Illuminate\Support\Arr::except($col ?? $QT::defaultColumn($type, $name), ['company']),
+                'col'      => $values,
                 'options'  => $options,
             ];
         }
@@ -119,6 +129,7 @@
                                            class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
                                 @else
                                     <select name="shared[{{ $field }}]" x-model="f.shared.{{ $field }}" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                                        @if($QT::isOptional($field))<option value="">—</option>@endif
                                         @foreach($QT::optionsFor($field, $type) as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
                                     </select>
                                 @endif
@@ -142,6 +153,7 @@
                                         </div>
                                     @else
                                         <select :name="`columns[${i}][{{ $field }}]`" x-model="c.col.{{ $field }}" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                                            @if($QT::isOptional($field))<option value="">—</option>@endif
                                             <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
                                                 <option :value="opt.v" x-text="opt.l"></option>
                                             </template>

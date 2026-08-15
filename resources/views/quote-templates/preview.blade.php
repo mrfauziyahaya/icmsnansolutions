@@ -4,7 +4,7 @@
             <h2 class="text-2xl font-bold text-gray-900">Pratonton Sebut Harga</h2>
             <div class="flex items-center gap-2">
                 <a href="{{ route('quote-templates.edit', $template) }}" class="rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">Edit</a>
-                <button onclick="window.printQuote()" class="rounded-md bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">Cetak</button>
+                <a href="{{ route('quote-templates.pdf', $template) }}" class="rounded-md bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">Muat Turun PDF</a>
                 <a href="{{ route('quote-templates.index') }}" class="rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">Kembali</a>
             </div>
         </div>
@@ -24,10 +24,27 @@
         $companies = $preview['companies'];
         $n         = count($companies);
         $tints     = ['bg-sky-200', 'bg-yellow-200', 'bg-green-200'];
+
+        // Reg sits over the label column, Model over every insurer column. With
+        // the label column at half the table that splits the row evenly while
+        // the insurer columns stay equal — colspan alone cannot do both, and
+        // splitting mid-grid instead would leave one insurer twice as wide.
+        // Spans must also total the grid ($n + 1) or the row overflows, which is
+        // what pushed Model outside the table on a single-insurer quote.
+        $cols      = $n + 1;
+        $regSpan   = 1;
+        $modelSpan = max($n, 1);
+        $colW      = $n > 0 ? round(50 / $n, 4) : 50;
     @endphp
 
     <div id="quote-print" class="mx-auto max-w-4xl bg-white shadow print:shadow-none">
         <table class="w-full border-collapse text-[11px] sm:text-xs">
+            {{-- Fixes the label column at half the table so every insurer gets
+                 the same width, and the vehicle row splits evenly. --}}
+            <colgroup>
+                <col style="width:50%">
+                @foreach($companies as $c)<col style="width:{{ $colW }}%">@endforeach
+            </colgroup>
             <tbody>
                 {{-- logo --}}
                 <tr>
@@ -49,8 +66,8 @@
 
                 {{-- reg + model --}}
                 <tr class="font-bold uppercase">
-                    <td colspan="2" class="border border-gray-300 bg-yellow-300 px-3 py-2">Vehicle Reg Num: {{ $template->vehicle_reg_number }}</td>
-                    <td colspan="{{ max($n - 1, 1) }}" class="border border-gray-300 bg-yellow-300 px-3 py-2">Model: {{ $template->vehicle_model ?: '—' }}</td>
+                    <td colspan="{{ $regSpan }}" class="border border-gray-300 bg-yellow-300 px-3 py-2">Vehicle Reg Num: {{ $template->vehicle_reg_number }}</td>
+                    <td colspan="{{ $modelSpan }}" class="border border-gray-300 bg-yellow-300 px-3 py-2">Model: {{ $template->vehicle_model ?: '—' }}</td>
                 </tr>
 
                 {{-- company logos (on white) --}}
@@ -85,7 +102,7 @@
                                 </td>
                             @else
                                 @foreach($row['cells'] as $cell)
-                                    <td class="border border-gray-300 px-3 py-1.5 {{ $row['input'] === 'number' ? 'text-right' : 'text-center' }}">
+                                    <td class="border border-gray-300 px-3 py-1.5 text-center">
                                         @if(is_array($cell))
                                             @foreach($cell as $line)<div>{{ $line }}</div>@endforeach
                                         @else
@@ -101,7 +118,7 @@
                 {{-- grand total --}}
                 <tr class="font-bold">
                     <td class="border border-gray-300 px-3 py-2 uppercase">Jumlah Keseluruhan</td>
-                    @foreach($preview['totals'] as $t)<td class="border border-gray-300 px-3 py-2 text-right">{{ $rm($t) }}</td>@endforeach
+                    @foreach($preview['totals'] as $t)<td class="border border-gray-300 px-3 py-2 text-center">{{ $rm($t) }}</td>@endforeach
                 </tr>
 
                 {{-- instalments --}}
@@ -109,14 +126,14 @@
                 @foreach($preview['instalments'] as $row)
                     <tr>
                         <td class="border border-gray-300 px-3 py-1.5 font-semibold">{{ $row['label'] }}</td>
-                        @foreach($row['values'] as $v)<td class="border border-gray-300 px-3 py-1.5 text-right">{{ $rm($v) }}</td>@endforeach
+                        @foreach($row['values'] as $v)<td class="border border-gray-300 px-3 py-1.5 text-center">{{ $rm($v) }}</td>@endforeach
                     </tr>
                 @endforeach
             </tbody>
         </table>
     </div>
 
-    {{-- Print to a single A4 landscape page. --}}
+    {{-- Ctrl+P still works; the PDF download is the supported one-page output. --}}
     <style>
         @media print {
             @page { size: A4 landscape; margin: 8mm; }
@@ -124,26 +141,4 @@
             #quote-print { box-shadow: none !important; }
         }
     </style>
-    <script>
-        (function () {
-            const el = document.getElementById('quote-print');
-            const PX_PER_MM = 96 / 25.4;
-            const pageW = (297 - 16) * PX_PER_MM;
-            const pageH = (210 - 16) * PX_PER_MM;
-
-            function fit() {
-                if (!el) return;
-                el.style.transform = '';
-                const r = el.getBoundingClientRect();
-                const scale = Math.min(pageW / r.width, pageH / r.height, 1);
-                el.style.transformOrigin = 'top left';
-                el.style.transform = 'scale(' + scale.toFixed(3) + ')';
-            }
-            function reset() { if (el) el.style.transform = ''; }
-
-            window.addEventListener('beforeprint', fit);
-            window.addEventListener('afterprint', reset);
-            window.printQuote = function () { fit(); window.print(); reset(); };
-        })();
-    </script>
 </x-app-layout>

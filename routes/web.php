@@ -63,6 +63,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Quote Templates (admin comparison quote builder)
     Route::resource('quote-templates', \App\Http\Controllers\QuoteTemplateController::class)
         ->except(['show'])->parameters(['quote-templates' => 'quoteTemplate']);
+    Route::get('/quote-templates/{quoteTemplate}/pdf', [\App\Http\Controllers\QuoteTemplateController::class, 'pdf'])->name('quote-templates.pdf');
     Route::get('/quote-templates/{quoteTemplate}', [\App\Http\Controllers\QuoteTemplateController::class, 'show'])->name('quote-templates.show');
 
     // Contact messages (Mesej Hubungi)

@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\QuoteTemplate;
+use App\Models\Setting;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class QuoteTemplateController extends Controller
 {
@@ -72,6 +75,41 @@ class QuoteTemplateController extends Controller
             'template' => $quoteTemplate,
             'preview'  => $quoteTemplate->previewData(),
         ]);
+    }
+
+    /**
+     * The quote as a downloadable PDF, sized to one A4 portrait page.
+     *
+     * dompdf loads images off the filesystem rather than by URL, so the logos
+     * are re-pointed at absolute paths here instead of in previewData(), which
+     * the on-screen preview shares and needs as public URLs.
+     */
+    public function pdf(QuoteTemplate $quoteTemplate)
+    {
+        $preview = $quoteTemplate->previewData();
+        $setting = Setting::instance();
+
+        $preview['companies'] = array_map(function (array $company) {
+            $company['pdf_logo'] = $company['logo'] && is_file(public_path($company['logo']))
+                ? public_path($company['logo'])
+                : null;
+
+            return $company;
+        }, $preview['companies']);
+
+        $stored = $setting->logo_path ? storage_path('app/public/' . $setting->logo_path) : null;
+        $brandLogo = $stored && is_file($stored)
+            ? $stored
+            : (is_file(public_path('images/logo.png')) ? public_path('images/logo.png') : null);
+
+        $filename = 'sebut-harga-' . Str::slug($quoteTemplate->vehicle_reg_number ?: 'quote') . '.pdf';
+
+        return Pdf::loadView('quote-templates.pdf', [
+            'template'  => $quoteTemplate,
+            'preview'   => $preview,
+            'setting'   => $setting,
+            'brandLogo' => $brandLogo,
+        ])->setPaper('a4', 'portrait')->download($filename);
     }
 
     public function destroy(QuoteTemplate $quoteTemplate)
@@ -144,6 +182,6 @@ class QuoteTemplateController extends Controller
             default          => [],
         };
 
-        return 'required|in:' . implode(',', $keys);
+        return (QuoteTemplate::isOptional($field) ? 'nullable|in:' : 'required|in:') . implode(',', $keys);
     }
 }

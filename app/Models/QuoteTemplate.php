@@ -137,6 +137,18 @@ class QuoteTemplate extends Model
         'roadtax'             => ['scope' => 'shared',  'input' => 'number',      'label' => 'Roadtax (RM)'],
     ];
 
+    /**
+     * Select fields the agent may leave unanswered. They start blank rather than
+     * guessing an option, render an empty choice in the form, and show "-" on the
+     * quote. Number fields are always optional, so they are not listed here.
+     */
+    public const OPTIONAL_FIELDS = ['towing', 'personal_accident', 'vehicle_inspection'];
+
+    public static function isOptional(string $field): bool
+    {
+        return in_array($field, self::OPTIONAL_FIELDS, true);
+    }
+
     // ── Types ───────────────────────────────────────────────────────────────
 
     /** @return array<string, array<string, mixed>> */
@@ -160,7 +172,7 @@ class QuoteTemplate extends Model
                 ],
             ],
             'third_party_fire_theft' => [
-                'label'     => '3rd Party',
+                'label'     => '3rd Party & Theft',
                 'title'     => '3rd Party Fire & Theft',
                 'companies' => $all,
                 'ncd'       => self::NCD_OPTIONS,
@@ -289,21 +301,20 @@ class QuoteTemplate extends Model
         return $path && is_file(public_path($path)) ? $path : null;
     }
 
-    /** Default value for one company field, for a type + company. */
-    public static function fieldDefault(string $field, string $type, string $company): mixed
+    /** Default value for one company field. */
+    public static function fieldDefault(string $field): mixed
     {
+        // Optional selects (towing, personal_accident, vehicle_inspection) fall
+        // through to null so the agent picks them deliberately.
         return match ($field) {
             'value'               => 'market_value',
-            'towing'              => array_key_first(self::optionsFor('towing', $type, $company)) ?? 'unlimited',
             'ncd'                 => '0',
             'accident_assist',
             'all_driver',
             'all_rider'           => 'yes',
             'add_on_benefit'      => 'no',
-            'vehicle_inspection'  => 'no',
-            'personal_accident'   => array_key_first(self::optionsFor('pa', $type, $company)) ?? 'no',
             'additional_benefits' => [],
-            default               => null,   // sum_covered, insurance_takaful
+            default               => null,   // sum_covered, insurance_takaful, optional selects
         };
     }
 
@@ -312,7 +323,7 @@ class QuoteTemplate extends Model
     {
         $col = ['company' => $company];
         foreach (self::fieldKeys($type, 'company') as $field) {
-            $col[$field] = self::fieldDefault($field, $type, $company);
+            $col[$field] = self::fieldDefault($field);
         }
 
         return $col;
@@ -323,13 +334,16 @@ class QuoteTemplate extends Model
         return match ($field) {
             'bencana_alam'   => 'no',
             'digital_copy'   => 'yes',
-            'roadtax'        => 70,
             'roadtax_period' => '1_year',
-            default          => null,   // cermin
+            default          => null,   // cermin, roadtax
         };
     }
 
-    /** A blank template for a type, with the first three companies pre-ticked. */
+    /**
+     * A blank template for a type. No company is pre-ticked — the agent chooses
+     * which insurers this quote compares, so an unticked list is the honest
+     * starting point rather than three arbitrary defaults they must undo.
+     */
     public static function blankData(string $type = self::DEFAULT_TYPE): array
     {
         $shared = [];
@@ -337,11 +351,9 @@ class QuoteTemplate extends Model
             $shared[$field] = self::sharedDefault($field);
         }
 
-        $preselect = array_slice(self::companiesForType($type), 0, 3);
-
         return [
             'shared'  => $shared,
-            'columns' => array_map(fn ($c) => self::defaultColumn($type, $c), $preselect),
+            'columns' => [],
         ];
     }
 
