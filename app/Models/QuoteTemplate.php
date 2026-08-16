@@ -57,6 +57,7 @@ class QuoteTemplate extends Model
         '150km'     => '150 KM',
         '200km'     => '200 KM',
         '300km'     => '300 KM',
+        '450km'     => '450 KM',
         'unlimited' => 'UNLIMITED',
         'no'        => 'NO',
     ];
@@ -68,7 +69,7 @@ class QuoteTemplate extends Model
         'TAKAFUL IKHLAS'   => ['150km', 'unlimited', 'no'],
         'TAKAFUL MALAYSIA' => ['300km', 'unlimited', 'no'],
         'KURNIA INSURANS'  => ['100km', 'unlimited'],
-        'ALLIANZ'          => ['150km', 'unlimited', 'no'],   // same list as Takaful Ikhlas
+        'ALLIANZ'          => ['150km', '450km', 'unlimited'],
     ];
 
     public const NCD_OPTIONS = [
@@ -87,6 +88,7 @@ class QuoteTemplate extends Model
         'motorist_plan_3'       => 'MOTORIST PLAN 3',
         'motorist_plan_4'       => 'MOTORIST PLAN 4',
         'auto365'               => 'AUTO365',
+        'road_warrior'          => 'ROAD WARRIOR',
         'enhanced_road_warrior' => 'ENHANCED ROAD WARRIOR',
         'bike_warrior'          => 'BIKE WARRIOR',
     ];
@@ -97,7 +99,7 @@ class QuoteTemplate extends Model
         'TAKAFUL IKHLAS'   => ['yes', 'no', 'cash_care'],
         'TAKAFUL MALAYSIA' => ['yes', 'no', 'cash_care', 'motorist_plan_3', 'motorist_plan_4'],
         'KURNIA INSURANS'  => ['auto365'],
-        'ALLIANZ'          => ['enhanced_road_warrior'],
+        'ALLIANZ'          => ['road_warrior', 'enhanced_road_warrior'],
     ];
 
     /** Multi-select benefits on the motor quotes (each shows as its own line). */
@@ -182,6 +184,8 @@ class QuoteTemplate extends Model
                 'companies' => $all,
                 'ncd'       => self::NCD_OPTIONS,
                 'towing'    => ['no_towing', 'unlimited'],
+                // Allianz quotes its own towing on this type, not the type-wide list.
+                'company_towing' => ['ALLIANZ' => self::COMPANY_TOWING['ALLIANZ']],
                 'sections'  => [
                     'Sebut Harga'        => ['sum_covered', 'value'],
                     'Insurance Benefits' => ['towing', 'accident_assist', 'ncd'],
@@ -196,9 +200,9 @@ class QuoteTemplate extends Model
                 'companies' => $motor,
                 'ncd'       => self::NCD_MOTOR_OPTIONS,
                 'towing'    => ['no_towing', 'unlimited', '50km', '30km'],
-                // Allianz quotes different cover on this type than the others.
-                'company_towing' => ['ALLIANZ' => ['unlimited', 'no']],
-                'company_pa'     => ['ALLIANZ' => ['bike_warrior', 'no']],
+                // Allianz quotes its own towing here too. Its PA needs no override:
+                // this type sets no PA list, so COMPANY_PA already applies.
+                'company_towing' => ['ALLIANZ' => self::COMPANY_TOWING['ALLIANZ']],
                 'sections'  => [
                     'Sebut Harga'        => ['sum_covered', 'value'],
                     'Insurance Benefits' => ['all_rider', 'accident_assist', 'ncd', 'additional_benefits'],

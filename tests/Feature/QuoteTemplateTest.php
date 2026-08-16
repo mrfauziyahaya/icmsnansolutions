@@ -314,30 +314,38 @@ class QuoteTemplateTest extends TestCase
 
     public function test_allianz_option_lists_differ_by_quote_type(): void
     {
-        // Comprehensive: towing mirrors Takaful Ikhlas, PA is Enhanced Road Warrior.
+        // Comprehensive: Allianz's own lists, in the order given.
         $this->assertSame(
-            QuoteTemplate::optionsFor('towing', 'comprehensive', 'TAKAFUL IKHLAS'),
+            ['150km' => '150 KM', '450km' => '450 KM', 'unlimited' => 'UNLIMITED'],
             QuoteTemplate::optionsFor('towing', 'comprehensive', 'ALLIANZ')
         );
         $this->assertSame(
-            ['enhanced_road_warrior' => 'ENHANCED ROAD WARRIOR'],
+            ['road_warrior' => 'ROAD WARRIOR', 'enhanced_road_warrior' => 'ENHANCED ROAD WARRIOR'],
             QuoteTemplate::optionsFor('personal_accident', 'comprehensive', 'ALLIANZ')
         );
 
-        // 1st Party Motor overrides both, for Allianz only.
+        // Allianz keeps its own lists even on the types that set a towing list
+        // for everyone else (3rd Party & Theft, 1st Party Motor).
+        foreach (['third_party_fire_theft', 'motor_first_party'] as $type) {
+            $this->assertSame(
+                ['150km' => '150 KM', '450km' => '450 KM', 'unlimited' => 'UNLIMITED'],
+                QuoteTemplate::optionsFor('towing', $type, 'ALLIANZ'),
+                "towing wrong on {$type}"
+            );
+        }
         $this->assertSame(
-            ['unlimited' => 'UNLIMITED', 'no' => 'NO'],
-            QuoteTemplate::optionsFor('towing', 'motor_first_party', 'ALLIANZ')
-        );
-        $this->assertSame(
-            ['bike_warrior' => 'BIKE WARRIOR', 'no' => 'NO'],
+            ['road_warrior' => 'ROAD WARRIOR', 'enhanced_road_warrior' => 'ENHANCED ROAD WARRIOR'],
             QuoteTemplate::optionsFor('personal_accident', 'motor_first_party', 'ALLIANZ')
         );
 
-        // The override must not leak to the other insurers on that type.
+        // That must not leak to the other insurers on those types.
         $this->assertSame(
             ['no_towing' => 'NO TOWING', 'unlimited' => 'UNLIMITED', '50km' => '50 KM', '30km' => '30 KM'],
             QuoteTemplate::optionsFor('towing', 'motor_first_party', 'ZURICH TAKAFUL')
+        );
+        $this->assertSame(
+            ['no_towing' => 'NO TOWING', 'unlimited' => 'UNLIMITED'],
+            QuoteTemplate::optionsFor('towing', 'third_party_fire_theft', 'ETIQA TAKAFUL')
         );
     }
 
@@ -345,7 +353,7 @@ class QuoteTemplateTest extends TestCase
     {
         $payload = $this->payloadFor('motor_first_party', ['ALLIANZ']);
         $payload['columns'][0]['towing']            = 'unlimited';
-        $payload['columns'][0]['personal_accident'] = 'bike_warrior';
+        $payload['columns'][0]['personal_accident'] = 'road_warrior';
 
         $this->actingAs($this->admin())
             ->post(route('quote-templates.store'), $payload)
@@ -353,7 +361,7 @@ class QuoteTemplateTest extends TestCase
 
         $column = QuoteTemplate::firstOrFail()->data['columns'][0];
         $this->assertSame('ALLIANZ', $column['company']);
-        $this->assertSame('bike_warrior', $column['personal_accident']);
+        $this->assertSame('road_warrior', $column['personal_accident']);
     }
 
     /** The stored shape (what validated() writes), for model-level assertions. */
