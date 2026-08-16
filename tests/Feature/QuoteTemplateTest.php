@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\QuoteTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 /**
@@ -362,6 +363,37 @@ class QuoteTemplateTest extends TestCase
         $column = QuoteTemplate::firstOrFail()->data['columns'][0];
         $this->assertSame('ALLIANZ', $column['company']);
         $this->assertSame('road_warrior', $column['personal_accident']);
+    }
+
+    /**
+     * dompdf decodes images at full resolution whatever size they print at, so
+     * one 2250x1871 logo cost 6s of an 8s render. Oversized logos are resampled
+     * once into storage/app/pdf-logos and reused.
+     */
+    public function test_an_oversized_logo_is_downscaled_and_cached_for_the_pdf(): void
+    {
+        $cache = storage_path('app/pdf-logos');
+        File::deleteDirectory($cache);
+
+        // ZURICH TAKAFUL's logo is the oversized one.
+        $template = QuoteTemplate::create($this->storedPayload('comprehensive', ['ZURICH TAKAFUL']));
+
+        $this->actingAs($this->admin())
+            ->get(route('quote-templates.pdf', $template))
+            ->assertOk();
+
+        $cached = File::exists($cache) ? File::files($cache) : [];
+        $this->assertNotEmpty($cached, 'no downscaled logo was cached');
+
+        foreach ($cached as $file) {
+            [$width, $height] = getimagesize($file->getPathname());
+            $this->assertLessThanOrEqual(480, max($width, $height), 'cached logo was not downscaled');
+        }
+
+        // A second render reuses the cache rather than resampling again.
+        $before = count($cached);
+        $this->actingAs($this->admin())->get(route('quote-templates.pdf', $template))->assertOk();
+        $this->assertCount($before, File::files($cache));
     }
 
     /** The stored shape (what validated() writes), for model-level assertions. */
