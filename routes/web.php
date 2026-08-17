@@ -31,6 +31,10 @@ Route::get('/quote-request', [QuoteRequestController::class, 'create'])->name('q
 Route::post('/quote-request', [QuoteRequestController::class, 'store'])->name('quote.store');
 Route::get('/quote-request/success', [QuoteRequestController::class, 'success'])->name('quote.success');
 
+// Public blog (nansolutions only — reniu's route allowlist omits these)
+Route::get('/blog', [\App\Http\Controllers\BlogController::class, 'index'])->name('blog.index');
+Route::get('/blog/{post:slug}', [\App\Http\Controllers\BlogController::class, 'show'])->name('blog.show');
+
 // Public payment checkout — no auth required
 Route::get('/pay', [PaymentController::class, 'create'])->name('pay.create');
 Route::post('/pay', [PaymentController::class, 'store'])->name('pay.store');
@@ -65,6 +69,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->except(['show'])->parameters(['quote-templates' => 'quoteTemplate']);
     Route::get('/quote-templates/{quoteTemplate}/pdf', [\App\Http\Controllers\QuoteTemplateController::class, 'pdf'])->name('quote-templates.pdf');
     Route::get('/quote-templates/{quoteTemplate}', [\App\Http\Controllers\QuoteTemplateController::class, 'show'])->name('quote-templates.show');
+
+    // Blog (admin)
+    Route::get('/blog-posts', [\App\Http\Controllers\BlogPostController::class, 'index'])->name('blog-posts.index');
+    Route::get('/blog-posts/create', [\App\Http\Controllers\BlogPostController::class, 'create'])->name('blog-posts.create');
+    Route::post('/blog-posts', [\App\Http\Controllers\BlogPostController::class, 'store'])->name('blog-posts.store');
+    Route::get('/blog-posts/{blogPost:id}/edit', [\App\Http\Controllers\BlogPostController::class, 'edit'])->name('blog-posts.edit');
+    Route::put('/blog-posts/{blogPost:id}', [\App\Http\Controllers\BlogPostController::class, 'update'])->name('blog-posts.update');
+    Route::delete('/blog-posts/{blogPost:id}', [\App\Http\Controllers\BlogPostController::class, 'destroy'])->name('blog-posts.destroy');
+    Route::post('/blog-attachments', [\App\Http\Controllers\BlogPostController::class, 'attachment'])->name('blog-posts.attachment');
+
+    Route::get('/blog-categories', [\App\Http\Controllers\BlogCategoryController::class, 'index'])->name('blog-categories.index');
+    Route::post('/blog-categories', [\App\Http\Controllers\BlogCategoryController::class, 'store'])->name('blog-categories.store');
+    Route::delete('/blog-categories/{blogCategory}', [\App\Http\Controllers\BlogCategoryController::class, 'destroy'])->name('blog-categories.destroy');
 
     // Contact messages (Mesej Hubungi)
     Route::get('/contact-messages', [\App\Http\Controllers\ContactController::class, 'index'])->name('contact.index');

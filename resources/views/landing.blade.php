@@ -93,7 +93,7 @@
                     <a href="#utama" class="hover:text-white">Utama</a>
                     <a href="#tentang" class="hover:text-white">Tentang Kami</a>
                     <a href="#rakan" class="hover:text-white">Rakan Insurans</a>
-                    <a href="#blog" class="hover:text-white">Blog</a>
+                    <a href="{{ route('blog.index') }}" class="hover:text-white">Blog</a>
                     <a href="#hubungi" class="hover:text-white">Hubungi Kami</a>
                     <div class="relative" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.outside="t=false">
                         <button @click="t=!t" class="flex items-center gap-1 uppercase hover:text-white">
@@ -131,7 +131,7 @@
                 <a href="#utama" class="block px-3 py-2.5 rounded hover:bg-white/15">Utama</a>
                 <a href="#tentang" class="block px-3 py-2.5 rounded hover:bg-white/15">Tentang Kami</a>
                 <a href="#rakan" class="block px-3 py-2.5 rounded hover:bg-white/15">Rakan Insurans</a>
-                <a href="#blog" class="block px-3 py-2.5 rounded hover:bg-white/15">Blog</a>
+                <a href="{{ route('blog.index') }}" class="block px-3 py-2.5 rounded hover:bg-white/15">Blog</a>
                 <a href="{{ route('pay.create') }}" class="block px-3 py-2.5 rounded hover:bg-white/15">Bayaran</a>
                 <a href="#hubungi" class="block px-3 py-2.5 rounded hover:bg-white/15">Hubungi Kami</a>
                 <div class="mt-1 pt-1 border-t border-white/15">
@@ -464,32 +464,45 @@
     </div>
 </section>
 
-<!-- ══ §9 BLOG — placeholder, to be implemented ═════════════════════════ -->
+<!-- ══ §9 BLOG — latest published posts ═════════════════════════════════ -->
+@php $latestPosts = \App\Models\BlogPost::published()->latest('published_at')->take(3)->get(); @endphp
+@if($latestPosts->isNotEmpty())
 <section id="blog" class="py-16 sm:py-20">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-12">
-            <div class="col-span-12 text-center">
+        <div class="grid grid-cols-12 items-end">
+            <div class="col-span-12 sm:col-span-8 text-center sm:text-left">
                 <h2 class="font-display font-bold uppercase text-2xl sm:text-3xl text-brand-ink">Artikel Terkini</h2>
-                <p class="mt-3 text-brand-muted">Seksyen blog akan dilaksanakan kemudian.</p>
+                <p class="mt-3 text-brand-muted">Tips &amp; panduan insurans, takaful dan cukai jalan.</p>
+            </div>
+            <div class="col-span-12 sm:col-span-4 text-center sm:text-right mt-4 sm:mt-0">
+                <a href="{{ route('blog.index') }}" class="text-sm font-semibold text-[#E2661F] hover:underline">Lihat Semua →</a>
             </div>
         </div>
 
         <div class="grid grid-cols-12 gap-5 mt-10">
-            @for($i = 0; $i < 3; $i++)
+            @foreach($latestPosts as $post)
                 <div class="col-span-12 sm:col-span-6 lg:col-span-4">
-                    <div class="h-full rounded-xl border border-brand-tint overflow-hidden bg-white">
-                        <x-img-slot class="aspect-[16/9] rounded-none border-0">Imej Artikel</x-img-slot>
-                        <div class="p-5">
-                            <p class="text-xs uppercase tracking-wide text-brand-muted">Tarikh</p>
-                            <h3 class="mt-1 font-semibold text-brand-ink">Tajuk Artikel</h3>
-                            <p class="mt-2 text-sm text-brand-muted">Petikan ringkas artikel.</p>
+                    <a href="{{ route('blog.show', $post) }}" class="group h-full flex flex-col rounded-xl border border-brand-tint overflow-hidden bg-white hover:shadow-lg transition">
+                        <div class="aspect-[16/9] bg-brand-wash overflow-hidden">
+                            @if($post->coverUrl())
+                                <img src="{{ $post->coverUrl() }}" alt="{{ $post->title }}" class="h-full w-full object-cover group-hover:scale-105 transition duration-300">
+                            @endif
                         </div>
-                    </div>
+                        <div class="flex-1 flex flex-col p-5">
+                            @if($post->category)
+                                <span class="text-xs font-semibold uppercase tracking-wide text-[#E2661F]">{{ $post->category->name }}</span>
+                            @endif
+                            <h3 class="mt-1 font-semibold text-brand-ink group-hover:text-[#E2661F]">{{ $post->title }}</h3>
+                            <p class="mt-2 text-sm text-brand-muted line-clamp-2 flex-1">{{ $post->summary(20) }}</p>
+                            <p class="mt-3 text-xs text-brand-muted">{{ $post->published_at?->timezone('Asia/Kuala_Lumpur')->translatedFormat('d F Y') }}</p>
+                        </div>
+                    </a>
                 </div>
-            @endfor
+            @endforeach
         </div>
     </div>
 </section>
+@endif
 
 <!-- ══ §10 CONTACT — left: info | right: form ═══════════════════════════ -->
 @php
@@ -605,7 +618,7 @@
             <ul class="mt-3 space-y-2">
                 <li><a href="#tentang" class="hover:text-[#F0813A]">Tentang Kami</a></li>
                 <li><a href="#rakan" class="hover:text-[#F0813A]">Rakan Insurans</a></li>
-                <li><a href="#blog" class="hover:text-[#F0813A]">Blog</a></li>
+                <li><a href="{{ route('blog.index') }}" class="hover:text-[#F0813A]">Blog</a></li>
                 <li><a href="#hubungi" class="hover:text-[#F0813A]">Hubungi Kami</a></li>
             </ul>
         </div>
