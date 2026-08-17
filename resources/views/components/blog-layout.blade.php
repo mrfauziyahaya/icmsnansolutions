@@ -37,10 +37,10 @@
         .article-body a[href]:has(> img) { text-decoration: none; }
     </style>
 </head>
-<body class="font-sans antialiased text-brand-body bg-white">
+<body class="font-sans antialiased text-brand-body bg-white min-h-screen flex flex-col">
 
     {{-- Header --}}
-    <header class="border-b border-brand-tint bg-white">
+    <header class="border-b border-brand-tint bg-white shrink-0">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
             <a href="{{ url('/') }}" class="flex items-center gap-3">
                 @if($logo)
@@ -56,10 +56,12 @@
         </div>
     </header>
 
-    {{ $slot }}
+    <div class="flex-1">
+        {{ $slot }}
+    </div>
 
     {{-- Footer --}}
-    <footer class="bg-brand-ink text-white/70 mt-16">
+    <footer class="bg-brand-ink text-white/70 shrink-0">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-sm flex flex-col sm:flex-row items-center justify-between gap-4">
             <span>&copy; {{ date('Y') }} {{ $company }}. Hak cipta terpelihara.</span>
             <nav class="flex flex-wrap items-center gap-x-4 gap-y-1">
