@@ -127,6 +127,35 @@ class QuoteTemplateTest extends TestCase
         $this->assertSame(['no_towing', 'unlimited', '50km', '30km'], $keys);
     }
 
+    /** 30% was missing from the non-motor NCD list. */
+    public function test_every_type_offers_thirty_percent_ncd(): void
+    {
+        foreach (array_keys(QuoteTemplate::types()) as $type) {
+            $options = QuoteTemplate::optionsFor('ncd', $type, 'ZURICH TAKAFUL');
+            $this->assertArrayHasKey('30', $options, "30% NCD missing on {$type}");
+            $this->assertSame('30%', $options['30']);
+        }
+
+        // Listed between 25% and 35%, not appended at the end. Compared on the
+        // labels because PHP casts numeric string keys to integers.
+        $this->assertSame(
+            ['0%', '25%', '30%', '35%', '38.33%', '45%', '55%'],
+            array_values(QuoteTemplate::optionsFor('ncd', 'comprehensive', 'ZURICH TAKAFUL'))
+        );
+    }
+
+    public function test_a_thirty_percent_ncd_can_be_saved(): void
+    {
+        $payload = $this->payloadFor('third_party_fire_theft', ['ZURICH TAKAFUL']);
+        $payload['columns'][0]['ncd'] = '30';
+
+        $this->actingAs($this->admin())
+            ->post(route('quote-templates.store'), $payload)
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('30', QuoteTemplate::firstOrFail()->data['columns'][0]['ncd']);
+    }
+
     public function test_motor_ncd_has_the_extended_set(): void
     {
         $html = $this->actingAs($this->admin())
