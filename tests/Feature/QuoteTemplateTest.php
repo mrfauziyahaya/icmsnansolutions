@@ -257,7 +257,10 @@ class QuoteTemplateTest extends TestCase
 
         $response->assertOk();
         $this->assertSame('application/pdf', $response->headers->get('content-type'));
-        $this->assertStringContainsString('.pdf', $response->headers->get('content-disposition'));
+
+        // Filename is uppercase; the reg number would otherwise be lowercased by slug().
+        $disposition = $response->headers->get('content-disposition');
+        $this->assertStringContainsString('SEBUT-HARGA-WXY1234.pdf', $disposition);
         $this->assertStringStartsWith('%PDF', $response->getContent());
     }
 

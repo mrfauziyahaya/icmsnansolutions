@@ -103,7 +103,9 @@ class QuoteTemplateController extends Controller
                 : (is_file(public_path('images/logo.png')) ? public_path('images/logo.png') : null)
         );
 
-        $filename = 'sebut-harga-' . Str::slug($quoteTemplate->vehicle_reg_number ?: 'quote') . '.pdf';
+        // Str::slug() lowercases, so uppercase after slugging. The extension stays
+        // lowercase — some clients match it case-sensitively.
+        $filename = Str::upper('sebut-harga-' . Str::slug($quoteTemplate->vehicle_reg_number ?: 'quote')) . '.pdf';
 
         return Pdf::loadView('quote-templates.pdf', [
             'template'  => $quoteTemplate,
