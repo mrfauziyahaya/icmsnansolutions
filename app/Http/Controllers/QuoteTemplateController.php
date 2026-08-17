@@ -6,6 +6,7 @@ use App\Models\QuoteTemplate;
 use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class QuoteTemplateController extends Controller
@@ -90,17 +91,17 @@ class QuoteTemplateController extends Controller
         $setting = Setting::instance();
 
         $preview['companies'] = array_map(function (array $company) {
-            $company['pdf_logo'] = $company['logo'] && is_file(public_path($company['logo']))
-                ? public_path($company['logo'])
-                : null;
+            $company['pdf_logo'] = $this->pdfLogo($company['logo']);
 
             return $company;
         }, $preview['companies']);
 
         $stored = $setting->logo_path ? storage_path('app/public/' . $setting->logo_path) : null;
-        $brandLogo = $stored && is_file($stored)
-            ? $stored
-            : (is_file(public_path('images/logo.png')) ? public_path('images/logo.png') : null);
+        $brandLogo = $this->downscaleForPdf(
+            $stored && is_file($stored)
+                ? $stored
+                : (is_file(public_path('images/logo.png')) ? public_path('images/logo.png') : null)
+        );
 
         $filename = 'sebut-harga-' . Str::slug($quoteTemplate->vehicle_reg_number ?: 'quote') . '.pdf';
 
@@ -110,6 +111,60 @@ class QuoteTemplateController extends Controller
             'setting'   => $setting,
             'brandLogo' => $brandLogo,
         ])->setPaper('a4', 'portrait')->download($filename);
+    }
+
+    /** Absolute path to a PDF-sized copy of a public logo, or null. */
+    private function pdfLogo(?string $relative): ?string
+    {
+        $source = $relative ? public_path($relative) : null;
+
+        return $source && is_file($source) ? $this->downscaleForPdf($source) : null;
+    }
+
+    /**
+     * dompdf decodes an image at full resolution regardless of the size it
+     * prints at, and the cost scales with pixel count: one 2250x1871 logo was
+     * 6s of an 8s render. Logos print ~160px wide, so anything larger is
+     * resampled once and cached. Falls back to the original if GD can't read it.
+     */
+    private function downscaleForPdf(?string $source, int $max = 480): ?string
+    {
+        if (! $source || ! is_file($source)) {
+            return null;
+        }
+
+        $size = @getimagesize($source);
+        if (! $size || empty($size[0]) || empty($size[1]) || ($size[0] <= $max && $size[1] <= $max)) {
+            return $source;
+        }
+
+        $directory = storage_path('app/pdf-logos');
+        $cached    = $directory . '/' . md5($source . filemtime($source) . $max) . '.png';
+        if (is_file($cached)) {
+            return $cached;
+        }
+
+        $image = @imagecreatefromstring((string) file_get_contents($source));
+        if (! $image) {
+            return $source;
+        }
+
+        $scale  = min($max / $size[0], $max / $size[1]);
+        $width  = max((int) round($size[0] * $scale), 1);
+        $height = max((int) round($size[1] * $scale), 1);
+
+        $resized = imagecreatetruecolor($width, $height);
+        imagealphablending($resized, false);
+        imagesavealpha($resized, true);
+        imagecopyresampled($resized, $image, 0, 0, 0, 0, $width, $height, $size[0], $size[1]);
+
+        File::ensureDirectoryExists($directory);
+        $written = @imagepng($resized, $cached);
+
+        imagedestroy($image);
+        imagedestroy($resized);
+
+        return $written ? $cached : $source;
     }
 
     public function destroy(QuoteTemplate $quoteTemplate)
