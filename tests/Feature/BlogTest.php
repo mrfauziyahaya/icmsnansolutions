@@ -103,4 +103,77 @@ class BlogTest extends TestCase
         // …but the admin area is not.
         $this->get(route('blog-posts.index'))->assertRedirect();
     }
+
+    /**
+     * Uploads arrive straight off a phone or camera at several thousand pixels
+     * wide — one 1.9MB cover came through untouched — so they are capped and
+     * re-encoded on the way in.
+     */
+    public function test_an_oversized_cover_is_shrunk_on_upload(): void
+    {
+        $source = $this->photograph(3000, 2200);
+
+        $this->actingAs($this->admin())->post(route('blog-posts.store'), [
+            'title' => 'Big Cover',
+            'body'  => 'x',
+            'cover' => new UploadedFile($source, 'huge.jpg', 'image/jpeg', null, true),
+        ])->assertRedirect();
+
+        $stored = BlogPost::sole()->cover_image;
+        Storage::disk('public')->assertExists($stored);
+
+        [$width, $height] = getimagesize(Storage::disk('public')->path($stored));
+        $this->assertLessThanOrEqual(1600, max($width, $height), 'cover was not resized');
+
+        // Aspect ratio preserved.
+        $this->assertEqualsWithDelta(3000 / 2200, $width / $height, 0.01);
+
+        $this->assertLessThan(
+            filesize($source),
+            Storage::disk('public')->size($stored),
+            'stored cover is not smaller than the upload'
+        );
+
+        @unlink($source);
+    }
+
+    /** Flattening a transparent image to JPEG would black out its background. */
+    public function test_a_transparent_upload_stays_png(): void
+    {
+        $image = imagecreatetruecolor(400, 400);
+        imagesavealpha($image, true);
+        imagealphablending($image, false);
+        imagefill($image, 0, 0, imagecolorallocatealpha($image, 255, 0, 0, 90));
+        $source = tempnam(sys_get_temp_dir(), 'alpha') . '.png';
+        imagepng($image, $source);
+        imagedestroy($image);
+
+        $this->actingAs($this->admin())->post(route('blog-posts.store'), [
+            'title' => 'Transparent',
+            'body'  => 'x',
+            'cover' => new UploadedFile($source, 'logo.png', 'image/png', null, true),
+        ])->assertRedirect();
+
+        $this->assertSame('png', pathinfo(BlogPost::sole()->cover_image, PATHINFO_EXTENSION));
+
+        @unlink($source);
+    }
+
+    /** A JPEG with detail, which is what a camera actually produces. */
+    private function photograph(int $width, int $height): string
+    {
+        $image = imagecreatetruecolor($width, $height);
+        for ($x = 0; $x < $width; $x += 2) {
+            for ($y = 0; $y < $height; $y += 2) {
+                imagefilledrectangle($image, $x, $y, $x + 2, $y + 2, imagecolorallocate(
+                    $image, ($x * 7 + $y) % 255, ($y * 11) % 255, ($x + $y * 3) % 255
+                ));
+            }
+        }
+        $path = tempnam(sys_get_temp_dir(), 'photo') . '.jpg';
+        imagejpeg($image, $path, 95);
+        imagedestroy($image);
+
+        return $path;
+    }
 }
