@@ -214,7 +214,9 @@ class QuoteTemplate extends Model
             'motor_third_party' => [
                 'label'     => '3rd Party (Motor)',
                 'title'     => 'Motor Third Party',
-                'companies' => $motor,
+                // Takaful Ikhlas is quoted on this type but not the other motor
+                // one, so it is listed here rather than added to MOTOR_COMPANIES.
+                'companies' => [...$motor, 'TAKAFUL IKHLAS'],
                 'ncd'       => self::NCD_MOTOR_OPTIONS,
                 'sections'  => [
                     'Sebut Harga'        => ['sum_covered'],
