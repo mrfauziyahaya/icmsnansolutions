@@ -442,19 +442,20 @@ class QuoteTemplateTest extends TestCase
         ];
     }
 
-    /**
-     * Takaful Ikhlas is quoted on 3rd Party (Motor) but not 1st Party (Motor),
-     * so it is listed on that type rather than added to MOTOR_COMPANIES.
-     */
-    public function test_takaful_ikhlas_is_offered_on_motor_third_party_only(): void
+    /** Takaful Ikhlas is quoted on every type, motor included. */
+    public function test_takaful_ikhlas_is_offered_on_every_type(): void
     {
-        $this->assertContains('TAKAFUL IKHLAS', QuoteTemplate::companiesForType('motor_third_party'));
-        $this->assertNotContains('TAKAFUL IKHLAS', QuoteTemplate::companiesForType('motor_first_party'));
-
-        // The other insurers on that type are untouched.
-        foreach (['ZURICH TAKAFUL', 'ETIQA TAKAFUL', 'TAKAFUL MALAYSIA', 'ALLIANZ'] as $company) {
-            $this->assertContains($company, QuoteTemplate::companiesForType('motor_third_party'));
+        foreach (array_keys(QuoteTemplate::types()) as $type) {
+            $this->assertContains('TAKAFUL IKHLAS', QuoteTemplate::companiesForType($type), "missing on {$type}");
         }
+
+        // The other motor insurers are untouched.
+        foreach (['ZURICH TAKAFUL', 'ETIQA TAKAFUL', 'TAKAFUL MALAYSIA', 'ALLIANZ'] as $company) {
+            $this->assertContains($company, QuoteTemplate::companiesForType('motor_first_party'));
+        }
+
+        // Kurnia remains non-motor.
+        $this->assertNotContains('KURNIA INSURANS', QuoteTemplate::companiesForType('motor_first_party'));
     }
 
     public function test_a_motor_third_party_quote_can_be_saved_with_takaful_ikhlas(): void
@@ -466,14 +467,12 @@ class QuoteTemplateTest extends TestCase
         $this->assertSame('TAKAFUL IKHLAS', QuoteTemplate::firstOrFail()->data['columns'][0]['company']);
     }
 
-    /** It stays rejected on the type it is not quoted for. */
-    public function test_motor_first_party_still_rejects_takaful_ikhlas(): void
+    public function test_a_motor_first_party_quote_can_be_saved_with_takaful_ikhlas(): void
     {
-        $payload = $this->payloadFor('motor_first_party', ['ZURICH TAKAFUL']);
-        $payload['columns'][0]['company'] = 'TAKAFUL IKHLAS';
-
         $this->actingAs($this->admin())
-            ->post(route('quote-templates.store'), $payload)
-            ->assertSessionHasErrors('columns.0.company');
+            ->post(route('quote-templates.store'), $this->payloadFor('motor_first_party', ['TAKAFUL IKHLAS']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('TAKAFUL IKHLAS', QuoteTemplate::firstOrFail()->data['columns'][0]['company']);
     }
 }
