@@ -115,6 +115,16 @@ return [
                         'vcode_with_currency' => env('FIUU_VCODE_WITH_CURRENCY', false),
                     ],
                 ],
+                'lendapay' => [
+                    'label'  => 'FPX (Lenda Pay)',
+                    'bnpl'   => true,
+                    'config' => [
+                        'access_key_id'     => env('LENDAPAY_ACCESS_KEY_ID'),
+                        'secret_access_key' => env('LENDAPAY_SECRET_ACCESS_KEY'),
+                        'base_url'          => env('LENDAPAY_BASE_URL', 'https://localdev.directlending.com.my:8443/ecommerce/v1/e-commerce'),
+                        'webhook_secret'    => env('LENDAPAY_WEBHOOK_SECRET'),
+                    ],
+                ],
             ],
         ],
 
@@ -203,6 +213,16 @@ return [
                         'secret_key'      => env('RENIU_ATOME_SECRET_KEY'),
                         'base_url'        => env('RENIU_ATOME_BASE_URL'),
                         'callback_secret' => env('RENIU_ATOME_CALLBACK_SECRET'),
+                    ],
+                ],
+                'lendapay' => [
+                    'label'  => 'FPX (Lenda Pay)',
+                    'bnpl'   => true,
+                    'config' => [
+                        'access_key_id'     => env('RENIU_LENDAPAY_ACCESS_KEY_ID'),
+                        'secret_access_key' => env('RENIU_LENDAPAY_SECRET_ACCESS_KEY'),
+                        'base_url'          => env('RENIU_LENDAPAY_BASE_URL', 'https://localdev.directlending.com.my:8443/ecommerce/v1/e-commerce'),
+                        'webhook_secret'    => env('RENIU_LENDAPAY_WEBHOOK_SECRET'),
                     ],
                 ],
             ],
