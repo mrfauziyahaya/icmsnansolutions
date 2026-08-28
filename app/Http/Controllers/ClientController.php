@@ -133,7 +133,7 @@ class ClientController extends Controller
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
             'category' => 'required|string|max:255',
-            'status' => 'required|string|max:255',
+            'status' => 'required|in:Active,Expiring,Expired',
             'plate' => 'nullable|string|max:20',
             'vehicle_model' => 'nullable|string|max:255',
             'insurance_company' => 'nullable|string|max:255',

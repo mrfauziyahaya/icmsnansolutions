@@ -47,7 +47,7 @@
                                             <select id="status" name="status" class="mt-1 block w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm">
                                                 <option value="Active" {{ old('status', $client->status) == 'Active' ? 'selected' : '' }}>Active</option>
                                                 <option value="Expiring" {{ old('status', $client->status) == 'Expiring' ? 'selected' : '' }}>Expiring</option>
-                                                <option value="Done" {{ old('status', $client->status) == 'Done' ? 'selected' : '' }}>Done</option>
+                                                <option value="Expired" {{ old('status', $client->status) == 'Expired' ? 'selected' : '' }}>Expired</option>
                                             </select>
                                             <x-input-error class="mt-2" :messages="$errors->get('status')" />
                                         </div>
