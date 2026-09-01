@@ -120,7 +120,8 @@ return [
                     ],
                 ],
                 'lendapay' => [
-                    'label'  => 'FPX (Lenda Pay)',
+                    'label'  => 'Lenda Pay',
+                    'icon'   => 'images/payment-icons/lenda-pay.png',
                     'bnpl'   => true,
                     'config' => [
                         'access_key_id'     => env('LENDAPAY_ACCESS_KEY_ID'),
@@ -223,7 +224,8 @@ return [
                     ],
                 ],
                 'lendapay' => [
-                    'label'  => 'FPX (Lenda Pay)',
+                    'label'  => 'Lenda Pay',
+                    'icon'   => 'images/payment-icons/lenda-pay.png',
                     'bnpl'   => true,
                     'config' => [
                         'access_key_id'     => env('RENIU_LENDAPAY_ACCESS_KEY_ID'),
