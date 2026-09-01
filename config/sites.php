@@ -67,8 +67,8 @@ return [
                     'label'   => 'CHIP',
                     // Two selectable options at checkout (FPX / card).
                     'methods' => [
-                        ['method' => 'fpx',  'label' => 'CHIP — FPX (Maybank, CIMB, dll.)'],
-                        ['method' => 'card', 'label' => 'CHIP — Kad Kredit / Debit'],
+                        ['method' => 'fpx',  'label' => 'CHIP — FPX (Maybank, CIMB, dll.)', 'icon' => 'images/payment-icons/chip-fpx.jpg'],
+                        ['method' => 'card', 'label' => 'CHIP — Kad Kredit / Debit', 'icon' => 'images/payment-icons/chip-card-credit.jpg'],
                     ],
                     'config'  => [
                         'api_key'            => env('CHIP_API_KEY'),
@@ -79,6 +79,7 @@ return [
                 ],
                 'senangpay' => [
                     'label'  => 'Grab PayLater',
+                    'icon'   => 'images/payment-icons/grabpaylater-icon.webp',
                     'config' => [
                         'client_id'  => env('SENANGPAY_CLIENT_ID'),
                         'secret_key' => env('SENANGPAY_SECRET_KEY'),
@@ -87,6 +88,7 @@ return [
                 ],
                 'atome' => [
                     'label'  => 'Atome',
+                    'icon'   => 'images/payment-icons/atome-logo.png',
                     'bnpl'   => true,
                     'config' => [
                         'partner_id'      => env('ATOME_PARTNER_ID'),
@@ -97,6 +99,7 @@ return [
                 ],
                 'ahapay' => [
                     'label'  => 'AhaPay',
+                    'icon'   => 'images/payment-icons/aha-pay.jpg',
                     'bnpl'   => true,
                     'config' => [
                         'api_key'     => env('AHAPAY_API_KEY'),
@@ -107,6 +110,7 @@ return [
                 ],
                 'fiuu' => [
                     'label'  => 'Fiuu',
+                    'icon'   => 'images/payment-icons/spaylater-logo.png',
                     'config' => [
                         'merchant_id'         => env('FIUU_MERCHANT_ID'),
                         'verify_key'          => env('FIUU_VERIFY_KEY'),
@@ -178,7 +182,7 @@ return [
                     'label'   => 'Credit Card / Atome Card',
                     // Single method, so this label is what the customer sees.
                     'methods' => [
-                        ['method' => 'card', 'label' => 'Credit Card / Atome Card'],
+                        ['method' => 'card', 'label' => 'Credit Card / Atome Card', 'icon' => 'images/payment-icons/chip-card-credit.jpg'],
                     ],
                     'config'  => [
                         'api_key'            => env('RENIU_CHIP_API_KEY'),
@@ -189,6 +193,7 @@ return [
                 ],
                 'fiuu' => [
                     'label'  => 'SPayLater',
+                    'icon'   => 'images/payment-icons/spaylater-logo.png',
                     'config' => [
                         'merchant_id'         => env('RENIU_FIUU_MERCHANT_ID'),
                         'verify_key'          => env('RENIU_FIUU_VERIFY_KEY'),
@@ -199,6 +204,7 @@ return [
                 ],
                 'senangpay' => [
                     'label'  => 'Grab PayLater',
+                    'icon'   => 'images/payment-icons/grabpaylater-icon.webp',
                     'config' => [
                         'client_id'  => env('RENIU_SENANGPAY_CLIENT_ID'),
                         'secret_key' => env('RENIU_SENANGPAY_SECRET_KEY'),
@@ -207,6 +213,7 @@ return [
                 ],
                 'atome' => [
                     'label'  => 'Atome PayLater',
+                    'icon'   => 'images/payment-icons/atome-logo.png',
                     'bnpl'   => true,
                     'config' => [
                         'partner_id'      => env('RENIU_ATOME_PARTNER_ID'),

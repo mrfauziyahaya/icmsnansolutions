@@ -66,7 +66,7 @@ class PaymentGatewayManager
      * Flat list of selectable checkout options for a site. A gateway with
      * several methods (CHIP → FPX / Card) yields one option per method.
      *
-     * @return array<int, array{value: string, gateway: string, method: ?string, label: string, bnpl: bool}>
+     * @return array<int, array{value: string, gateway: string, method: ?string, label: string, bnpl: bool, icon: ?string}>
      */
     public function checkoutOptions(?float $amount = null, ?string $site = null): array
     {
@@ -106,6 +106,7 @@ class PaymentGatewayManager
                         'method'  => $m['method'],
                         'label'   => $m['label'],
                         'bnpl'    => $isBnpl,
+                        'icon'    => $m['icon'] ?? $definition['icon'] ?? null,
                     ];
                 }
 
@@ -118,6 +119,7 @@ class PaymentGatewayManager
                 'method'  => null,
                 'label'   => $definition['label'] ?? $key,
                 'bnpl'    => $isBnpl,
+                'icon'    => $definition['icon'] ?? null,
             ];
         }
 
