@@ -74,25 +74,25 @@ class MultiSiteTest extends TestCase
     public function test_gateway_labels_differ_per_site(): void
     {
         $this->assertSame('Fiuu', $this->sites()->gatewayLabel('fiuu', 'nansolutions'));
-        $this->assertSame('SPayLater', $this->sites()->gatewayLabel('fiuu', 'reniu'));
+        $this->assertSame('SpayLater / Grab PayLater', $this->sites()->gatewayLabel('fiuu', 'reniu'));
 
         $this->assertSame('CHIP', $this->sites()->gatewayLabel('chip', 'nansolutions'));
         $this->assertSame('Credit Card / Atome Card', $this->sites()->gatewayLabel('chip', 'reniu'));
     }
 
-    /** The four options reniu.my offers, exactly as the customer sees them. */
+    /** The gateways reniu.my actually offers, exactly as the customer sees them. */
     public function test_reniu_offers_its_gateways_with_their_labels(): void
     {
         $this->configureReniuGateways();
 
         $labels = array_column(app(PaymentGatewayManager::class)->checkoutOptions(null, 'reniu'), 'label');
 
-        // Atome is temporarily disabled on reniu (disabled_gateways), so it's
-        // not offered even though it's configured.
+        // Atome and senangpay (DOKU's Grab PayLater) are disabled on reniu
+        // (disabled_gateways), so neither is offered even though configured —
+        // Fiuu's own hosted checkout already covers Grab PayLater.
         $this->assertEqualsCanonicalizing([
             'Credit Card / Atome Card',
-            'Grab PayLater',
-            'SPayLater',
+            'SpayLater / Grab PayLater',
         ], $labels);
 
         $this->assertArrayNotHasKey('ahapay', $this->sites()->gateways('reniu'), 'AhaPay is NAN Solutions only');

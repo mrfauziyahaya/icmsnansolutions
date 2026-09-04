@@ -95,7 +95,11 @@
                                    :class="form.gateway === opt.value ? 'border-orange-600 bg-orange-50' : ''">
                                 <input type="radio" name="gateway" :value="opt.value" x-model="form.gateway"
                                        class="text-orange-600 focus:ring-orange-500">
-                                <img x-show="opt.icon" :src="opt.icon" :alt="opt.label" class="h-6 w-auto shrink-0 object-contain">
+                                <span class="flex items-center gap-1.5 shrink-0">
+                                    <template x-for="icon in opt.icon" :key="icon">
+                                        <img :src="icon" :alt="opt.label" class="h-6 w-auto object-contain">
+                                    </template>
+                                </span>
                                 <span x-text="opt.label" :class="form.gateway === opt.value ? 'text-orange-700 font-semibold' : 'text-gray-700'"></span>
                             </label>
                         </template>
@@ -182,7 +186,10 @@
                 minAmount: @json($minAmount),
                 maxAmount: @json($maxAmount),
                 bnplMin: @json($bnplMin),
-                options: @json(collect($options)->map(fn ($o) => [...$o, 'icon' => $o['icon'] ? asset($o['icon']) : null])),
+                options: @json(collect($options)->map(fn ($o) => [
+                    ...$o,
+                    'icon' => collect(\Illuminate\Support\Arr::wrap($o['icon']))->filter()->map(fn ($i) => asset($i))->values(),
+                ])),
                 form: {
                     payer_name: @json(old('payer_name', '')),
                     payer_email: @json(old('payer_email', '')),

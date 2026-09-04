@@ -120,7 +120,8 @@ return [
                     ],
                 ],
                 'lendapay' => [
-                    'label'  => 'FPX (Lenda Pay)',
+                    'label'  => 'Lenda Pay',
+                    'icon'   => 'images/payment-icons/lenda-pay.png',
                     'bnpl'   => true,
                     'config' => [
                         'access_key_id'     => env('LENDAPAY_ACCESS_KEY_ID'),
@@ -174,7 +175,11 @@ return [
 
             // Fiuu is the point of reniu (its account is domain-bound here), so
             // it's NOT hidden. Atome is disabled temporarily while it's sorted out.
-            'disabled_gateways' => ['atome'],
+            // senangpay (DOKU's Grab PayLater) is retired here — Fiuu's own hosted
+            // checkout already offers Grab PayLater alongside SPayLater, so the
+            // separate DOKU-backed option is redundant. Kept configured (not
+            // deleted) in case it needs to come back.
+            'disabled_gateways' => ['atome', 'senangpay'],
 
             'gateways' => [
                 // Card only on reniu — no FPX option.
@@ -192,8 +197,11 @@ return [
                     ],
                 ],
                 'fiuu' => [
-                    'label'  => 'SPayLater',
-                    'icon'   => 'images/payment-icons/spaylater-logo.png',
+                    // Fiuu's hosted checkout (no method pinned) shows every channel
+                    // enabled on the account, which includes Grab PayLater — hence
+                    // both logos and the combined label.
+                    'label'  => 'SpayLater / Grab PayLater',
+                    'icon'   => ['images/payment-icons/spaylater-logo.png', 'images/payment-icons/grabpaylater-icon.webp'],
                     'config' => [
                         'merchant_id'         => env('RENIU_FIUU_MERCHANT_ID'),
                         'verify_key'          => env('RENIU_FIUU_VERIFY_KEY'),
@@ -223,7 +231,8 @@ return [
                     ],
                 ],
                 'lendapay' => [
-                    'label'  => 'FPX (Lenda Pay)',
+                    'label'  => 'Lenda Pay',
+                    'icon'   => 'images/payment-icons/lenda-pay.png',
                     'bnpl'   => true,
                     'config' => [
                         'access_key_id'     => env('RENIU_LENDAPAY_ACCESS_KEY_ID'),
