@@ -36,7 +36,7 @@
             </div>
 
             <form method="POST" action="{{ route('quote.store') }}" class="p-6 sm:p-8"
-                  @submit="submitting = true">
+                  @submit="onSubmit($event)">
                 @csrf
 
                 <!-- ── STEP 1: Maklumat Pemilik Kenderaan ──────────────────── -->
@@ -135,32 +135,49 @@
                         </div>
                     </div>
 
-                    <!-- 1st Party Comprehensive → multi-select add-ons -->
+                    <!-- 1st Party Comprehensive → need add-ons? (Ya / Tidak), then multi-select -->
                     <template x-if="form.jenis_perlindungan === '1st Party Comprehensive'">
                         <div class="space-y-3 rounded-lg bg-gray-50 p-4">
-                            <label class="block text-sm font-medium text-gray-700">Perlindungan Tambahan</label>
-                            <template x-for="opt in addonsComprehensive" :key="opt">
-                                <label class="flex items-start gap-3 cursor-pointer text-sm">
-                                    <input type="checkbox" name="perlindungan_tambahan[]" :value="opt" x-model="form.perlindungan_tambahan"
-                                           class="mt-0.5 rounded text-orange-600 focus:ring-orange-500">
-                                    <span class="text-gray-700" x-text="opt"></span>
-                                </label>
-                            </template>
-
-                            <!-- Cermin → jumlah -->
-                            <div x-show="form.perlindungan_tambahan.includes('Cermin')" x-cloak class="pt-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Perlindungan Cermin Diperlukan (RM) <span class="text-red-500">*</span></label>
-                                <input type="number" step="0.01" name="jumlah_perlindungan_cermin" x-model="form.jumlah_perlindungan_cermin"
-                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
-                                <p class="mt-1 text-xs italic text-gray-500">Masukkan jumlah perlindungan cermin (RM)</p>
+                            <label class="block text-sm font-medium text-gray-700">Perlukan Perlindungan Tambahan? <span class="text-red-500">*</span></label>
+                            <div class="flex gap-3">
+                                <template x-for="opt in ['Ya', 'Tidak']" :key="opt">
+                                    <label class="flex flex-1 items-center gap-3 cursor-pointer rounded-md border border-gray-300 bg-white px-4 py-3 text-sm"
+                                           :class="form.perlu_tambahan === opt ? 'border-orange-600 bg-orange-50' : ''">
+                                        <input type="radio" name="perlu_tambahan" :value="opt" x-model="form.perlu_tambahan"
+                                               @change="if (opt === 'Tidak') { form.perlindungan_tambahan = []; form.jumlah_perlindungan_cermin = ''; }"
+                                               class="text-orange-600 focus:ring-orange-500">
+                                        <span x-text="opt" :class="form.perlu_tambahan === opt ? 'text-orange-700 font-semibold' : 'text-gray-700'"></span>
+                                    </label>
+                                </template>
                             </div>
+
+                            <template x-if="form.perlu_tambahan === 'Ya'">
+                                <div class="space-y-3 pt-2">
+                                    <label class="block text-sm font-medium text-gray-700">Perlindungan Tambahan <span class="text-red-500">*</span></label>
+                                    <template x-for="opt in addonsComprehensive" :key="opt">
+                                        <label class="flex items-start gap-3 cursor-pointer text-sm">
+                                            <input type="checkbox" name="perlindungan_tambahan[]" :value="opt" x-model="form.perlindungan_tambahan"
+                                                   class="mt-0.5 rounded text-orange-600 focus:ring-orange-500">
+                                            <span class="text-gray-700" x-text="opt"></span>
+                                        </label>
+                                    </template>
+
+                                    <!-- Cermin → jumlah -->
+                                    <div x-show="form.perlindungan_tambahan.includes('Cermin')" x-cloak class="pt-2">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Perlindungan Cermin Diperlukan (RM) <span class="text-red-500">*</span></label>
+                                        <input type="number" step="0.01" name="jumlah_perlindungan_cermin" x-model="form.jumlah_perlindungan_cermin"
+                                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+                                        <p class="mt-1 text-xs italic text-gray-500">Masukkan jumlah perlindungan cermin (RM)</p>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
                     </template>
 
                     <!-- 3rd Party Fire & Theft → single-select add-on -->
                     <template x-if="form.jenis_perlindungan === '3rd Party Fire & Theft (Selain dari motorsikal)'">
                         <div class="space-y-2 rounded-lg bg-gray-50 p-4">
-                            <label class="block text-sm font-medium text-gray-700">Perlindungan Tambahan</label>
+                            <label class="block text-sm font-medium text-gray-700">Perlindungan Tambahan <span class="text-red-500">*</span></label>
                             <template x-for="opt in ['Unlimited Towing','Tak Perlu Tambahan']" :key="opt">
                                 <label class="flex items-center gap-3 cursor-pointer text-sm">
                                     <input type="radio" name="perlindungan_tambahan" :value="opt" x-model="form.perlindungan_tambahan_3rd"
@@ -256,34 +273,57 @@
                 form: {
                     nama_pemilik: '', no_ic: '', poskod: '', no_plate: '',
                     ehailing: '', ehailing_usage: '', tukar_milik: '', whatsapp: '',
-                    jenis_perlindungan: '', perlindungan_tambahan: [],
+                    jenis_perlindungan: '', perlu_tambahan: '', perlindungan_tambahan: [],
                     perlindungan_tambahan_3rd: '', jumlah_perlindungan_cermin: '',
                     jenis_pembayaran: '',
                 },
-                validate() {
-                    if (this.step === 1) {
+                validate(step = this.step) {
+                    if (step === 1) {
                         if (!this.form.nama_pemilik || !this.form.no_ic || !this.form.poskod || !this.form.no_plate) {
                             alert('Sila lengkapkan semua maklumat pemilik kenderaan.'); return false;
                         }
                     }
-                    if (this.step === 2) {
+                    if (step === 2) {
                         if (!this.form.ehailing) { alert('Sila pilih sama ada kenderaan digunakan untuk e-hailing.'); return false; }
                         if (this.form.ehailing === 'Ya' && !this.form.ehailing_usage) { alert('Sila pilih kegunaan.'); return false; }
                         if (this.form.ehailing === 'Tidak' && !this.form.tukar_milik) { alert('Sila pilih sama ada kenderaan baru tukar milik.'); return false; }
                         if (!this.form.whatsapp) { alert('Sila masukkan nombor Whatsapp.'); return false; }
                     }
-                    if (this.step === 3) {
+                    if (step === 3) {
                         if (!this.form.jenis_perlindungan) { alert('Sila pilih jenis perlindungan.'); return false; }
-                        if (this.form.jenis_perlindungan === '1st Party Comprehensive'
-                            && this.form.perlindungan_tambahan.includes('Cermin')
-                            && !this.form.jumlah_perlindungan_cermin) {
-                            alert('Sila masukkan jumlah perlindungan cermin diperlukan.'); return false;
+                        // Comprehensive: answer Ya/Tidak; only "Ya" requires picking add-ons.
+                        if (this.form.jenis_perlindungan === '1st Party Comprehensive') {
+                            if (!this.form.perlu_tambahan) { alert('Sila pilih sama ada perlukan perlindungan tambahan.'); return false; }
+                            if (this.form.perlu_tambahan === 'Ya') {
+                                if (this.form.perlindungan_tambahan.length === 0) {
+                                    alert('Sila pilih sekurang-kurangnya satu perlindungan tambahan.'); return false;
+                                }
+                                if (this.form.perlindungan_tambahan.includes('Cermin') && !this.form.jumlah_perlindungan_cermin) {
+                                    alert('Sila masukkan jumlah perlindungan cermin diperlukan.'); return false;
+                                }
+                            }
                         }
+                        if (this.form.jenis_perlindungan === '3rd Party Fire & Theft (Selain dari motorsikal)'
+                            && !this.form.perlindungan_tambahan_3rd) {
+                            alert('Sila pilih perlindungan tambahan.'); return false;
+                        }
+                    }
+                    if (step === 4) {
+                        if (!this.form.jenis_pembayaran) { alert('Sila pilih jenis pembayaran.'); return false; }
                     }
                     return true;
                 },
                 next() { if (this.validate()) this.step++; },
                 prev() { if (this.step > 1) this.step--; },
+                // Re-check every step on submit, so pressing Enter in a field (which
+                // submits without going through "Seterusnya") can't skip a step.
+                onSubmit(e) {
+                    for (let s = 1; s <= 4; s++) {
+                        this.step = s;
+                        if (!this.validate(s)) { e.preventDefault(); return; }
+                    }
+                    this.submitting = true;
+                },
             }
         }
     </script>
