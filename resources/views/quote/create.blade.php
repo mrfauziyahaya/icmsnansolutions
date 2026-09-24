@@ -36,7 +36,7 @@
             </div>
 
             <form method="POST" action="{{ route('quote.store') }}" class="p-6 sm:p-8"
-                  @submit="submitting = true">
+                  @submit="onSubmit($event)">
                 @csrf
 
                 <!-- ── STEP 1: Maklumat Pemilik Kenderaan ──────────────────── -->
@@ -138,7 +138,7 @@
                     <!-- 1st Party Comprehensive → multi-select add-ons -->
                     <template x-if="form.jenis_perlindungan === '1st Party Comprehensive'">
                         <div class="space-y-3 rounded-lg bg-gray-50 p-4">
-                            <label class="block text-sm font-medium text-gray-700">Perlindungan Tambahan</label>
+                            <label class="block text-sm font-medium text-gray-700">Perlindungan Tambahan <span class="text-red-500">*</span></label>
                             <template x-for="opt in addonsComprehensive" :key="opt">
                                 <label class="flex items-start gap-3 cursor-pointer text-sm">
                                     <input type="checkbox" name="perlindungan_tambahan[]" :value="opt" x-model="form.perlindungan_tambahan"
@@ -160,7 +160,7 @@
                     <!-- 3rd Party Fire & Theft → single-select add-on -->
                     <template x-if="form.jenis_perlindungan === '3rd Party Fire & Theft (Selain dari motorsikal)'">
                         <div class="space-y-2 rounded-lg bg-gray-50 p-4">
-                            <label class="block text-sm font-medium text-gray-700">Perlindungan Tambahan</label>
+                            <label class="block text-sm font-medium text-gray-700">Perlindungan Tambahan <span class="text-red-500">*</span></label>
                             <template x-for="opt in ['Unlimited Towing','Tak Perlu Tambahan']" :key="opt">
                                 <label class="flex items-center gap-3 cursor-pointer text-sm">
                                     <input type="radio" name="perlindungan_tambahan" :value="opt" x-model="form.perlindungan_tambahan_3rd"
@@ -260,30 +260,51 @@
                     perlindungan_tambahan_3rd: '', jumlah_perlindungan_cermin: '',
                     jenis_pembayaran: '',
                 },
-                validate() {
-                    if (this.step === 1) {
+                validate(step = this.step) {
+                    if (step === 1) {
                         if (!this.form.nama_pemilik || !this.form.no_ic || !this.form.poskod || !this.form.no_plate) {
                             alert('Sila lengkapkan semua maklumat pemilik kenderaan.'); return false;
                         }
                     }
-                    if (this.step === 2) {
+                    if (step === 2) {
                         if (!this.form.ehailing) { alert('Sila pilih sama ada kenderaan digunakan untuk e-hailing.'); return false; }
                         if (this.form.ehailing === 'Ya' && !this.form.ehailing_usage) { alert('Sila pilih kegunaan.'); return false; }
                         if (this.form.ehailing === 'Tidak' && !this.form.tukar_milik) { alert('Sila pilih sama ada kenderaan baru tukar milik.'); return false; }
                         if (!this.form.whatsapp) { alert('Sila masukkan nombor Whatsapp.'); return false; }
                     }
-                    if (this.step === 3) {
+                    if (step === 3) {
                         if (!this.form.jenis_perlindungan) { alert('Sila pilih jenis perlindungan.'); return false; }
+                        // Perlindungan Tambahan is required for both types that offer it.
+                        if (this.form.jenis_perlindungan === '1st Party Comprehensive'
+                            && this.form.perlindungan_tambahan.length === 0) {
+                            alert('Sila pilih sekurang-kurangnya satu perlindungan tambahan.'); return false;
+                        }
+                        if (this.form.jenis_perlindungan === '3rd Party Fire & Theft (Selain dari motorsikal)'
+                            && !this.form.perlindungan_tambahan_3rd) {
+                            alert('Sila pilih perlindungan tambahan.'); return false;
+                        }
                         if (this.form.jenis_perlindungan === '1st Party Comprehensive'
                             && this.form.perlindungan_tambahan.includes('Cermin')
                             && !this.form.jumlah_perlindungan_cermin) {
                             alert('Sila masukkan jumlah perlindungan cermin diperlukan.'); return false;
                         }
                     }
+                    if (step === 4) {
+                        if (!this.form.jenis_pembayaran) { alert('Sila pilih jenis pembayaran.'); return false; }
+                    }
                     return true;
                 },
                 next() { if (this.validate()) this.step++; },
                 prev() { if (this.step > 1) this.step--; },
+                // Re-check every step on submit, so pressing Enter in a field (which
+                // submits without going through "Seterusnya") can't skip a step.
+                onSubmit(e) {
+                    for (let s = 1; s <= 4; s++) {
+                        this.step = s;
+                        if (!this.validate(s)) { e.preventDefault(); return; }
+                    }
+                    this.submitting = true;
+                },
             }
         }
     </script>

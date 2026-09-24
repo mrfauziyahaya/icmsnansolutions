@@ -53,6 +53,16 @@ class QuoteRequestController extends Controller
         }
         $tambahan = array_values(array_filter((array) $tambahan));
 
+        // Perlindungan Tambahan is mandatory for the two types that offer it
+        // (the client enforces this too; this covers a bypassed form).
+        $jenis = $validated['jenis_perlindungan'];
+        if (in_array($jenis, ['1st Party Comprehensive', '3rd Party Fire & Theft (Selain dari motorsikal)'], true)
+            && $tambahan === []) {
+            return back()->withInput()->withErrors([
+                'perlindungan_tambahan' => 'Sila pilih perlindungan tambahan.',
+            ]);
+        }
+
         // Jumlah cermin is required when Cermin add-on is selected
         if (in_array('Cermin', $tambahan) && ! filled($validated['jumlah_perlindungan_cermin'] ?? null)) {
             return back()->withInput()->withErrors([
