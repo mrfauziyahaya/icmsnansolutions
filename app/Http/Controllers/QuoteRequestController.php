@@ -33,6 +33,7 @@ class QuoteRequestController extends Controller
             'tukar_milik'                => 'required_if:ehailing,Tidak|nullable|in:Ya,Tidak',
             'whatsapp'                   => 'required|string|max:20',
             'jenis_perlindungan'         => 'required|string|max:255',
+            'perlu_tambahan'             => 'required_if:jenis_perlindungan,1st Party Comprehensive|nullable|in:Ya,Tidak',
             'perlindungan_tambahan'      => 'nullable',
             'jumlah_perlindungan_cermin' => 'nullable|numeric',
             'jenis_pembayaran'           => 'required|string|max:255',
@@ -53,11 +54,20 @@ class QuoteRequestController extends Controller
         }
         $tambahan = array_values(array_filter((array) $tambahan));
 
-        // Perlindungan Tambahan is mandatory for the two types that offer it
-        // (the client enforces this too; this covers a bypassed form).
+        // Comprehensive asks "perlukan perlindungan tambahan?" — Tidak means no
+        // add-ons (drop anything sent anyway); Ya means at least one is required.
+        // Fire & Theft always needs its one choice. The client enforces this too;
+        // this covers a bypassed form.
         $jenis = $validated['jenis_perlindungan'];
-        if (in_array($jenis, ['1st Party Comprehensive', '3rd Party Fire & Theft (Selain dari motorsikal)'], true)
-            && $tambahan === []) {
+        if ($jenis === '1st Party Comprehensive' && ($validated['perlu_tambahan'] ?? null) === 'Tidak') {
+            $tambahan = [];
+            $validated['jumlah_perlindungan_cermin'] = null;
+        }
+
+        $needsAddon = ($jenis === '1st Party Comprehensive' && ($validated['perlu_tambahan'] ?? null) === 'Ya')
+            || $jenis === '3rd Party Fire & Theft (Selain dari motorsikal)';
+
+        if ($needsAddon && $tambahan === []) {
             return back()->withInput()->withErrors([
                 'perlindungan_tambahan' => 'Sila pilih perlindungan tambahan.',
             ]);

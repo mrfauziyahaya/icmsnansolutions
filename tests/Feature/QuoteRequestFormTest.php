@@ -41,6 +41,7 @@ class QuoteRequestFormTest extends TestCase
             'tukar_milik'        => 'Tidak',
             'whatsapp'           => '0123456789',
             'jenis_perlindungan' => self::COMPREHENSIVE,
+            'perlu_tambahan'     => 'Ya',
             'perlindungan_tambahan' => ['Bencana alam'],
             'jenis_pembayaran'   => 'Credit Card',
             // A non-blank token; the Http fake above approves it.
@@ -56,10 +57,45 @@ class QuoteRequestFormTest extends TestCase
         $this->assertSame(['Bencana alam'], QuoteRequest::first()->perlindungan_tambahan);
     }
 
-    public function test_comprehensive_without_an_addon_is_rejected(): void
+    public function test_comprehensive_wanting_addons_but_picking_none_is_rejected(): void
     {
         $this->post(route('quote.store'), $this->payload(['perlindungan_tambahan' => []]))
             ->assertSessionHasErrors('perlindungan_tambahan');
+
+        $this->assertSame(0, QuoteRequest::count());
+    }
+
+    public function test_comprehensive_declining_addons_is_accepted_without_any(): void
+    {
+        $data = $this->payload(['perlu_tambahan' => 'Tidak']);
+        unset($data['perlindungan_tambahan']);
+
+        $this->post(route('quote.store'), $data)
+            ->assertRedirect(route('quote.success'));
+
+        $this->assertNull(QuoteRequest::first()->perlindungan_tambahan);
+    }
+
+    public function test_declining_addons_drops_any_that_were_sent_anyway(): void
+    {
+        $this->post(route('quote.store'), $this->payload([
+            'perlu_tambahan'             => 'Tidak',
+            'perlindungan_tambahan'      => ['Cermin'],
+            'jumlah_perlindungan_cermin' => 500,
+        ]))->assertRedirect(route('quote.success'));
+
+        $quote = QuoteRequest::first();
+        $this->assertNull($quote->perlindungan_tambahan);
+        $this->assertNull($quote->jumlah_perlindungan_cermin);
+    }
+
+    public function test_comprehensive_must_answer_whether_addons_are_needed(): void
+    {
+        $data = $this->payload();
+        unset($data['perlu_tambahan']);
+
+        $this->post(route('quote.store'), $data)
+            ->assertSessionHasErrors('perlu_tambahan');
 
         $this->assertSame(0, QuoteRequest::count());
     }
