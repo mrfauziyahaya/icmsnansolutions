@@ -65,10 +65,11 @@ return [
             'gateways' => [
                 'chip' => [
                     'label'   => 'CHIP',
-                    // Two selectable options at checkout (FPX / card).
+                    // Three selectable options at checkout (FPX / card / SPayLater).
                     'methods' => [
-                        ['method' => 'fpx',  'label' => 'CHIP — FPX (Maybank, CIMB, dll.)', 'icon' => 'images/payment-icons/chip-fpx.jpg'],
-                        ['method' => 'card', 'label' => 'CHIP — Kad Kredit / Debit', 'icon' => 'images/payment-icons/chip-card-credit.jpg'],
+                        ['method' => 'fpx',       'label' => 'CHIP — FPX (Maybank, CIMB, dll.)', 'icon' => 'images/payment-icons/chip-fpx.jpg'],
+                        ['method' => 'card',      'label' => 'CHIP — Kad Kredit / Debit', 'icon' => 'images/payment-icons/chip-card-credit.jpg'],
+                        ['method' => 'spaylater', 'label' => 'SPayLater', 'icon' => 'images/payment-icons/spaylater-logo.png'],
                     ],
                     'config'  => [
                         'api_key'            => env('CHIP_API_KEY'),
