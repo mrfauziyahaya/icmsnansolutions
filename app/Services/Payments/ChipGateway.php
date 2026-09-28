@@ -92,16 +92,19 @@ class ChipGateway implements PaymentGateway, SiteAwareGateway
     /**
      * Map our stored method to CHIP's payment_method identifiers. Null means no
      * restriction (show the full picker). Identifiers confirmed against CHIP's
-     * live payment-methods list for this account.
+     * live payment-methods list for this account (GET /payment_methods/) —
+     * CHIP has one combined channel, "shopee_pay", for both the ShopeePay
+     * wallet and Shopee SPayLater; there is no separate SPayLater-only code.
      *
      * @return array<int, string>|null
      */
     private function methodWhitelist(?string $method): ?array
     {
         return match ($method) {
-            'fpx'   => ['fpx', 'fpx_b2b1'],
-            'card'  => ['visa', 'mastercard', 'maestro'],
-            default => null,
+            'fpx'       => ['fpx', 'fpx_b2b1'],
+            'card'      => ['visa', 'mastercard', 'maestro'],
+            'spaylater' => ['shopee_pay'],
+            default     => null,
         };
     }
 
