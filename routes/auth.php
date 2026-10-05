@@ -7,16 +7,18 @@ use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
+// No public self-registration: this is an internal tool with no admin/role
+// system, so any account is full access to real client PII and the quote
+// builder. There is intentionally no /register route — new staff accounts
+// are created on the server (php artisan tinker / a seeder), not from the
+// web. (2026-10-05: an open /register + a missing MustVerifyEmail contract
+// let an unauthenticated party self-register and reach /clients and
+// /quote-templates; see feedback_deployment memory.)
+
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
-
-    Route::post('register', [RegisteredUserController::class, 'store']);
-
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 

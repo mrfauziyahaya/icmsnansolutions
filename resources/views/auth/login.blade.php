@@ -51,11 +51,6 @@
                     </button>
                 </div>
             </form>
-
-            <!-- <p class="mt-10 text-center text-sm/6 text-gray-500">
-                Not a member?
-                <a href="{{ route('register') }}" class="font-semibold text-orange-600 hover:text-orange-500">Register now</a>
-            </p> -->
         </div>
     </div>
 </x-guest-layout>
