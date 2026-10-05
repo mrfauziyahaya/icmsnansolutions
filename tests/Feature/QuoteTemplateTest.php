@@ -338,6 +338,48 @@ class QuoteTemplateTest extends TestCase
         $this->assertSame('RM 90.00', $rows['Roadtax (RM)']['value']);
     }
 
+    public function test_digital_copy_yes_adds_rm25_to_the_column_total(): void
+    {
+        $payload = $this->storedPayload('comprehensive', ['ZURICH TAKAFUL']);
+        $payload['data']['shared']['digital_copy'] = 'yes';
+        $payload['data']['shared']['roadtax']       = 0;
+        $template = QuoteTemplate::create($payload);
+
+        $this->assertSame(1225.0, $template->columnTotal($template->data['columns'][0]));
+    }
+
+    public function test_digital_copy_no_adds_rm10_to_the_column_total(): void
+    {
+        $payload = $this->storedPayload('comprehensive', ['ZURICH TAKAFUL']);
+        $payload['data']['shared']['digital_copy'] = 'no';
+        $payload['data']['shared']['roadtax']       = 0;
+        $template = QuoteTemplate::create($payload);
+
+        $this->assertSame(1210.0, $template->columnTotal($template->data['columns'][0]));
+    }
+
+    public function test_roadtax_period_offers_tidak_termasuk_roadtax(): void
+    {
+        $this->assertSame(
+            ['1_year' => '1 TAHUN', '6_months' => '6 BULAN', 'not_included' => 'TIDAK TERMASUK ROADTAX'],
+            QuoteTemplate::ROADTAX_PERIOD_OPTIONS,
+        );
+    }
+
+    public function test_tidak_termasuk_roadtax_can_be_saved_and_shown(): void
+    {
+        $payload = $this->storedPayload('comprehensive', ['ZURICH TAKAFUL']);
+        $payload['data']['shared']['roadtax_period'] = 'not_included';
+        $template = QuoteTemplate::create($payload);
+
+        $html = $this->actingAs($this->admin())
+            ->get(route('quote-templates.show', $template))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('TIDAK TERMASUK ROADTAX', $html);
+    }
+
     public function test_allianz_is_offered_on_every_quote_type(): void
     {
         foreach (array_keys(QuoteTemplate::types()) as $type) {

@@ -212,7 +212,7 @@
                 get gridStyle() { return `grid-template-columns:160px repeat(${this.cols},minmax(120px,1fr))`; },
                 tint(i) { return this.tints[i % this.tints.length]; },
                 total(c) {
-                    const digital = this.f.shared.digital_copy === 'yes' ? 5 : 0;
+                    const digital = this.f.shared.digital_copy === 'yes' ? 25 : 10;
                     return (Number(c.col.insurance_takaful) || 0) + (Number(this.f.shared.roadtax) || 0) + digital;
                 },
                 instalment(provider, total) {
