@@ -46,7 +46,7 @@ class QuoteTemplate extends Model
 
     public const YESNO_OPTIONS = ['yes' => 'YES', 'no' => 'NO'];
 
-    public const ROADTAX_PERIOD_OPTIONS = ['1_year' => '1 TAHUN', '6_months' => '6 BULAN'];
+    public const ROADTAX_PERIOD_OPTIONS = ['1_year' => '1 TAHUN', '6_months' => '6 BULAN', 'not_included' => 'TIDAK TERMASUK ROADTAX'];
 
     /** All towing labels; which apply is per type / per company below. */
     public const TOWING_OPTIONS = [
@@ -385,7 +385,7 @@ class QuoteTemplate extends Model
     {
         $shared  = $this->data['shared'] ?? [];
         $roadtax = (float) ($shared['roadtax'] ?? 0);
-        $digital = ($shared['digital_copy'] ?? 'no') === 'yes' ? 5 : 0;
+        $digital = ($shared['digital_copy'] ?? 'no') === 'yes' ? 25 : 10;
 
         return round((float) ($column['insurance_takaful'] ?? 0) + $roadtax + $digital, 2);
     }
