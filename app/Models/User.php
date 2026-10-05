@@ -2,12 +2,19 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+// MustVerifyEmail (the interface) was never implemented here even though
+// routes declare `Route::middleware(['auth', 'verified'])` -- the 'verified'
+// middleware only checks `$user instanceof MustVerifyEmail`, so without this
+// it silently let every authenticated user through regardless of whether
+// they'd verified anything. (Laravel's base Authenticatable class already
+// provides the MustVerifyEmail *trait* -- hasVerifiedEmail() etc. -- so only
+// the interface was missing.)
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
