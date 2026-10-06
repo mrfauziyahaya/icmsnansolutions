@@ -138,6 +138,7 @@ class QuoteTemplate extends Model
         'cermin'              => ['scope' => 'shared',  'input' => 'number',      'label' => 'Cermin (RM)'],
         'bencana_alam'        => ['scope' => 'shared',  'input' => 'select',      'label' => 'Bencana Alam',                'options' => 'yesno'],
         'digital_copy'        => ['scope' => 'shared',  'input' => 'select',      'label' => 'Digital Copy (MyJPJ)',        'options' => 'yesno'],
+        'physical_copy'       => ['scope' => 'shared',  'input' => 'select',      'label' => 'Physical Copy',               'options' => 'yesno'],
         'vehicle_inspection'  => ['scope' => 'company', 'input' => 'select',      'label' => 'Vehicle Inspection Required', 'options' => 'yesno'],
         'insurance_takaful'   => ['scope' => 'company', 'input' => 'number',      'label' => 'Insurance / Takaful (RM)'],
         'roadtax_period'      => ['scope' => 'shared',  'input' => 'select',      'label' => 'Tempoh Roadtax',              'options' => 'roadtax_period'],
@@ -174,7 +175,7 @@ class QuoteTemplate extends Model
                     'Sebut Harga'        => ['sum_covered', 'value'],
                     'Insurance Benefits' => ['towing', 'accident_assist', 'ncd'],
                     'Add On'             => ['cermin', 'bencana_alam', 'all_driver', 'personal_accident'],
-                    'Roadtax'            => ['digital_copy', 'vehicle_inspection'],
+                    'Roadtax'            => ['digital_copy', 'physical_copy', 'vehicle_inspection'],
                     'Jumlah'             => ['insurance_takaful', 'roadtax_period', 'roadtax'],
                 ],
             ],
@@ -190,7 +191,7 @@ class QuoteTemplate extends Model
                     'Sebut Harga'        => ['sum_covered', 'value'],
                     'Insurance Benefits' => ['towing', 'accident_assist', 'ncd'],
                     'Add On'             => ['personal_accident'],
-                    'Roadtax'            => ['digital_copy', 'vehicle_inspection'],
+                    'Roadtax'            => ['digital_copy', 'physical_copy', 'vehicle_inspection'],
                     'Jumlah'             => ['insurance_takaful', 'roadtax_period', 'roadtax'],
                 ],
             ],
@@ -207,7 +208,7 @@ class QuoteTemplate extends Model
                     'Sebut Harga'        => ['sum_covered', 'value'],
                     'Insurance Benefits' => ['all_rider', 'accident_assist', 'ncd', 'additional_benefits'],
                     'Add On'             => ['add_on_benefit', 'towing', 'personal_accident'],
-                    'Roadtax'            => ['digital_copy', 'vehicle_inspection'],
+                    'Roadtax'            => ['digital_copy', 'physical_copy', 'vehicle_inspection'],
                     'Jumlah'             => ['insurance_takaful', 'roadtax_period', 'roadtax'],
                 ],
             ],
@@ -220,7 +221,7 @@ class QuoteTemplate extends Model
                     'Sebut Harga'        => ['sum_covered'],
                     'Insurance Benefits' => ['all_rider', 'accident_assist', 'ncd', 'additional_benefits'],
                     'Add On'             => ['add_on_benefit'],
-                    'Roadtax'            => ['digital_copy', 'vehicle_inspection'],
+                    'Roadtax'            => ['digital_copy', 'physical_copy', 'vehicle_inspection'],
                     'Jumlah'             => ['insurance_takaful', 'roadtax_period', 'roadtax'],
                 ],
             ],
@@ -356,6 +357,7 @@ class QuoteTemplate extends Model
         return match ($field) {
             'bencana_alam'   => 'no',
             'digital_copy'   => 'yes',
+            'physical_copy'  => 'no',
             'roadtax_period' => '1_year',
             default          => null,   // cermin, roadtax
         };
@@ -383,11 +385,18 @@ class QuoteTemplate extends Model
 
     public function columnTotal(array $column): float
     {
-        $shared  = $this->data['shared'] ?? [];
+        $shared = $this->data['shared'] ?? [];
         $roadtax = (float) ($shared['roadtax'] ?? 0);
-        $digital = ($shared['digital_copy'] ?? 'no') === 'yes' ? 25 : 10;
 
-        return round((float) ($column['insurance_takaful'] ?? 0) + $roadtax + $digital, 2);
+        // Digital Copy (A) off -> free, and (forced by the form) Tempoh Roadtax
+        // is "not included" in that case too, so there's nothing to add here.
+        // Digital Copy on -> RM10 for digital alone, RM25 if Physical Copy (B)
+        // is also wanted.
+        $copyFee = ($shared['digital_copy'] ?? 'no') === 'yes'
+            ? (($shared['physical_copy'] ?? 'no') === 'yes' ? 25 : 10)
+            : 0;
+
+        return round((float) ($column['insurance_takaful'] ?? 0) + $roadtax + $copyFee, 2);
     }
 
     public static function instalment(string $provider, float $total): float

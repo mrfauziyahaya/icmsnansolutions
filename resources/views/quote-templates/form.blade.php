@@ -123,14 +123,28 @@
                         @php $def = $F[$field]; @endphp
 
                         @if($def['scope'] === 'shared')
-                            <x-quote-row-shared label="{{ $def['label'] }}">
+                            @php
+                                // Physical Copy (B) only makes sense once Digital Copy (A) is
+                                // wanted -- hidden otherwise, per the A/B pricing rule below.
+                                $rowShowExpr = $field === 'physical_copy' ? "f.shared.digital_copy === 'yes'" : 'true';
+                            @endphp
+                            <x-quote-row-shared label="{{ $def['label'] }}" x-show="{{ $rowShowExpr }}" x-cloak>
                                 @if($def['input'] === 'number')
                                     <input type="number" step="0.01" min="0" name="shared[{{ $field }}]" x-model.number="f.shared.{{ $field }}"
                                            class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
                                 @else
                                     <select name="shared[{{ $field }}]" x-model="f.shared.{{ $field }}" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
                                         @if($QT::isOptional($field))<option value="">—</option>@endif
-                                        @foreach($QT::optionsFor($field, $type) as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
+                                        @foreach($QT::optionsFor($field, $type) as $k => $lbl)
+                                            @php
+                                                // "Tidak Termasuk Roadtax" only applies when Digital Copy
+                                                // is off (the form forces that pairing) -- hidden here so
+                                                // it can't be picked alongside Digital Copy = Yes.
+                                                $optionShowExpr = ($field === 'roadtax_period' && $k === 'not_included')
+                                                    ? "f.shared.digital_copy !== 'yes'" : 'true';
+                                            @endphp
+                                            <option value="{{ $k }}" x-show="{{ $optionShowExpr }}">{{ $lbl }}</option>
+                                        @endforeach
                                     </select>
                                 @endif
                             </x-quote-row-shared>
@@ -207,13 +221,32 @@
                 ]),
                 tints: ['bg-sky-200', 'bg-yellow-200', 'bg-green-200'],
 
+                init() {
+                    // Digital Copy (A) off <-> Tempoh Roadtax forced to "not
+                    // included" -- the two are locked together, so there's no
+                    // state where A=No but a real roadtax period is selected
+                    // (or vice versa). Also resets Physical Copy (B), which
+                    // only applies when A=Yes.
+                    this.$watch('f.shared.digital_copy', (val) => {
+                        if (val === 'yes') {
+                            if (this.f.shared.roadtax_period === 'not_included') {
+                                this.f.shared.roadtax_period = '1_year';
+                            }
+                        } else {
+                            this.f.shared.roadtax_period = 'not_included';
+                            this.f.shared.physical_copy = 'no';
+                        }
+                    });
+                },
                 selected() { return this.f.companies.filter(c => c.selected); },
                 get cols() { return Math.max(this.selected().length, 1); },
                 get gridStyle() { return `grid-template-columns:160px repeat(${this.cols},minmax(120px,1fr))`; },
                 tint(i) { return this.tints[i % this.tints.length]; },
                 total(c) {
-                    const digital = this.f.shared.digital_copy === 'yes' ? 25 : 10;
-                    return (Number(c.col.insurance_takaful) || 0) + (Number(this.f.shared.roadtax) || 0) + digital;
+                    const copyFee = this.f.shared.digital_copy === 'yes'
+                        ? (this.f.shared.physical_copy === 'yes' ? 25 : 10)
+                        : 0;
+                    return (Number(c.col.insurance_takaful) || 0) + (Number(this.f.shared.roadtax) || 0) + copyFee;
                 },
                 instalment(provider, total) {
                     switch (provider) {
