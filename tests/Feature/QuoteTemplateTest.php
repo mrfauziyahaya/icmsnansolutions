@@ -338,24 +338,52 @@ class QuoteTemplateTest extends TestCase
         $this->assertSame('RM 90.00', $rows['Roadtax (RM)']['value']);
     }
 
-    public function test_digital_copy_yes_adds_rm25_to_the_column_total(): void
+    /**
+     * A = Digital Copy (MyJPJ), B = Physical Copy. B only applies once A is
+     * Yes (the form hides it and forces it back to 'no' otherwise).
+     */
+    public function test_digital_copy_off_is_free_regardless_of_physical_copy(): void
     {
         $payload = $this->storedPayload('comprehensive', ['ZURICH TAKAFUL']);
-        $payload['data']['shared']['digital_copy'] = 'yes';
+        $payload['data']['shared']['digital_copy']  = 'no';
+        $payload['data']['shared']['physical_copy'] = 'yes'; // stale/forced value -- must not matter
+        $payload['data']['shared']['roadtax']       = 0;
+        $template = QuoteTemplate::create($payload);
+
+        $this->assertSame(1200.0, $template->columnTotal($template->data['columns'][0]));
+    }
+
+    public function test_digital_copy_alone_adds_rm10(): void
+    {
+        $payload = $this->storedPayload('comprehensive', ['ZURICH TAKAFUL']);
+        $payload['data']['shared']['digital_copy']  = 'yes';
+        $payload['data']['shared']['physical_copy'] = 'no';
+        $payload['data']['shared']['roadtax']       = 0;
+        $template = QuoteTemplate::create($payload);
+
+        $this->assertSame(1210.0, $template->columnTotal($template->data['columns'][0]));
+    }
+
+    public function test_digital_and_physical_copy_together_add_rm25(): void
+    {
+        $payload = $this->storedPayload('comprehensive', ['ZURICH TAKAFUL']);
+        $payload['data']['shared']['digital_copy']  = 'yes';
+        $payload['data']['shared']['physical_copy'] = 'yes';
         $payload['data']['shared']['roadtax']       = 0;
         $template = QuoteTemplate::create($payload);
 
         $this->assertSame(1225.0, $template->columnTotal($template->data['columns'][0]));
     }
 
-    public function test_digital_copy_no_adds_rm10_to_the_column_total(): void
+    public function test_physical_copy_is_in_the_roadtax_section_for_every_type(): void
     {
-        $payload = $this->storedPayload('comprehensive', ['ZURICH TAKAFUL']);
-        $payload['data']['shared']['digital_copy'] = 'no';
-        $payload['data']['shared']['roadtax']       = 0;
-        $template = QuoteTemplate::create($payload);
-
-        $this->assertSame(1210.0, $template->columnTotal($template->data['columns'][0]));
+        foreach (array_keys(QuoteTemplate::types()) as $type) {
+            $this->assertContains(
+                'physical_copy',
+                QuoteTemplate::typeConfig($type)['sections']['Roadtax'],
+                "physical_copy missing from the Roadtax section for {$type}",
+            );
+        }
     }
 
     public function test_roadtax_period_offers_tidak_termasuk_roadtax(): void
