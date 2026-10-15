@@ -31,11 +31,26 @@
 
             $companies[] = [
                 'name'     => $name,
+                'label'    => $QT::companyLabel($name),
                 'logo'     => $QT::logoFor($name) ? asset($QT::ALL_COMPANIES[$name]) : null,
                 'selected' => $col !== null,
                 'col'      => $values,
                 'options'  => $options,
             ];
+        }
+
+        // Fields this type asks for once instead of once per company (e.g.
+        // NCD % on 1st Party Comprehensive). Seeded from the first saved
+        // company's value so editing an existing quote doesn't reset it.
+        $mergedFields = $QT::mergedFields($type);
+        $merged       = [];
+        $mergedOptions = [];
+        foreach ($mergedFields as $field) {
+            $first = $d['columns'][0][$field] ?? $QT::fieldDefault($field);
+            $merged[$field] = $first === null && $F[$field]['input'] === 'select' ? '' : $first;
+            if (in_array($F[$field]['input'], ['select', 'multiselect'])) {
+                $mergedOptions[$field] = $QT::optionList($field, $type);
+            }
         }
     @endphp
 
@@ -86,7 +101,7 @@
                     <label class="inline-flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer select-none transition"
                            :class="c.selected ? 'border-orange-500 bg-orange-50 text-orange-800' : 'border-gray-300 text-gray-600 hover:border-gray-400'">
                         <input type="checkbox" x-model="c.selected" class="rounded border-gray-300 text-orange-600 focus:ring-orange-500">
-                        <span class="text-sm font-medium" x-text="c.name"></span>
+                        <span class="text-sm font-medium" x-text="c.label"></span>
                     </label>
                 </template>
             </div>
@@ -111,7 +126,7 @@
                                 <template x-if="c.logo"><img :src="c.logo" :alt="c.name" class="max-h-[10.5rem] w-auto object-contain"></template>
                             </div>
                             <div class="rounded-md px-2 py-2 text-center text-sm font-bold uppercase text-gray-800" :class="tint(i)">
-                                <span x-text="c.name"></span>
+                                <span x-text="c.label"></span>
                             </div>
                         </div>
                     </template>
@@ -119,6 +134,7 @@
 
                 @foreach($cfg['sections'] as $section => $rows)
                     <x-quote-section>{{ $section }}</x-quote-section>
+                    @php $isSebutHarga = $section === 'Sebut Harga'; @endphp
                     @foreach($rows as $field)
                         @php $def = $F[$field]; @endphp
 
@@ -148,11 +164,33 @@
                                     </select>
                                 @endif
                             </x-quote-row-shared>
+                        @elseif(in_array($field, $mergedFields, true))
+                            {{-- Entered once for every company on this type (e.g. NCD %
+                                 on 1st Party Comprehensive) -- a hidden input per selected
+                                 company mirrors the single value into columns[i][field] so
+                                 the backend still sees ordinary per-company data. --}}
+                            <x-quote-row-shared label="{{ $def['label'] }}">
+                                @if($def['input'] === 'number')
+                                    <input type="number" step="0.01" min="0" x-model.number="f.merged.{{ $field }}"
+                                           class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
+                                @else
+                                    <select x-model="f.merged.{{ $field }}" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                                        @if($QT::isOptional($field))<option value="">—</option>@endif
+                                        @foreach($mergedOptions[$field] as $opt)
+                                            <option value="{{ $opt['v'] }}">{{ $opt['l'] }}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
+                            </x-quote-row-shared>
+                            <template x-for="(c, i) in selected()" :key="'{{ $field }}-' + c.name">
+                                <input type="hidden" :name="`columns[${i}][{{ $field }}]`" :value="f.merged.{{ $field }}">
+                            </template>
                         @else
                             <x-quote-row label="{{ $def['label'] }}">
                                 <template x-for="(c, i) in selected()" :key="c.name">
                                     @if($def['input'] === 'number')
                                         <input type="number" step="0.01" min="0" :name="`columns[${i}][{{ $field }}]`" x-model.number="c.col.{{ $field }}"
+                                               :class="{{ $isSebutHarga ? 'tint(i)' : '{}' }}"
                                                class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
                                     @elseif($def['input'] === 'multiselect')
                                         <div class="space-y-1">
@@ -166,7 +204,9 @@
                                             </template>
                                         </div>
                                     @else
-                                        <select :name="`columns[${i}][{{ $field }}]`" x-model="c.col.{{ $field }}" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                                        <select :name="`columns[${i}][{{ $field }}]`" x-model="c.col.{{ $field }}"
+                                                :class="{{ $isSebutHarga ? 'tint(i)' : '{}' }}"
+                                                class="w-full rounded-md border-gray-300 shadow-sm text-sm">
                                             @if($QT::isOptional($field))<option value="">—</option>@endif
                                             <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
                                                 <option :value="opt.v" x-text="opt.l"></option>
@@ -217,6 +257,7 @@
                     'reg'       => $template->vehicle_reg_number,
                     'model'     => $template->vehicle_model,
                     'shared'    => $d['shared'],
+                    'merged'    => $merged,
                     'companies' => $companies,
                 ]),
                 tints: ['bg-sky-200', 'bg-yellow-200', 'bg-green-200'],

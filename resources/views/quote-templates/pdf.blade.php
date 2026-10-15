@@ -120,22 +120,25 @@
     <tr>
         <td></td>
         @foreach($companies as $i => $c)
-            <td class="center bold upper co-name" style="background: {{ $tints[$i % 3] }}">{{ $c['company'] ?: '—' }}</td>
+            <td class="center bold upper co-name" style="background: {{ $tints[$i % 3] }}">{{ $c['label'] ?: '—' }}</td>
         @endforeach
     </tr>
 
     {{-- sections --}}
     @foreach($preview['sections'] as $section)
         <tr><td colspan="{{ $cols }}" class="center bold upper section">{{ $section['name'] }}</td></tr>
+        @php $isSebutHarga = $section['name'] === 'Sebut Harga'; @endphp
         @foreach($section['rows'] as $row)
             <tr>
                 <td class="bold upper">{{ $row['label'] }}</td>
-                @if($row['scope'] === 'shared')
+                @if($row['scope'] === 'shared' || $row['merged'])
                     {{-- Already formatted by display(); $rm here would print "RM -". --}}
                     <td colspan="{{ $n }}" class="center">{{ $row['value'] }}</td>
                 @else
-                    @foreach($row['cells'] as $cell)
-                        <td class="center">
+                    @foreach($row['cells'] as $i => $cell)
+                        {{-- Sebut Harga cells pick up each company's own header
+                             colour, matching the logo row above. --}}
+                        <td class="center" style="{{ $isSebutHarga ? 'background: ' . $tints[$i % 3] : '' }}">
                             @if(is_array($cell))
                                 @foreach($cell as $line)<div>{{ $line }}</div>@endforeach
                             @else

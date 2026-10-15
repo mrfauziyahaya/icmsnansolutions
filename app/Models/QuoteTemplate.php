@@ -37,6 +37,22 @@ class QuoteTemplate extends Model
     /** The motor quote types compare these. */
     public const MOTOR_COMPANIES = ['ZURICH TAKAFUL', 'ETIQA TAKAFUL', 'TAKAFUL IKHLAS', 'TAKAFUL MALAYSIA', 'ALLIANZ'];
 
+    /**
+     * Display name overrides. The internal key ('ALLIANZ') stays the one
+     * stored on every quote and used for all the per-company option lookups
+     * below (COMPANY_TOWING, COMPANY_PA, ...) -- changing it would silently
+     * stop matching every quote already saved with that company. Only what
+     * the admin/customer actually sees changes.
+     */
+    public const COMPANY_LABELS = [
+        'ALLIANZ' => 'ALLIANZ GENERAL INSURANCE',
+    ];
+
+    public static function companyLabel(?string $company): string
+    {
+        return self::COMPANY_LABELS[$company] ?? (string) $company;
+    }
+
     // ── Option maps ───────────────────────────────────────────────────────────
 
     public const VALUE_OPTIONS = [
@@ -73,7 +89,7 @@ class QuoteTemplate extends Model
     ];
 
     public const NCD_OPTIONS = [
-        '0' => '0%', '25' => '25%', '30' => '30%', '35' => '35%', '38.33' => '38.33%', '45' => '45%', '55' => '55%',
+        '0' => '0%', '15' => '15%', '20' => '20%', '25' => '25%', '30' => '30%', '35' => '35%', '38.33' => '38.33%', '45' => '45%', '55' => '55%',
     ];
 
     public const NCD_MOTOR_OPTIONS = [
@@ -171,6 +187,9 @@ class QuoteTemplate extends Model
                 'title'     => 'First Party Comprehensive',
                 'companies' => $all,
                 'ncd'       => self::NCD_OPTIONS,
+                // These are entered once and apply to every company on this
+                // type, rather than once per company.
+                'merged_fields' => ['ncd', 'all_driver', 'accident_assist'],
                 'sections'  => [
                     'Sebut Harga'        => ['sum_covered', 'value'],
                     'Insurance Benefits' => ['towing', 'accident_assist', 'ncd'],
@@ -247,6 +266,24 @@ class QuoteTemplate extends Model
     public static function companiesForType(string $type): array
     {
         return self::typeConfig($type)['companies'];
+    }
+
+    /**
+     * Normally-per-company fields that this type instead asks for once,
+     * applying the same value to every company (e.g. NCD % on 1st Party
+     * Comprehensive). Stored identically under every company's column
+     * regardless -- only entry and display collapse to one value.
+     *
+     * @return array<int, string>
+     */
+    public static function mergedFields(string $type): array
+    {
+        return self::typeConfig($type)['merged_fields'] ?? [];
+    }
+
+    public static function isMerged(string $field, string $type): bool
+    {
+        return in_array($field, self::mergedFields($type), true);
     }
 
     /** Field keys of the given scope used anywhere in a type's sections. */
@@ -447,6 +484,7 @@ class QuoteTemplate extends Model
 
         $companies = array_map(fn ($c) => [
             'company' => $c['company'] ?? '',
+            'label'   => self::companyLabel($c['company'] ?? ''),
             'logo'    => self::logoFor($c['company'] ?? null),
         ], $columns);
 
@@ -454,14 +492,20 @@ class QuoteTemplate extends Model
         foreach (self::typeConfig($type)['sections'] as $name => $rows) {
             $renderedRows = [];
             foreach ($rows as $field) {
-                $def = self::FIELDS[$field];
+                $def    = self::FIELDS[$field];
+                $merged = $def['scope'] === 'company' && self::isMerged($field, $type);
                 $row = [
-                    'label' => $def['label'],
-                    'scope' => $def['scope'],
-                    'input' => $def['input'],
+                    'label'  => $def['label'],
+                    'scope'  => $def['scope'],
+                    'input'  => $def['input'],
+                    'merged' => $merged,
                 ];
                 if ($def['scope'] === 'shared') {
                     $row['value'] = $this->display($field, $type, [], $shared);
+                } elseif ($merged) {
+                    // Entered once, kept identical under every column by the
+                    // form -- any one of them is the value to show.
+                    $row['value'] = $this->display($field, $type, $columns[0] ?? [], $shared);
                 } else {
                     $row['cells'] = array_map(fn ($col) => $this->display($field, $type, $col, $shared), $columns);
                 }

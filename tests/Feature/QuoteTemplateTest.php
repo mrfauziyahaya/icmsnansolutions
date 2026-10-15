@@ -136,10 +136,11 @@ class QuoteTemplateTest extends TestCase
             $this->assertSame('30%', $options['30']);
         }
 
-        // Listed between 25% and 35%, not appended at the end. Compared on the
-        // labels because PHP casts numeric string keys to integers.
+        // Listed in ascending order, not appended at the end. Compared on the
+        // labels because PHP casts numeric string keys to integers. 15%/20%
+        // were added to match the motor types' list (Stage 1).
         $this->assertSame(
-            ['0%', '25%', '30%', '35%', '38.33%', '45%', '55%'],
+            ['0%', '15%', '20%', '25%', '30%', '35%', '38.33%', '45%', '55%'],
             array_values(QuoteTemplate::optionsFor('ncd', 'comprehensive', 'ZURICH TAKAFUL'))
         );
     }
@@ -495,6 +496,116 @@ class QuoteTemplateTest extends TestCase
         $column = QuoteTemplate::firstOrFail()->data['columns'][0];
         $this->assertSame('ALLIANZ', $column['company']);
         $this->assertSame('road_warrior', $column['personal_accident']);
+    }
+
+    // ── Stage 1: rename, tinting, merged fields ────────────────────────────
+
+    public function test_allianz_displays_as_allianz_general_insurance_everywhere(): void
+    {
+        $this->assertSame('ALLIANZ GENERAL INSURANCE', QuoteTemplate::companyLabel('ALLIANZ'));
+
+        $template = QuoteTemplate::create($this->storedPayload('comprehensive', ['ALLIANZ']));
+        $preview  = $template->previewData();
+
+        // The stored key is unchanged -- it still has to match COMPANY_TOWING,
+        // COMPANY_PA and every quote already saved with this company.
+        $this->assertSame('ALLIANZ', $preview['companies'][0]['company']);
+        $this->assertSame('ALLIANZ GENERAL INSURANCE', $preview['companies'][0]['label']);
+
+        $html = $this->actingAs($this->admin())
+            ->get(route('quote-templates.show', $template))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('ALLIANZ GENERAL INSURANCE', $html);
+    }
+
+    public function test_sebut_harga_cells_are_tinted_per_company_on_every_type(): void
+    {
+        foreach (array_keys(QuoteTemplate::types()) as $type) {
+            $companies = array_slice(QuoteTemplate::companiesForType($type), 0, 2);
+            $template  = QuoteTemplate::create($this->storedPayload($type, $companies));
+
+            $html = $this->actingAs($this->admin())
+                ->get(route('quote-templates.show', $template))
+                ->assertOk()
+                ->getContent();
+
+            // The three rotating tint classes used on the company-name header
+            // row should also appear somewhere in the Sebut Harga rows.
+            $this->assertMatchesRegularExpression(
+                '/bg-(sky|yellow|green)-200[^>]*>\s*(RM|MARKET|AGREED)/',
+                $html,
+                "Expected a tinted Sebut Harga cell for {$type}",
+            );
+        }
+    }
+
+    public function test_ncd_all_driver_and_accident_assist_are_merged_on_comprehensive(): void
+    {
+        $payload = $this->payloadFor('comprehensive', ['ZURICH TAKAFUL', 'ETIQA TAKAFUL']);
+        $payload['columns'][0]['ncd']             = '30';
+        $payload['columns'][1]['ncd']             = '30';
+        $payload['columns'][0]['all_driver']      = 'yes';
+        $payload['columns'][1]['all_driver']      = 'yes';
+        $payload['columns'][0]['accident_assist'] = 'yes';
+        $payload['columns'][1]['accident_assist'] = 'yes';
+
+        $this->actingAs($this->admin())
+            ->post(route('quote-templates.store'), $payload)
+            ->assertSessionHasNoErrors();
+
+        $template = QuoteTemplate::firstOrFail();
+
+        // Stored identically under every company regardless -- the merge is a
+        // form/display behaviour, not a change to how the data is kept.
+        $this->assertSame('30', $template->data['columns'][0]['ncd']);
+        $this->assertSame('30', $template->data['columns'][1]['ncd']);
+
+        $rows = collect($template->previewData()['sections'])
+            ->flatMap(fn ($section) => $section['rows'])
+            ->keyBy('label');
+
+        $this->assertTrue($rows['No Claim Discount (NCD) %']['merged']);
+        $this->assertSame('30%', $rows['No Claim Discount (NCD) %']['value']);
+        $this->assertArrayNotHasKey('cells', $rows['No Claim Discount (NCD) %']);
+
+        $this->assertTrue($rows['All Driver']['merged']);
+        $this->assertTrue($rows['Accident / Breakdown Assist']['merged']);
+
+        // Unaffected -- not in comprehensive's merged_fields list.
+        $this->assertFalse($rows['Sum Covered (RM)']['merged']);
+    }
+
+    public function test_blank_comprehensive_create_form_renders_the_merged_fields(): void
+    {
+        $html = $this->actingAs($this->admin())
+            ->get(route('quote-templates.create', ['type' => 'comprehensive']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('f.merged.ncd', $html);
+        $this->assertStringContainsString('f.merged.all_driver', $html);
+        $this->assertStringContainsString('f.merged.accident_assist', $html);
+    }
+
+    public function test_merged_fields_are_not_merged_on_other_types(): void
+    {
+        $payload  = $this->payloadFor('motor_first_party', ['ZURICH TAKAFUL', 'ETIQA TAKAFUL']);
+        $template = QuoteTemplate::create([
+            'type'               => 'motor_first_party',
+            'title'              => QuoteTemplate::typeConfig('motor_first_party')['title'],
+            'vehicle_reg_number' => strtoupper($payload['vehicle_reg_number']),
+            'vehicle_model'      => $payload['vehicle_model'],
+            'data'               => ['shared' => $payload['shared'], 'columns' => $payload['columns']],
+        ]);
+
+        $rows = collect($template->previewData()['sections'])
+            ->flatMap(fn ($section) => $section['rows'])
+            ->keyBy('label');
+
+        $this->assertFalse($rows['No Claim Discount (NCD) %']['merged']);
+        $this->assertArrayHasKey('cells', $rows['No Claim Discount (NCD) %']);
     }
 
     /**
