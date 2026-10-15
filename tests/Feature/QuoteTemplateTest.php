@@ -265,6 +265,36 @@ class QuoteTemplateTest extends TestCase
     }
 
     /**
+     * Regression: a real motor_first_party quote (2 companies, one with every
+     * Additional Benefit ticked) rendered to 2 pages before this fix -- the
+     * font-size guess was based on row count alone and never accounted for
+     * the insurer logos' fixed height, nor for a benefits cell stacking
+     * several lines. The fix renders repeatedly at shrinking sizes and reads
+     * dompdf's own page count, so this asserts the real output fits one page
+     * rather than trusting the font-size math again.
+     */
+    public function test_pdf_fits_one_page_even_with_a_tall_benefits_cell(): void
+    {
+        $payload = $this->payloadFor('motor_first_party', ['ZURICH TAKAFUL', 'ETIQA TAKAFUL']);
+        $payload['columns'][0]['additional_benefits'] = ['helmet', 'pa5500', 'perils', 'towing_cost'];
+        $template = QuoteTemplate::create([
+            'type'               => 'motor_first_party',
+            'title'              => QuoteTemplate::typeConfig('motor_first_party')['title'],
+            'vehicle_reg_number' => strtoupper($payload['vehicle_reg_number']),
+            'vehicle_model'      => $payload['vehicle_model'],
+            'data'               => ['shared' => $payload['shared'], 'columns' => $payload['columns']],
+        ]);
+
+        $response = $this->actingAs($this->admin())
+            ->get(route('quote-templates.pdf', $template));
+
+        $response->assertOk();
+
+        preg_match_all('/\/Type\s*\/Page[^s]/', $response->getContent(), $matches);
+        $this->assertCount(1, $matches[0], 'Expected the quote to print on exactly one A4 page.');
+    }
+
+    /**
      * A single-company quote used to spill a phantom column: the vehicle row
      * spanned a fixed 2 + 1 against a 2-column grid, pushing "Model" past the
      * table. Every row must span exactly the grid, at any company count.

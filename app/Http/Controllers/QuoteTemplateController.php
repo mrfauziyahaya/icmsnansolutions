@@ -6,6 +6,7 @@ use App\Models\QuoteTemplate;
 use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
@@ -107,12 +108,65 @@ class QuoteTemplateController extends Controller
         // lowercase — some clients match it case-sensitively.
         $filename = Str::upper('sebut-harga-' . Str::slug($quoteTemplate->vehicle_reg_number ?: 'quote')) . '.pdf';
 
-        return Pdf::loadView('quote-templates.pdf', [
-            'template'  => $quoteTemplate,
-            'preview'   => $preview,
-            'setting'   => $setting,
-            'brandLogo' => $brandLogo,
-        ])->setPaper('a4', 'portrait')->download($filename);
+        $output = $this->renderPdfToFitOnePage($quoteTemplate, $preview, $setting, $brandLogo);
+
+        return new Response($output, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * dompdf has no real "shrink to fit the page" -- the font size/row padding
+     * the table needs to stay on one A4 page depends on things a fixed guess
+     * can't see ahead of time (how tall the insurer logos end up, how many
+     * lines an Additional Benefits cell stacks, how many rows a type has).
+     * A size guessed from row count alone was shown to produce a 2-page PDF
+     * for an ordinary 2-company quote, because the guess never accounted for
+     * the logos' fixed height at all.
+     *
+     * Rather than refine the guess further, render it, ask dompdf how many
+     * pages it actually took (Canvas::get_page_count() -- the real, measured
+     * answer, not an estimate), and step the font size down until it reports
+     * exactly one. Falls back to the smallest preset if even that doesn't
+     * fit, rather than failing the download.
+     */
+    private function renderPdfToFitOnePage(QuoteTemplate $quoteTemplate, array $preview, Setting $setting, ?string $brandLogo): string
+    {
+        // Largest/most readable first; font and row padding shrink together.
+        $presets = [
+            ['fontSize' => '10pt',  'rowPad' => '4px'],
+            ['fontSize' => '9pt',   'rowPad' => '4px'],
+            ['fontSize' => '8.5pt', 'rowPad' => '3px'],
+            ['fontSize' => '8pt',   'rowPad' => '3px'],
+            ['fontSize' => '7.5pt', 'rowPad' => '2.5px'],
+            ['fontSize' => '7pt',   'rowPad' => '2.5px'],
+            ['fontSize' => '6.5pt', 'rowPad' => '2px'],
+            ['fontSize' => '6pt',   'rowPad' => '2px'],
+        ];
+
+        $lastOutput = '';
+
+        foreach ($presets as $preset) {
+            $pdf = Pdf::loadView('quote-templates.pdf', [
+                'template'  => $quoteTemplate,
+                'preview'   => $preview,
+                'setting'   => $setting,
+                'brandLogo' => $brandLogo,
+                'fontSize'  => $preset['fontSize'],
+                'rowPad'    => $preset['rowPad'],
+            ])->setPaper('a4', 'portrait');
+
+            $pdf->render();
+            $pages      = $pdf->getDomPDF()->getCanvas()->get_page_count();
+            $lastOutput = $pdf->output();
+
+            if ($pages <= 1) {
+                break;
+            }
+        }
+
+        return $lastOutput;
     }
 
     /** Absolute path to a PDF-sized copy of a public logo, or null. */
