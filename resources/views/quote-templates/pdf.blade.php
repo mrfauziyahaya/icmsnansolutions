@@ -15,27 +15,15 @@
     $modelSpan = max($n, 1);
     $colW      = $n > 0 ? round(50 / $n, 4) : 50;
 
-    // Fit one A4 portrait page. Portrait is tall but narrow, so width is the
-    // binding constraint: each extra insurer splits the same 50% of ~194mm.
-    // Height only starts to matter on the longest quote types.
-    $rowCount = 6 + 2 + count($preview['instalments']);
-    foreach ($preview['sections'] as $s) {
-        $rowCount += 1 + count($s['rows']);
-    }
-
-    $byWidth = match (true) {
-        $n >= 5 => 6.5,
-        $n === 4 => 7.5,
-        $n === 3 => 8.5,
-        default  => 9.5,
-    };
-    $byHeight = match (true) {
-        $rowCount > 40 => 7.0,
-        $rowCount > 34 => 8.0,
-        default        => 10.0,
-    };
-    $fontSize = min($byWidth, $byHeight) . 'pt';
-    $rowPad   = min($byWidth, $byHeight) >= 8.5 ? '4px' : '2.5px';
+    // Fitting one A4 page is no longer a guess made from row count here --
+    // it depends on things this view can't see ahead of render (how tall the
+    // logos end up, how many lines an Additional Benefits cell stacks), so
+    // the controller renders this view repeatedly at shrinking font sizes
+    // and asks dompdf's own page count which one actually fits, passing the
+    // winning size in as $fontSize/$rowPad. Default here only so the view
+    // still renders standalone (e.g. in a test) without that loop.
+    $fontSize ??= '9pt';
+    $rowPad   ??= '4px';
 
     // Logo box, tripled. dompdf ignores max-height on an <img>, so each logo is
     // given explicit width/height computed from its own aspect ratio — otherwise
