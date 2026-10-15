@@ -53,6 +53,29 @@ class QuoteTemplate extends Model
         return self::COMPANY_LABELS[$company] ?? (string) $company;
     }
 
+    /** Brand colour for the company-name header row on every quote. */
+    public const COMPANY_COLORS = [
+        'ZURICH TAKAFUL'   => '#0071B9',
+        'ETIQA TAKAFUL'    => '#F7B828',
+        'TAKAFUL IKHLAS'   => '#1D6C46',
+        'TAKAFUL MALAYSIA' => '#8AC73D',
+        'KURNIA INSURANS'  => '#0159A0',
+        'ALLIANZ'          => '#013978',
+    ];
+
+    /** Dark brand colours need white text to stay readable. */
+    public const COMPANY_DARK_COLORS = ['TAKAFUL IKHLAS', 'KURNIA INSURANS', 'ALLIANZ'];
+
+    public static function companyColor(?string $company): string
+    {
+        return self::COMPANY_COLORS[$company] ?? '#e5e7eb';
+    }
+
+    public static function companyTextColor(?string $company): string
+    {
+        return in_array($company, self::COMPANY_DARK_COLORS, true) ? '#ffffff' : '#111827';
+    }
+
     // ── Option maps ───────────────────────────────────────────────────────────
 
     public const VALUE_OPTIONS = [

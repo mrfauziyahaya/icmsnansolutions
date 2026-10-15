@@ -30,12 +30,14 @@
             }
 
             $companies[] = [
-                'name'     => $name,
-                'label'    => $QT::companyLabel($name),
-                'logo'     => $QT::logoFor($name) ? asset($QT::ALL_COMPANIES[$name]) : null,
-                'selected' => $col !== null,
-                'col'      => $values,
-                'options'  => $options,
+                'name'      => $name,
+                'label'     => $QT::companyLabel($name),
+                'color'     => $QT::companyColor($name),
+                'textColor' => $QT::companyTextColor($name),
+                'logo'      => $QT::logoFor($name) ? asset($QT::ALL_COMPANIES[$name]) : null,
+                'selected'  => $col !== null,
+                'col'       => $values,
+                'options'   => $options,
             ];
         }
 
@@ -125,7 +127,8 @@
                             <div class="h-[11.5rem] flex items-center justify-center">
                                 <template x-if="c.logo"><img :src="c.logo" :alt="c.name" class="max-h-[10.5rem] w-auto object-contain"></template>
                             </div>
-                            <div class="rounded-md px-2 py-2 text-center text-sm font-bold uppercase text-gray-800" :class="tint(i)">
+                            <div class="rounded-md px-2 py-2 text-center text-sm font-bold uppercase"
+                                 :style="`background:${c.color};color:${c.textColor}`">
                                 <span x-text="c.label"></span>
                             </div>
                         </div>
@@ -134,7 +137,6 @@
 
                 @foreach($cfg['sections'] as $section => $rows)
                     <x-quote-section>{{ $section }}</x-quote-section>
-                    @php $isSebutHarga = $section === 'Sebut Harga'; @endphp
                     @foreach($rows as $field)
                         @php $def = $F[$field]; @endphp
 
@@ -190,7 +192,6 @@
                                 <template x-for="(c, i) in selected()" :key="c.name">
                                     @if($def['input'] === 'number')
                                         <input type="number" step="0.01" min="0" :name="`columns[${i}][{{ $field }}]`" x-model.number="c.col.{{ $field }}"
-                                               :class="{{ $isSebutHarga ? 'tint(i)' : '{}' }}"
                                                class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
                                     @elseif($def['input'] === 'multiselect')
                                         <div class="space-y-1">
@@ -205,7 +206,6 @@
                                         </div>
                                     @else
                                         <select :name="`columns[${i}][{{ $field }}]`" x-model="c.col.{{ $field }}"
-                                                :class="{{ $isSebutHarga ? 'tint(i)' : '{}' }}"
                                                 class="w-full rounded-md border-gray-300 shadow-sm text-sm">
                                             @if($QT::isOptional($field))<option value="">—</option>@endif
                                             <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
@@ -260,7 +260,6 @@
                     'merged'    => $merged,
                     'companies' => $companies,
                 ]),
-                tints: ['bg-sky-200', 'bg-yellow-200', 'bg-green-200'],
 
                 init() {
                     // Digital Copy (A) off <-> Tempoh Roadtax forced to "not
@@ -282,7 +281,6 @@
                 selected() { return this.f.companies.filter(c => c.selected); },
                 get cols() { return Math.max(this.selected().length, 1); },
                 get gridStyle() { return `grid-template-columns:160px repeat(${this.cols},minmax(120px,1fr))`; },
-                tint(i) { return this.tints[i % this.tints.length]; },
                 total(c) {
                     const copyFee = this.f.shared.digital_copy === 'yes'
                         ? (this.f.shared.physical_copy === 'yes' ? 25 : 10)
