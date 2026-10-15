@@ -223,7 +223,7 @@ class QuoteTemplate extends Model
                 ],
             ],
             'third_party_fire_theft' => [
-                'label'     => '3rd Party & Theft',
+                'label'     => '3rd Party Fire & Theft',
                 'title'     => '3rd Party Fire & Theft',
                 'companies' => $all,
                 'ncd'       => self::NCD_OPTIONS,
