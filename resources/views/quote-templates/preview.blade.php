@@ -76,7 +76,7 @@
                     @foreach($companies as $c)
                         <td class="border border-gray-300 bg-white px-3 py-2 text-center align-middle">
                             @if($c['logo'])
-                                <img src="{{ asset($c['logo']) }}" alt="{{ $c['company'] }}" class="mx-auto h-60 w-auto object-contain">
+                                <img src="{{ asset($c['logo']) }}" alt="{{ $c['label'] }}" class="mx-auto h-60 w-auto object-contain">
                             @endif
                         </td>
                     @endforeach
@@ -86,25 +86,28 @@
                 <tr>
                     <td class="border border-gray-300 bg-white px-3 py-2"></td>
                     @foreach($companies as $i => $c)
-                        <td class="border border-gray-300 {{ $tints[$i % 3] }} px-3 py-2 text-center font-bold uppercase">{{ $c['company'] ?: '—' }}</td>
+                        <td class="border border-gray-300 {{ $tints[$i % 3] }} px-3 py-2 text-center font-bold uppercase">{{ $c['label'] ?: '—' }}</td>
                     @endforeach
                 </tr>
 
                 {{-- sections --}}
                 @foreach($preview['sections'] as $section)
                     <x-quote-preview-head :span="$n + 1">{{ $section['name'] }}</x-quote-preview-head>
+                    @php $isSebutHarga = $section['name'] === 'Sebut Harga'; @endphp
                     @foreach($section['rows'] as $row)
                         <tr>
                             <td class="border border-gray-300 px-3 py-1.5 font-semibold uppercase">{{ $row['label'] }}</td>
-                            @if($row['scope'] === 'shared')
+                            @if($row['scope'] === 'shared' || $row['merged'])
                                 {{-- display() has already formatted this; re-running $rm
                                      would cast "RM 90.00" to 0 and print "RM -". --}}
                                 <td colspan="{{ $n }}" class="border border-gray-300 px-3 py-1.5 text-center">
                                     {{ $row['value'] }}
                                 </td>
                             @else
-                                @foreach($row['cells'] as $cell)
-                                    <td class="border border-gray-300 px-3 py-1.5 text-center">
+                                @foreach($row['cells'] as $i => $cell)
+                                    {{-- Sebut Harga cells pick up each company's own
+                                         header colour, matching the logo row above. --}}
+                                    <td class="border border-gray-300 px-3 py-1.5 text-center {{ $isSebutHarga ? $tints[$i % 3] : '' }}">
                                         @if(is_array($cell))
                                             @foreach($cell as $line)<div>{{ $line }}</div>@endforeach
                                         @else
