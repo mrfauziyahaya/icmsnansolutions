@@ -97,6 +97,7 @@ class QuoteTemplate extends Model
         '200km'     => '200 KM',
         '300km'     => '300 KM',
         '450km'     => '450 KM',
+        '600km'     => '600 KM',
         'unlimited' => 'UNLIMITED',
         'no'        => 'NO',
     ];
@@ -222,17 +223,25 @@ class QuoteTemplate extends Model
                 ],
             ],
             'third_party_fire_theft' => [
-                'label'     => '3rd Party & Theft',
+                'label'     => '3rd Party Fire & Theft',
                 'title'     => '3rd Party Fire & Theft',
                 'companies' => $all,
                 'ncd'       => self::NCD_OPTIONS,
                 'towing'    => ['no_towing', 'unlimited'],
-                // Allianz quotes its own towing on this type, not the type-wide list.
-                'company_towing' => ['ALLIANZ' => self::COMPANY_TOWING['ALLIANZ']],
+                // Zurich and Allianz each quote their own towing on this type,
+                // not the type-wide list -- and not each other's, so these are
+                // this type's own lists rather than shared COMPANY_TOWING
+                // entries (motor_first_party needs a different Allianz list).
+                'company_towing' => [
+                    'ZURICH TAKAFUL' => ['no_towing', 'unlimited', '600km'],
+                    'ALLIANZ'        => ['300km', 'unlimited', 'no_towing'],
+                ],
+                // Entered once, applies to every company on this type.
+                'merged_fields' => ['ncd', 'all_driver', 'accident_assist'],
                 'sections'  => [
                     'Sebut Harga'        => ['sum_covered', 'value'],
                     'Insurance Benefits' => ['towing', 'accident_assist', 'ncd'],
-                    'Add On'             => ['personal_accident'],
+                    'Add On'             => ['all_driver', 'personal_accident'],
                     'Roadtax'            => ['digital_copy', 'physical_copy', 'vehicle_inspection'],
                     'Jumlah'             => ['insurance_takaful', 'roadtax_period', 'roadtax'],
                 ],
