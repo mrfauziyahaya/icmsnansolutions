@@ -458,15 +458,18 @@ class QuoteTemplateTest extends TestCase
             QuoteTemplate::optionsFor('personal_accident', 'comprehensive', 'ALLIANZ')
         );
 
-        // Allianz keeps its own lists even on the types that set a towing list
-        // for everyone else (3rd Party & Theft, 1st Party Motor).
-        foreach (['third_party_fire_theft', 'motor_first_party'] as $type) {
-            $this->assertSame(
-                ['150km' => '150 KM', '450km' => '450 KM', 'unlimited' => 'UNLIMITED'],
-                QuoteTemplate::optionsFor('towing', $type, 'ALLIANZ'),
-                "towing wrong on {$type}"
-            );
-        }
+        // Allianz keeps its own list even on types that set a towing list for
+        // everyone else -- and a different one per type where asked for (Stage
+        // 2 removed 150km and added "no towing" on 3rd Party Fire & Theft;
+        // 1st Party Motor is unchanged pending Stage 3).
+        $this->assertSame(
+            ['300km' => '300 KM', 'unlimited' => 'UNLIMITED', 'no_towing' => 'NO TOWING'],
+            QuoteTemplate::optionsFor('towing', 'third_party_fire_theft', 'ALLIANZ'),
+        );
+        $this->assertSame(
+            ['150km' => '150 KM', '450km' => '450 KM', 'unlimited' => 'UNLIMITED'],
+            QuoteTemplate::optionsFor('towing', 'motor_first_party', 'ALLIANZ'),
+        );
         $this->assertSame(
             ['road_warrior' => 'ROAD WARRIOR', 'enhanced_road_warrior' => 'ENHANCED ROAD WARRIOR'],
             QuoteTemplate::optionsFor('personal_accident', 'motor_first_party', 'ALLIANZ')
@@ -627,6 +630,66 @@ class QuoteTemplateTest extends TestCase
 
         $this->assertFalse($rows['No Claim Discount (NCD) %']['merged']);
         $this->assertArrayHasKey('cells', $rows['No Claim Discount (NCD) %']);
+    }
+
+    // ── Stage 2: 3rd Party Fire & Theft ─────────────────────────────────────
+
+    public function test_fire_and_theft_gains_an_all_driver_field_that_is_merged(): void
+    {
+        $this->assertContains('all_driver', QuoteTemplate::typeConfig('third_party_fire_theft')['sections']['Add On']);
+
+        $payload = $this->payloadFor('third_party_fire_theft', ['ZURICH TAKAFUL', 'ETIQA TAKAFUL']);
+        $template = QuoteTemplate::create([
+            'type'               => 'third_party_fire_theft',
+            'title'              => QuoteTemplate::typeConfig('third_party_fire_theft')['title'],
+            'vehicle_reg_number' => strtoupper($payload['vehicle_reg_number']),
+            'vehicle_model'      => $payload['vehicle_model'],
+            'data'               => ['shared' => $payload['shared'], 'columns' => $payload['columns']],
+        ]);
+
+        $rows = collect($template->previewData()['sections'])
+            ->flatMap(fn ($section) => $section['rows'])
+            ->keyBy('label');
+
+        $this->assertTrue($rows['All Driver']['merged']);
+        $this->assertTrue($rows['No Claim Discount (NCD) %']['merged']);
+        $this->assertTrue($rows['Accident / Breakdown Assist']['merged']);
+    }
+
+    public function test_zurich_towing_gains_600km_on_fire_and_theft(): void
+    {
+        $this->assertSame(
+            ['no_towing' => 'NO TOWING', 'unlimited' => 'UNLIMITED', '600km' => '600 KM'],
+            QuoteTemplate::optionsFor('towing', 'third_party_fire_theft', 'ZURICH TAKAFUL'),
+        );
+
+        // Doesn't leak to the type-wide list other companies use.
+        $this->assertSame(
+            ['no_towing' => 'NO TOWING', 'unlimited' => 'UNLIMITED'],
+            QuoteTemplate::optionsFor('towing', 'third_party_fire_theft', 'ETIQA TAKAFUL'),
+        );
+    }
+
+    public function test_allianz_towing_drops_150km_and_gains_no_towing_on_fire_and_theft(): void
+    {
+        $options = QuoteTemplate::optionsFor('towing', 'third_party_fire_theft', 'ALLIANZ');
+
+        $this->assertArrayNotHasKey('150km', $options);
+        $this->assertSame(
+            ['300km' => '300 KM', 'unlimited' => 'UNLIMITED', 'no_towing' => 'NO TOWING'],
+            $options,
+        );
+    }
+
+    public function test_blank_fire_and_theft_create_form_renders(): void
+    {
+        $html = $this->actingAs($this->admin())
+            ->get(route('quote-templates.create', ['type' => 'third_party_fire_theft']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('f.merged.all_driver', $html);
+        $this->assertStringContainsString('600 KM', $html);
     }
 
     /**
