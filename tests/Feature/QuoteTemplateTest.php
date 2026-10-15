@@ -520,7 +520,13 @@ class QuoteTemplateTest extends TestCase
         $this->assertStringContainsString('ALLIANZ GENERAL INSURANCE', $html);
     }
 
-    public function test_sebut_harga_cells_are_tinted_per_company_on_every_type(): void
+    /**
+     * "Sebut Harga" is ambiguous in this app: it's both the admin form's
+     * sticky header label over the company-name cards, and the unrelated
+     * model section containing Sum Covered/Value. The brand colour belongs
+     * on the header cards only -- Sum Covered/Value stay plain.
+     */
+    public function test_company_name_header_uses_its_own_brand_colour_on_every_type(): void
     {
         foreach (array_keys(QuoteTemplate::types()) as $type) {
             $companies = array_slice(QuoteTemplate::companiesForType($type), 0, 2);
@@ -531,14 +537,29 @@ class QuoteTemplateTest extends TestCase
                 ->assertOk()
                 ->getContent();
 
-            // The three rotating tint classes used on the company-name header
-            // row should also appear somewhere in the Sebut Harga rows.
-            $this->assertMatchesRegularExpression(
-                '/bg-(sky|yellow|green)-200[^>]*>\s*(RM|MARKET|AGREED)/',
-                $html,
-                "Expected a tinted Sebut Harga cell for {$type}",
-            );
+            foreach ($companies as $company) {
+                $this->assertStringContainsString(
+                    QuoteTemplate::companyColor($company),
+                    $html,
+                    "Expected {$company}'s brand colour on {$type}",
+                );
+            }
         }
+    }
+
+    public function test_sum_covered_and_value_cells_are_not_tinted(): void
+    {
+        $template = QuoteTemplate::create($this->storedPayload('comprehensive', ['ZURICH TAKAFUL', 'ALLIANZ']));
+
+        $html = $this->actingAs($this->admin())
+            ->get(route('quote-templates.show', $template))
+            ->assertOk()
+            ->getContent();
+
+        // Zurich's and Allianz's colours appear once each (the header row) --
+        // not a second time against a Sum Covered/Value cell.
+        $this->assertSame(1, substr_count($html, QuoteTemplate::companyColor('ZURICH TAKAFUL')));
+        $this->assertSame(1, substr_count($html, QuoteTemplate::companyColor('ALLIANZ')));
     }
 
     public function test_ncd_all_driver_and_accident_assist_are_merged_on_comprehensive(): void

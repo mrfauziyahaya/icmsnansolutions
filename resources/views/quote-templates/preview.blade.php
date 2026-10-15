@@ -23,7 +23,6 @@
 
         $companies = $preview['companies'];
         $n         = count($companies);
-        $tints     = ['bg-sky-200', 'bg-yellow-200', 'bg-green-200'];
 
         // Reg sits over the label column, Model over every insurer column. With
         // the label column at half the table that splits the row evenly while
@@ -82,18 +81,20 @@
                     @endforeach
                 </tr>
 
-                {{-- company names --}}
+                {{-- company names: each company's own brand colour --}}
                 <tr>
                     <td class="border border-gray-300 bg-white px-3 py-2"></td>
                     @foreach($companies as $i => $c)
-                        <td class="border border-gray-300 {{ $tints[$i % 3] }} px-3 py-2 text-center font-bold uppercase">{{ $c['label'] ?: '—' }}</td>
+                        <td class="border border-gray-300 px-3 py-2 text-center font-bold uppercase"
+                            style="background: {{ \App\Models\QuoteTemplate::companyColor($c['company']) }}; color: {{ \App\Models\QuoteTemplate::companyTextColor($c['company']) }}">
+                            {{ $c['label'] ?: '—' }}
+                        </td>
                     @endforeach
                 </tr>
 
                 {{-- sections --}}
                 @foreach($preview['sections'] as $section)
                     <x-quote-preview-head :span="$n + 1">{{ $section['name'] }}</x-quote-preview-head>
-                    @php $isSebutHarga = $section['name'] === 'Sebut Harga'; @endphp
                     @foreach($section['rows'] as $row)
                         <tr>
                             <td class="border border-gray-300 px-3 py-1.5 font-semibold uppercase">{{ $row['label'] }}</td>
@@ -104,10 +105,8 @@
                                     {{ $row['value'] }}
                                 </td>
                             @else
-                                @foreach($row['cells'] as $i => $cell)
-                                    {{-- Sebut Harga cells pick up each company's own
-                                         header colour, matching the logo row above. --}}
-                                    <td class="border border-gray-300 px-3 py-1.5 text-center {{ $isSebutHarga ? $tints[$i % 3] : '' }}">
+                                @foreach($row['cells'] as $cell)
+                                    <td class="border border-gray-300 px-3 py-1.5 text-center">
                                         @if(is_array($cell))
                                             @foreach($cell as $line)<div>{{ $line }}</div>@endforeach
                                         @else

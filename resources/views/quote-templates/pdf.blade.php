@@ -46,8 +46,7 @@
     };
     $brandDim = $fit($brandLogo, 320, 52);
 
-    $tints = ['#bae6fd', '#fef08a', '#bbf7d0'];
-    $rm    = fn ($v) => is_null($v) || $v === '' || (float) $v == 0 ? 'RM -' : 'RM ' . number_format((float) $v, 2);
+    $rm = fn ($v) => is_null($v) || $v === '' || (float) $v == 0 ? 'RM -' : 'RM ' . number_format((float) $v, 2);
 @endphp
 <!DOCTYPE html>
 <html>
@@ -116,18 +115,20 @@
         @endforeach
     </tr>
 
-    {{-- insurer names --}}
+    {{-- insurer names: each company's own brand colour --}}
     <tr>
         <td></td>
-        @foreach($companies as $i => $c)
-            <td class="center bold upper co-name" style="background: {{ $tints[$i % 3] }}">{{ $c['label'] ?: '—' }}</td>
+        @foreach($companies as $c)
+            <td class="center bold upper co-name"
+                style="background: {{ \App\Models\QuoteTemplate::companyColor($c['company']) }}; color: {{ \App\Models\QuoteTemplate::companyTextColor($c['company']) }}">
+                {{ $c['label'] ?: '—' }}
+            </td>
         @endforeach
     </tr>
 
     {{-- sections --}}
     @foreach($preview['sections'] as $section)
         <tr><td colspan="{{ $cols }}" class="center bold upper section">{{ $section['name'] }}</td></tr>
-        @php $isSebutHarga = $section['name'] === 'Sebut Harga'; @endphp
         @foreach($section['rows'] as $row)
             <tr>
                 <td class="bold upper">{{ $row['label'] }}</td>
@@ -135,10 +136,8 @@
                     {{-- Already formatted by display(); $rm here would print "RM -". --}}
                     <td colspan="{{ $n }}" class="center">{{ $row['value'] }}</td>
                 @else
-                    @foreach($row['cells'] as $i => $cell)
-                        {{-- Sebut Harga cells pick up each company's own header
-                             colour, matching the logo row above. --}}
-                        <td class="center" style="{{ $isSebutHarga ? 'background: ' . $tints[$i % 3] : '' }}">
+                    @foreach($row['cells'] as $cell)
+                        <td class="center">
                             @if(is_array($cell))
                                 @foreach($cell as $line)<div>{{ $line }}</div>@endforeach
                             @else
