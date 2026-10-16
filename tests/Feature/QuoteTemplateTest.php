@@ -71,7 +71,8 @@ class QuoteTemplateTest extends TestCase
         // Motor-only companies, and motor-only fields.
         $this->assertStringContainsString('ZURICH TAKAFUL', $html);
         $this->assertStringNotContainsString('KURNIA INSURANS', $html);   // not a motor company
-        $this->assertStringContainsString('All Rider', $html);
+        // Stage 3: "All Rider" is relabelled "Rider Type" on this type only.
+        $this->assertStringContainsString('Rider Type', $html);
         $this->assertStringContainsString('Additional Benefits', $html);
         $this->assertStringContainsString('Add On Benefit', $html);
     }
@@ -121,10 +122,24 @@ class QuoteTemplateTest extends TestCase
         $this->assertContains('add_on_benefit', $company);
     }
 
+    /** Stage 3: towing is fully per-company on 1st Party Motor now. */
     public function test_motor_towing_options_are_in_the_specified_order(): void
     {
-        $keys = array_keys(QuoteTemplate::optionsFor('towing', 'motor_first_party', 'ZURICH TAKAFUL'));
-        $this->assertSame(['no_towing', 'unlimited', '50km', '30km'], $keys);
+        $expected = [
+            'ZURICH TAKAFUL'   => ['unlimited', 'no'],
+            'ETIQA TAKAFUL'    => ['50km', '3x_unlimited'],
+            'TAKAFUL MALAYSIA' => ['50km'],
+            'TAKAFUL IKHLAS'   => ['no_towing'],
+            'ALLIANZ'          => ['50km', '600km'],
+        ];
+
+        foreach ($expected as $company => $keys) {
+            $this->assertSame(
+                $keys,
+                array_keys(QuoteTemplate::optionsFor('towing', 'motor_first_party', $company)),
+                "towing wrong for {$company}",
+            );
+        }
     }
 
     /** 30% was missing from the non-motor NCD list. */
@@ -461,23 +476,25 @@ class QuoteTemplateTest extends TestCase
         // Allianz keeps its own list even on types that set a towing list for
         // everyone else -- and a different one per type where asked for (Stage
         // 2 removed 150km and added "no towing" on 3rd Party Fire & Theft;
-        // 1st Party Motor is unchanged pending Stage 3).
+        // Stage 3 replaced 1st Party Motor's entirely).
         $this->assertSame(
             ['300km' => '300 KM', 'unlimited' => 'UNLIMITED', 'no_towing' => 'NO TOWING'],
             QuoteTemplate::optionsFor('towing', 'third_party_fire_theft', 'ALLIANZ'),
         );
+        // Stage 3 replaced Allianz's 1st Party Motor towing list entirely.
         $this->assertSame(
-            ['150km' => '150 KM', '450km' => '450 KM', 'unlimited' => 'UNLIMITED'],
+            ['50km' => '50 KM', '600km' => '600 KM'],
             QuoteTemplate::optionsFor('towing', 'motor_first_party', 'ALLIANZ'),
         );
+        // Stage 3 replaced Allianz's 1st Party Motor PA list entirely (Azli's list).
         $this->assertSame(
-            ['road_warrior' => 'ROAD WARRIOR', 'enhanced_road_warrior' => 'ENHANCED ROAD WARRIOR'],
+            ['yes' => 'YES', 'no' => 'NO', 'bike_warrior' => 'BIKE WARRIOR'],
             QuoteTemplate::optionsFor('personal_accident', 'motor_first_party', 'ALLIANZ')
         );
 
         // That must not leak to the other insurers on those types.
         $this->assertSame(
-            ['no_towing' => 'NO TOWING', 'unlimited' => 'UNLIMITED', '50km' => '50 KM', '30km' => '30 KM'],
+            ['unlimited' => 'UNLIMITED', 'no' => 'NO'],
             QuoteTemplate::optionsFor('towing', 'motor_first_party', 'ZURICH TAKAFUL')
         );
         $this->assertSame(
@@ -690,6 +707,152 @@ class QuoteTemplateTest extends TestCase
 
         $this->assertStringContainsString('f.merged.all_driver', $html);
         $this->assertStringContainsString('600 KM', $html);
+    }
+
+    // ── Stage 3: 1st Party Motor ────────────────────────────────────────────
+
+    public function test_all_rider_is_relabelled_rider_type_on_motor_first_party_only(): void
+    {
+        $this->assertSame('Rider Type', QuoteTemplate::fieldLabel('all_rider', 'motor_first_party'));
+        // 3rd Party Motor is untouched by this rename.
+        $this->assertSame('All Rider', QuoteTemplate::fieldLabel('all_rider', 'motor_third_party'));
+    }
+
+    public function test_rider_type_options_are_all_rider_only_except_allianz(): void
+    {
+        foreach (['ZURICH TAKAFUL', 'ETIQA TAKAFUL', 'TAKAFUL IKHLAS', 'TAKAFUL MALAYSIA'] as $company) {
+            $this->assertSame(
+                ['all' => 'ALL RIDER'],
+                QuoteTemplate::optionsFor('all_rider', 'motor_first_party', $company),
+                "{$company} should only offer ALL RIDER",
+            );
+        }
+
+        $this->assertSame(
+            ['single' => 'SINGLE RIDER', 'all' => 'ALL RIDER'],
+            QuoteTemplate::optionsFor('all_rider', 'motor_first_party', 'ALLIANZ'),
+        );
+
+        // 3rd Party Motor keeps the plain yesno options -- unaffected.
+        $this->assertSame(
+            ['yes' => 'YES', 'no' => 'NO'],
+            QuoteTemplate::optionsFor('all_rider', 'motor_third_party', 'ZURICH TAKAFUL'),
+        );
+    }
+
+    public function test_a_new_motor_first_party_quote_defaults_rider_type_to_all_rider(): void
+    {
+        $this->assertSame('all', QuoteTemplate::defaultColumn('motor_first_party', 'ZURICH TAKAFUL')['all_rider']);
+        $this->assertSame('all', QuoteTemplate::defaultColumn('motor_first_party', 'ALLIANZ')['all_rider']);
+    }
+
+    public function test_only_accident_assist_is_merged_on_motor_first_party(): void
+    {
+        $template = QuoteTemplate::create($this->storedPayload('motor_first_party', ['ZURICH TAKAFUL', 'ETIQA TAKAFUL']));
+
+        $rows = collect($template->previewData()['sections'])
+            ->flatMap(fn ($section) => $section['rows'])
+            ->keyBy('label');
+
+        $this->assertTrue($rows['Accident / Breakdown Assist']['merged']);
+        // NCD % and Rider Type stay per-company on this type, unlike Comprehensive.
+        $this->assertFalse($rows['No Claim Discount (NCD) %']['merged']);
+        $this->assertFalse($rows['Rider Type']['merged']);
+    }
+
+    public function test_additional_benefits_only_apply_to_zurich_and_allianz_on_motor_first_party(): void
+    {
+        $this->assertTrue(QuoteTemplate::fieldAppliesTo('additional_benefits', 'motor_first_party', 'ZURICH TAKAFUL'));
+        $this->assertTrue(QuoteTemplate::fieldAppliesTo('additional_benefits', 'motor_first_party', 'ALLIANZ'));
+        foreach (['ETIQA TAKAFUL', 'TAKAFUL IKHLAS', 'TAKAFUL MALAYSIA'] as $company) {
+            $this->assertFalse(
+                QuoteTemplate::fieldAppliesTo('additional_benefits', 'motor_first_party', $company),
+                "{$company} should not have Additional Benefits",
+            );
+        }
+
+        // Preview renders a blank cell (null), not an "unanswered" dash, for a
+        // company this field doesn't apply to at all.
+        $template = QuoteTemplate::create($this->storedPayload('motor_first_party', ['ZURICH TAKAFUL', 'ETIQA TAKAFUL']));
+        $row = collect($template->previewData()['sections'])
+            ->flatMap(fn ($section) => $section['rows'])
+            ->keyBy('label')['Additional Benefits'];
+
+        $this->assertNotEquals(['-'], $row['cells'][0]); // Zurich: a real value
+        $this->assertNull($row['cells'][1]); // Etiqa: field doesn't apply at all
+    }
+
+    public function test_zurich_additional_benefits_default_to_everything_except_none(): void
+    {
+        $this->assertSame(
+            ['helmet', 'pa5500', 'perils', 'towing_cost'],
+            QuoteTemplate::defaultColumn('motor_first_party', 'ZURICH TAKAFUL')['additional_benefits'],
+        );
+    }
+
+    public function test_allianz_has_its_own_additional_benefits_list_and_default(): void
+    {
+        $this->assertSame(
+            [
+                'death_disablement' => 'DEATH / PERMANENT DISABLEMENT - AUTHORISED RIDER & PILLION SUM INSURED (RM)25,000',
+                'hospital_income'   => 'HOSPITAL INCOME - AUTHORISED RIDER & PILLION RM100 PER DAY / UP TO 60 DAYS',
+                'flood_relief'      => 'FLOOD RELIEF BENEFIT LIMIT RM1,000',
+                'special_perils'    => 'INCLUSION OF SPECIAL PERILS',
+                'none'              => 'None',
+            ],
+            QuoteTemplate::optionsFor('additional_benefits', 'motor_first_party', 'ALLIANZ'),
+        );
+
+        $this->assertSame(
+            ['death_disablement', 'hospital_income', 'flood_relief', 'special_perils'],
+            QuoteTemplate::defaultColumn('motor_first_party', 'ALLIANZ')['additional_benefits'],
+        );
+    }
+
+    public function test_personal_accident_only_applies_to_zurich_etiqa_and_allianz_on_motor_first_party(): void
+    {
+        foreach (['ZURICH TAKAFUL', 'ETIQA TAKAFUL', 'ALLIANZ'] as $company) {
+            $this->assertTrue(QuoteTemplate::fieldAppliesTo('personal_accident', 'motor_first_party', $company));
+        }
+        foreach (['TAKAFUL IKHLAS', 'TAKAFUL MALAYSIA'] as $company) {
+            $this->assertFalse(QuoteTemplate::fieldAppliesTo('personal_accident', 'motor_first_party', $company));
+        }
+
+        $this->assertSame(['yes' => 'YES', 'no' => 'NO'], QuoteTemplate::optionsFor('personal_accident', 'motor_first_party', 'ZURICH TAKAFUL'));
+        $this->assertSame(['yes' => 'YES', 'no' => 'NO', 'myrider' => 'MYRIDER'], QuoteTemplate::optionsFor('personal_accident', 'motor_first_party', 'ETIQA TAKAFUL'));
+        $this->assertSame(['yes' => 'YES', 'no' => 'NO', 'bike_warrior' => 'BIKE WARRIOR'], QuoteTemplate::optionsFor('personal_accident', 'motor_first_party', 'ALLIANZ'));
+    }
+
+    public function test_blank_motor_first_party_create_form_renders(): void
+    {
+        $html = $this->actingAs($this->admin())
+            ->get(route('quote-templates.create', ['type' => 'motor_first_party']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('Rider Type', $html);
+        $this->assertStringContainsString('SINGLE RIDER', $html);
+        $this->assertStringContainsString('MYRIDER', $html);
+        $this->assertStringContainsString('BIKE WARRIOR', $html);
+        $this->assertStringContainsString('3X UNLIMITED TOWING', $html);
+        $this->assertStringContainsString('INCLUSION OF SPECIAL PERILS', $html);
+    }
+
+    public function test_motor_first_party_quote_can_be_saved_with_allianz_benefits_and_rider_type(): void
+    {
+        $payload = $this->payloadFor('motor_first_party', ['ALLIANZ']);
+        $payload['columns'][0]['all_rider']            = 'single';
+        $payload['columns'][0]['personal_accident']    = 'bike_warrior';
+        $payload['columns'][0]['additional_benefits']  = ['death_disablement', 'special_perils'];
+
+        $this->actingAs($this->admin())
+            ->post(route('quote-templates.store'), $payload)
+            ->assertSessionHasNoErrors();
+
+        $column = QuoteTemplate::firstOrFail()->data['columns'][0];
+        $this->assertSame('single', $column['all_rider']);
+        $this->assertSame('bike_warrior', $column['personal_accident']);
+        $this->assertSame(['death_disablement', 'special_perils'], $column['additional_benefits']);
     }
 
     /**

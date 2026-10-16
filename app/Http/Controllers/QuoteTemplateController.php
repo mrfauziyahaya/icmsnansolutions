@@ -251,8 +251,15 @@ class QuoteTemplateController extends Controller
         }
         foreach (QuoteTemplate::fieldKeys($type, 'company') as $field) {
             if (QuoteTemplate::FIELDS[$field]['input'] === 'multiselect') {
+                // Union of every company's possible list on this field (e.g.
+                // Allianz's own Additional Benefits on 1st Party Motor are a
+                // different set from everyone else's) -- loose by company,
+                // same as towing/pa below; the form only ever offers each
+                // company its own correct subset.
                 $rules['columns.*.' . $field]         = 'nullable|array';
-                $rules['columns.*.' . $field . '.*']  = 'in:' . implode(',', array_keys(QuoteTemplate::ADDITIONAL_BENEFITS));
+                $rules['columns.*.' . $field . '.*']  = 'in:' . implode(',', array_keys(
+                    QuoteTemplate::ADDITIONAL_BENEFITS + QuoteTemplate::ALLIANZ_ADDITIONAL_BENEFITS
+                ));
             } else {
                 $rules['columns.*.' . $field] = $this->fieldRule($field, $type);
             }
@@ -283,13 +290,19 @@ class QuoteTemplateController extends Controller
             return 'nullable|numeric|min:0';
         }
 
-        $keys = match ($def['options'] ?? null) {
+        // A type can redirect a field to a different option source (e.g. 1st
+        // Party Motor's "Rider Type" instead of All Rider's own yesno) --
+        // same override optionsFor() reads, so validation and the form agree.
+        $source = QuoteTemplate::typeConfig($type)['field_options'][$field] ?? $def['options'] ?? null;
+
+        $keys = match ($source) {
             'value'          => array_keys(QuoteTemplate::VALUE_OPTIONS),
             'yesno'          => array_keys(QuoteTemplate::YESNO_OPTIONS),
             'roadtax_period' => array_keys(QuoteTemplate::ROADTAX_PERIOD_OPTIONS),
             'ncd'            => array_keys(QuoteTemplate::typeConfig($type)['ncd'] ?? QuoteTemplate::NCD_OPTIONS),
             'towing'         => array_keys(QuoteTemplate::TOWING_OPTIONS),
             'pa'             => array_keys(QuoteTemplate::PA_OPTIONS),
+            'rider_type'     => array_keys(QuoteTemplate::RIDER_TYPE_OPTIONS),
             default          => [],
         };
 

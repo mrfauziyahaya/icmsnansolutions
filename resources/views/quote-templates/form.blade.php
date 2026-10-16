@@ -29,6 +29,14 @@
                 }
             }
 
+            // Some fields only apply to specific companies on this type (e.g.
+            // Additional Benefits and Personal Accident on 1st Party Motor) --
+            // everyone else gets no cell for it at all, not an empty one.
+            $applies = [];
+            foreach ($companyFields as $field) {
+                $applies[$field] = $QT::fieldAppliesTo($field, $type, $name);
+            }
+
             $companies[] = [
                 'name'      => $name,
                 'label'     => $QT::companyLabel($name),
@@ -38,6 +46,7 @@
                 'selected'  => $col !== null,
                 'col'       => $values,
                 'options'   => $options,
+                'applies'   => $applies,
             ];
         }
 
@@ -146,7 +155,7 @@
                                 // wanted -- hidden otherwise, per the A/B pricing rule below.
                                 $rowShowExpr = $field === 'physical_copy' ? "f.shared.digital_copy === 'yes'" : 'true';
                             @endphp
-                            <x-quote-row-shared label="{{ $def['label'] }}" x-show="{{ $rowShowExpr }}" x-cloak>
+                            <x-quote-row-shared label="{{ $QT::fieldLabel($field, $type) }}" x-show="{{ $rowShowExpr }}" x-cloak>
                                 @if($def['input'] === 'number')
                                     <input type="number" step="0.01" min="0" name="shared[{{ $field }}]" x-model.number="f.shared.{{ $field }}"
                                            class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
@@ -171,7 +180,7 @@
                                  on 1st Party Comprehensive) -- a hidden input per selected
                                  company mirrors the single value into columns[i][field] so
                                  the backend still sees ordinary per-company data. --}}
-                            <x-quote-row-shared label="{{ $def['label'] }}">
+                            <x-quote-row-shared label="{{ $QT::fieldLabel($field, $type) }}">
                                 @if($def['input'] === 'number')
                                     <input type="number" step="0.01" min="0" x-model.number="f.merged.{{ $field }}"
                                            class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
@@ -188,31 +197,39 @@
                                 <input type="hidden" :name="`columns[${i}][{{ $field }}]`" :value="f.merged.{{ $field }}">
                             </template>
                         @else
-                            <x-quote-row label="{{ $def['label'] }}">
+                            <x-quote-row label="{{ $QT::fieldLabel($field, $type) }}">
                                 <template x-for="(c, i) in selected()" :key="c.name">
-                                    @if($def['input'] === 'number')
-                                        <input type="number" step="0.01" min="0" :name="`columns[${i}][{{ $field }}]`" x-model.number="c.col.{{ $field }}"
-                                               class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
-                                    @elseif($def['input'] === 'multiselect')
-                                        <div class="space-y-1">
-                                            <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
-                                                <label class="flex items-start gap-1.5 text-xs text-gray-700">
-                                                    <input type="checkbox" :value="opt.v" x-model="c.col.{{ $field }}"
-                                                           :name="`columns[${i}][{{ $field }}][]`"
-                                                           class="mt-0.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
-                                                    <span x-text="opt.l"></span>
-                                                </label>
-                                            </template>
+                                    {{-- Some companies simply have no row for this field at
+                                         all on this type (e.g. Additional Benefits is
+                                         Zurich/Allianz-only on 1st Party Motor) -- an empty
+                                         cell, not a disabled or blank-but-present input. --}}
+                                    <template x-if="c.applies.{{ $field }}">
+                                        <div>
+                                            @if($def['input'] === 'number')
+                                                <input type="number" step="0.01" min="0" :name="`columns[${i}][{{ $field }}]`" x-model.number="c.col.{{ $field }}"
+                                                       class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
+                                            @elseif($def['input'] === 'multiselect')
+                                                <div class="space-y-1">
+                                                    <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
+                                                        <label class="flex items-start gap-1.5 text-xs text-gray-700">
+                                                            <input type="checkbox" :value="opt.v" x-model="c.col.{{ $field }}"
+                                                                   :name="`columns[${i}][{{ $field }}][]`"
+                                                                   class="mt-0.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                                                            <span x-text="opt.l"></span>
+                                                        </label>
+                                                    </template>
+                                                </div>
+                                            @else
+                                                <select :name="`columns[${i}][{{ $field }}]`" x-model="c.col.{{ $field }}"
+                                                        class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                                                    @if($QT::isOptional($field))<option value="">—</option>@endif
+                                                    <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
+                                                        <option :value="opt.v" x-text="opt.l"></option>
+                                                    </template>
+                                                </select>
+                                            @endif
                                         </div>
-                                    @else
-                                        <select :name="`columns[${i}][{{ $field }}]`" x-model="c.col.{{ $field }}"
-                                                class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                                            @if($QT::isOptional($field))<option value="">—</option>@endif
-                                            <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
-                                                <option :value="opt.v" x-text="opt.l"></option>
-                                            </template>
-                                        </select>
-                                    @endif
+                                    </template>
                                 </template>
                             </x-quote-row>
                         @endif
