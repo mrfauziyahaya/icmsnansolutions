@@ -199,37 +199,43 @@
                         @else
                             <x-quote-row label="{{ $QT::fieldLabel($field, $type) }}">
                                 <template x-for="(c, i) in selected()" :key="c.name">
-                                    {{-- Some companies simply have no row for this field at
-                                         all on this type (e.g. Additional Benefits is
-                                         Zurich/Allianz-only on 1st Party Motor) -- an empty
-                                         cell, not a disabled or blank-but-present input. --}}
-                                    <template x-if="c.applies.{{ $field }}">
-                                        <div>
-                                            @if($def['input'] === 'number')
-                                                <input type="number" step="0.01" min="0" :name="`columns[${i}][{{ $field }}]`" x-model.number="c.col.{{ $field }}"
-                                                       class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
-                                            @elseif($def['input'] === 'multiselect')
-                                                <div class="space-y-1">
-                                                    <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
-                                                        <label class="flex items-start gap-1.5 text-xs text-gray-700">
-                                                            <input type="checkbox" :value="opt.v" x-model="c.col.{{ $field }}"
-                                                                   :name="`columns[${i}][{{ $field }}][]`"
-                                                                   class="mt-0.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
-                                                            <span x-text="opt.l"></span>
-                                                        </label>
-                                                    </template>
-                                                </div>
-                                            @else
-                                                <select :name="`columns[${i}][{{ $field }}]`" x-model="c.col.{{ $field }}"
-                                                        class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                                                    @if($QT::isOptional($field))<option value="">—</option>@endif
-                                                    <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
-                                                        <option :value="opt.v" x-text="opt.l"></option>
-                                                    </template>
-                                                </select>
-                                            @endif
-                                        </div>
-                                    </template>
+                                    {{-- The per-company <div> must always render, even when
+                                         this field doesn't apply to company c (e.g. Additional
+                                         Benefits is Zurich/Allianz-only on 1st Party Motor) --
+                                         it's a CSS grid column slot. A <template x-if> here
+                                         instead would remove the slot entirely, and every
+                                         company after it would shift one column left. x-show
+                                         has the same problem (display:none removes a grid item
+                                         from the grid too) -- only the *content* is conditional. --}}
+                                    <div>
+                                        <template x-if="c.applies.{{ $field }}">
+                                            <div>
+                                                @if($def['input'] === 'number')
+                                                    <input type="number" step="0.01" min="0" :name="`columns[${i}][{{ $field }}]`" x-model.number="c.col.{{ $field }}"
+                                                           class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
+                                                @elseif($def['input'] === 'multiselect')
+                                                    <div class="space-y-1">
+                                                        <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
+                                                            <label class="flex items-start gap-1.5 text-xs text-gray-700">
+                                                                <input type="checkbox" :value="opt.v" x-model="c.col.{{ $field }}"
+                                                                       :name="`columns[${i}][{{ $field }}][]`"
+                                                                       class="mt-0.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                                                                <span x-text="opt.l"></span>
+                                                            </label>
+                                                        </template>
+                                                    </div>
+                                                @else
+                                                    <select :name="`columns[${i}][{{ $field }}]`" x-model="c.col.{{ $field }}"
+                                                            class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                                                        @if($QT::isOptional($field))<option value="">—</option>@endif
+                                                        <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
+                                                            <option :value="opt.v" x-text="opt.l"></option>
+                                                        </template>
+                                                    </select>
+                                                @endif
+                                            </div>
+                                        </template>
+                                    </div>
                                 </template>
                             </x-quote-row>
                         @endif
