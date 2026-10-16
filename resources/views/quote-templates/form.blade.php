@@ -57,7 +57,7 @@
         $merged       = [];
         $mergedOptions = [];
         foreach ($mergedFields as $field) {
-            $first = $d['columns'][0][$field] ?? $QT::fieldDefault($field);
+            $first = $d['columns'][0][$field] ?? $QT::fieldDefaultFor($field, $type);
             $merged[$field] = $first === null && $F[$field]['input'] === 'select' ? '' : $first;
             if (in_array($F[$field]['input'], ['select', 'multiselect'])) {
                 $mergedOptions[$field] = $QT::optionList($field, $type);
@@ -161,7 +161,7 @@
                                            class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
                                 @else
                                     <select name="shared[{{ $field }}]" x-model="f.shared.{{ $field }}" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                                        @if($QT::isOptional($field))<option value="">—</option>@endif
+                                        @if($QT::isOptional($field, $type))<option value="">—</option>@endif
                                         @foreach($QT::optionsFor($field, $type) as $k => $lbl)
                                             @php
                                                 // "Tidak Termasuk Roadtax" only applies when Digital Copy
@@ -180,13 +180,15 @@
                                  on 1st Party Comprehensive) -- a hidden input per selected
                                  company mirrors the single value into columns[i][field] so
                                  the backend still sees ordinary per-company data. --}}
+                            @php $isReadonly = in_array($field, $cfg['field_readonly'] ?? [], true); @endphp
                             <x-quote-row-shared label="{{ $QT::fieldLabel($field, $type) }}">
                                 @if($def['input'] === 'number')
                                     <input type="number" step="0.01" min="0" x-model.number="f.merged.{{ $field }}"
-                                           class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right">
+                                           @if($isReadonly) readonly @endif
+                                           class="w-full rounded-md border-gray-300 shadow-sm text-sm text-right @if($isReadonly) bg-gray-100 text-gray-500 cursor-not-allowed @endif">
                                 @else
                                     <select x-model="f.merged.{{ $field }}" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                                        @if($QT::isOptional($field))<option value="">—</option>@endif
+                                        @if($QT::isOptional($field, $type))<option value="">—</option>@endif
                                         @foreach($mergedOptions[$field] as $opt)
                                             <option value="{{ $opt['v'] }}">{{ $opt['l'] }}</option>
                                         @endforeach
@@ -227,7 +229,7 @@
                                                 @else
                                                     <select :name="`columns[${i}][{{ $field }}]`" x-model="c.col.{{ $field }}"
                                                             class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                                                        @if($QT::isOptional($field))<option value="">—</option>@endif
+                                                        @if($QT::isOptional($field, $type))<option value="">—</option>@endif
                                                         <template x-for="opt in c.options.{{ $field }}" :key="opt.v">
                                                             <option :value="opt.v" x-text="opt.l"></option>
                                                         </template>
