@@ -52,7 +52,7 @@
                         Cuba Lagi
                     </a>
                 @endif
-                <a href="https://wa.link/cikhnz" target="_blank" rel="noopener"
+                <a href="https://wa.link/r7h3kv" target="_blank" rel="noopener"
                    class="rounded-md bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700">
                     Hubungi Kami
                 </a>

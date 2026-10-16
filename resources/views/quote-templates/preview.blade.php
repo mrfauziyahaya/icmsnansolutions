@@ -47,7 +47,7 @@
             <tbody>
                 {{-- logo --}}
                 <tr>
-                    <td colspan="{{ $n + 1 }}" class="border border-gray-300 p-3 text-center">
+                    <td colspan="{{ $n + 1 }}" class="border-2 border-gray-600 p-3 text-center">
                         @if($logo)
                             <img src="{{ $logo }}" alt="{{ $setting->company_name }}" class="mx-auto h-16 w-auto object-contain">
                         @else
@@ -58,22 +58,22 @@
 
                 {{-- title --}}
                 <tr>
-                    <td colspan="{{ $n + 1 }}" class="border border-gray-300 bg-yellow-400 px-3 py-2 text-center text-sm font-bold uppercase tracking-wide">
+                    <td colspan="{{ $n + 1 }}" class="border-2 border-gray-600 bg-yellow-400 px-3 py-2 text-center text-sm font-bold uppercase tracking-wide">
                         {{ $preview['title'] }}
                     </td>
                 </tr>
 
                 {{-- reg + model --}}
                 <tr class="font-bold uppercase">
-                    <td colspan="{{ $regSpan }}" class="border border-gray-300 bg-yellow-300 px-3 py-2">Vehicle Reg Num: {{ $template->vehicle_reg_number }}</td>
-                    <td colspan="{{ $modelSpan }}" class="border border-gray-300 bg-yellow-300 px-3 py-2">Model: {{ $template->vehicle_model ?: '—' }}</td>
+                    <td colspan="{{ $regSpan }}" class="border-2 border-gray-600 bg-yellow-300 px-3 py-2">Vehicle Reg Num: {{ $template->vehicle_reg_number }}</td>
+                    <td colspan="{{ $modelSpan }}" class="border-2 border-gray-600 bg-yellow-300 px-3 py-2">Model: {{ $template->vehicle_model ?: '—' }}</td>
                 </tr>
 
                 {{-- company logos (on white) --}}
                 <tr>
-                    <td class="border border-gray-300 bg-white px-3 py-2"></td>
+                    <td class="border-2 border-gray-600 bg-white px-3 py-2"></td>
                     @foreach($companies as $c)
-                        <td class="border border-gray-300 bg-white px-3 py-2 text-center align-middle">
+                        <td class="border-2 border-gray-600 bg-white px-3 py-2 text-center align-middle">
                             @if($c['logo'])
                                 <img src="{{ asset($c['logo']) }}" alt="{{ $c['label'] }}" class="mx-auto h-60 w-auto object-contain">
                             @endif
@@ -83,9 +83,9 @@
 
                 {{-- company names: each company's own brand colour --}}
                 <tr>
-                    <td class="border border-gray-300 bg-white px-3 py-2"></td>
+                    <td class="border-2 border-gray-600 bg-white px-3 py-2"></td>
                     @foreach($companies as $i => $c)
-                        <td class="border border-gray-300 px-3 py-2 text-center font-bold uppercase"
+                        <td class="border-2 border-gray-600 px-3 py-2 text-center font-bold uppercase"
                             style="background: {{ \App\Models\QuoteTemplate::companyColor($c['company']) }}; color: {{ \App\Models\QuoteTemplate::companyTextColor($c['company']) }}">
                             {{ $c['label'] ?: '—' }}
                         </td>
@@ -97,16 +97,16 @@
                     <x-quote-preview-head :span="$n + 1">{{ $section['name'] }}</x-quote-preview-head>
                     @foreach($section['rows'] as $row)
                         <tr>
-                            <td class="border border-gray-300 px-3 py-1.5 font-semibold uppercase">{{ $row['label'] }}</td>
+                            <td class="border-2 border-gray-600 px-3 py-1.5 font-semibold uppercase">{{ $row['label'] }}</td>
                             @if($row['scope'] === 'shared' || $row['merged'])
                                 {{-- display() has already formatted this; re-running $rm
                                      would cast "RM 90.00" to 0 and print "RM -". --}}
-                                <td colspan="{{ $n }}" class="border border-gray-300 px-3 py-1.5 text-center">
+                                <td colspan="{{ $n }}" class="border-2 border-gray-600 px-3 py-1.5 text-center">
                                     {{ $row['value'] }}
                                 </td>
                             @else
                                 @foreach($row['cells'] as $cell)
-                                    <td class="border border-gray-300 px-3 py-1.5 text-center">
+                                    <td class="border-2 border-gray-600 px-3 py-1.5 text-center">
                                         @if(is_array($cell))
                                             @foreach($cell as $line)<div>{{ $line }}</div>@endforeach
                                         @else
@@ -121,16 +121,16 @@
 
                 {{-- grand total --}}
                 <tr class="font-bold">
-                    <td class="border border-gray-300 px-3 py-2 uppercase">Jumlah Keseluruhan</td>
-                    @foreach($preview['totals'] as $t)<td class="border border-gray-300 px-3 py-2 text-center">{{ $rm($t) }}</td>@endforeach
+                    <td class="border-2 border-gray-600 px-3 py-2 uppercase">Jumlah Keseluruhan</td>
+                    @foreach($preview['totals'] as $t)<td class="border-2 border-gray-600 px-3 py-2 text-center">{{ $rm($t) }}</td>@endforeach
                 </tr>
 
                 {{-- instalments --}}
                 <x-quote-preview-head :span="$n + 1">Jumlah Keseluruhan Bayaran Ansuran</x-quote-preview-head>
                 @foreach($preview['instalments'] as $row)
                     <tr>
-                        <td class="border border-gray-300 px-3 py-1.5 font-semibold">{{ $row['label'] }}</td>
-                        @foreach($row['values'] as $v)<td class="border border-gray-300 px-3 py-1.5 text-center">{{ $rm($v) }}</td>@endforeach
+                        <td class="border-2 border-gray-600 px-3 py-1.5 font-semibold">{{ $row['label'] }}</td>
+                        @foreach($row['values'] as $v)<td class="border-2 border-gray-600 px-3 py-1.5 text-center">{{ $rm($v) }}</td>@endforeach
                     </tr>
                 @endforeach
             </tbody>

@@ -58,7 +58,7 @@
         body { font-family: DejaVu Sans, sans-serif; font-size: {{ $fontSize }}; color: #1a1a1a; }
 
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        td { border: 1px solid #d1d5db; padding: {{ $rowPad }} 6px; vertical-align: middle; word-wrap: break-word; }
+        td { border: 2px solid #4b5563; padding: {{ $rowPad }} 6px; vertical-align: middle; word-wrap: break-word; }
 
         .center { text-align: center; }
         .bold   { font-weight: bold; }
