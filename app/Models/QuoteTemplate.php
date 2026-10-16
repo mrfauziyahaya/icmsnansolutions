@@ -217,8 +217,17 @@ class QuoteTemplate extends Model
      */
     public const OPTIONAL_FIELDS = ['towing', 'personal_accident', 'vehicle_inspection'];
 
-    public static function isOptional(string $field): bool
+    /**
+     * A type can mark its own field optional too (e.g. 3rd Party Motor's
+     * Accident/Breakdown Assist starts unanswered, unlike every other type)
+     * without affecting that field on any other type.
+     */
+    public static function isOptional(string $field, ?string $type = null): bool
     {
+        if ($type !== null && in_array($field, self::typeConfig($type)['optional_fields'] ?? [], true)) {
+            return true;
+        }
+
         return in_array($field, self::OPTIONAL_FIELDS, true);
     }
 
@@ -332,9 +341,24 @@ class QuoteTemplate extends Model
                 'title'     => 'Motor Third Party',
                 'companies' => $motor,
                 'ncd'       => self::NCD_MOTOR_OPTIONS,
+                // Entered once, applies to every company on this type.
+                // Sum Covered is also locked at 0 (field_readonly below) --
+                // 3rd party cover has no insured value to quote.
+                'merged_fields'  => ['sum_covered', 'all_rider', 'accident_assist'],
+                'field_readonly' => ['sum_covered'],
+                'field_defaults' => [
+                    'sum_covered'      => ['*' => 0],
+                    // Explicit null, not just "no override": starts
+                    // unanswered rather than defaulting to "yes" like every
+                    // other type's Accident/Breakdown Assist.
+                    'accident_assist'  => ['*' => null],
+                ],
+                // So the blank "—" choice actually renders -- without this,
+                // the null default above has nothing to visibly bind to.
+                'optional_fields' => ['accident_assist'],
                 'sections'  => [
                     'Sebut Harga'        => ['sum_covered'],
-                    'Insurance Benefits' => ['all_rider', 'accident_assist', 'ncd', 'additional_benefits'],
+                    'Insurance Benefits' => ['all_rider', 'accident_assist', 'ncd'],
                     'Add On'             => ['add_on_benefit'],
                     'Roadtax'            => ['digital_copy', 'physical_copy', 'vehicle_inspection'],
                     'Jumlah'             => ['insurance_takaful', 'roadtax_period', 'roadtax'],
@@ -516,20 +540,40 @@ class QuoteTemplate extends Model
         };
     }
 
+    /**
+     * This type's own default for a field, if it has one -- per company
+     * ('ZURICH TAKAFUL' => [...]), for every company at once ('*' => ...),
+     * or the registry default, in that priority order. Used for both
+     * per-company columns and a merged field's single starting value, so
+     * both stay consistent.
+     *
+     * Uses array_key_exists rather than ?? on purpose: a type can override
+     * a default to null on purpose (3rd Party Motor's Accident/Breakdown
+     * Assist starts unanswered rather than "yes"), and ?? would silently
+     * fall through past an explicit null to the registry default instead.
+     */
+    public static function fieldDefaultFor(string $field, string $type, ?string $company = null): mixed
+    {
+        $overrides = self::typeConfig($type)['field_defaults'][$field] ?? null;
+
+        if (is_array($overrides)) {
+            if ($company !== null && array_key_exists($company, $overrides)) {
+                return $overrides[$company];
+            }
+            if (array_key_exists('*', $overrides)) {
+                return $overrides['*'];
+            }
+        }
+
+        return self::fieldDefault($field);
+    }
+
     /** Default company column for a type. */
     public static function defaultColumn(string $type, string $company): array
     {
-        $col       = ['company' => $company];
-        $overrides = self::typeConfig($type)['field_defaults'] ?? [];
+        $col = ['company' => $company];
         foreach (self::fieldKeys($type, 'company') as $field) {
-            // A type can set its own default, per company ('ZURICH TAKAFUL'
-            // => [...]) or for every company at once ('*' => ...) -- e.g.
-            // 1st Party Motor's Rider Type defaults to "All Rider" for
-            // everyone via '*', while each company's Additional Benefits
-            // default (when it applies at all) is its own specific list.
-            $col[$field] = $overrides[$field][$company]
-                ?? $overrides[$field]['*']
-                ?? self::fieldDefault($field);
+            $col[$field] = self::fieldDefaultFor($field, $type, $company);
         }
 
         return $col;

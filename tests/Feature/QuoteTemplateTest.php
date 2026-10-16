@@ -855,6 +855,84 @@ class QuoteTemplateTest extends TestCase
         $this->assertSame(['death_disablement', 'special_perils'], $column['additional_benefits']);
     }
 
+    // ── Stage 4: 3rd Party Motor ────────────────────────────────────────────
+
+    public function test_all_rider_accident_assist_and_sum_covered_are_merged_on_motor_third_party(): void
+    {
+        $this->assertSame(
+            ['sum_covered', 'all_rider', 'accident_assist'],
+            QuoteTemplate::mergedFields('motor_third_party'),
+        );
+
+        $template = QuoteTemplate::create($this->storedPayload('motor_third_party', ['ZURICH TAKAFUL', 'ETIQA TAKAFUL']));
+        $rows = collect($template->previewData()['sections'])
+            ->flatMap(fn ($section) => $section['rows'])
+            ->keyBy('label');
+
+        $this->assertTrue($rows['All Rider']['merged']);
+        $this->assertTrue($rows['Accident / Breakdown Assist']['merged']);
+        $this->assertTrue($rows['Sum Covered (RM)']['merged']);
+        // Unlike 1st Party Motor, this type doesn't rename the field.
+        $this->assertSame('All Rider', $rows['All Rider']['label']);
+    }
+
+    public function test_accident_assist_starts_unanswered_on_motor_third_party_only(): void
+    {
+        $this->assertNull(QuoteTemplate::fieldDefaultFor('accident_assist', 'motor_third_party'));
+        $this->assertTrue(QuoteTemplate::isOptional('accident_assist', 'motor_third_party'));
+
+        // Every other type keeps the normal "yes" default and stays required.
+        $this->assertSame('yes', QuoteTemplate::fieldDefaultFor('accident_assist', 'motor_first_party'));
+        $this->assertFalse(QuoteTemplate::isOptional('accident_assist', 'motor_first_party'));
+        $this->assertFalse(QuoteTemplate::isOptional('accident_assist')); // no type given at all
+    }
+
+    public function test_sum_covered_is_locked_at_zero_on_motor_third_party(): void
+    {
+        $this->assertSame(0, QuoteTemplate::fieldDefaultFor('sum_covered', 'motor_third_party'));
+        $this->assertContains('sum_covered', QuoteTemplate::typeConfig('motor_third_party')['field_readonly']);
+
+        // The real form always sends 0 here, via the merged field's hidden
+        // per-company mirror input (readonly in the browser, so it's never
+        // anything else) -- simulate that exact submission rather than
+        // payloadFor()'s generic 50000 fixture, which isn't type-aware of
+        // which fields are locked.
+        $payload = $this->payloadFor('motor_third_party', ['ZURICH TAKAFUL']);
+        $payload['columns'][0]['sum_covered'] = 0;
+
+        $this->actingAs($this->admin())
+            ->post(route('quote-templates.store'), $payload)
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('0', (string) QuoteTemplate::firstOrFail()->data['columns'][0]['sum_covered']);
+    }
+
+    public function test_additional_benefits_is_removed_from_motor_third_party(): void
+    {
+        $this->assertNotContains('additional_benefits', QuoteTemplate::fieldKeys('motor_third_party', 'company'));
+        foreach (QuoteTemplate::typeConfig('motor_third_party')['sections'] as $rows) {
+            $this->assertNotContains('additional_benefits', $rows);
+        }
+    }
+
+    public function test_add_on_benefit_is_unchanged_on_motor_third_party(): void
+    {
+        $this->assertContains('add_on_benefit', QuoteTemplate::fieldKeys('motor_third_party', 'company'));
+        $this->assertSame('no', QuoteTemplate::fieldDefaultFor('add_on_benefit', 'motor_third_party'));
+    }
+
+    public function test_blank_motor_third_party_create_form_renders(): void
+    {
+        $html = $this->actingAs($this->admin())
+            ->get(route('quote-templates.create', ['type' => 'motor_third_party']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('f.merged.sum_covered', $html);
+        $this->assertStringContainsString('readonly', $html);
+        $this->assertStringNotContainsString('Additional Benefits', $html);
+    }
+
     /**
      * dompdf decodes images at full resolution whatever size they print at, so
      * one 2250x1871 logo cost 6s of an 8s render. Oversized logos are resampled

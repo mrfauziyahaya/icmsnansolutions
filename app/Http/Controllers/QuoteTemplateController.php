@@ -306,6 +306,6 @@ class QuoteTemplateController extends Controller
             default          => [],
         };
 
-        return (QuoteTemplate::isOptional($field) ? 'nullable|in:' : 'required|in:') . implode(',', $keys);
+        return (QuoteTemplate::isOptional($field, $type) ? 'nullable|in:' : 'required|in:') . implode(',', $keys);
     }
 }
