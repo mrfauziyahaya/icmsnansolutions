@@ -89,17 +89,18 @@ class QuoteTemplate extends Model
 
     /** All towing labels; which apply is per type / per company below. */
     public const TOWING_OPTIONS = [
-        'no_towing' => 'NO TOWING',
-        '30km'      => '30 KM',
-        '50km'      => '50 KM',
-        '100km'     => '100 KM',
-        '150km'     => '150 KM',
-        '200km'     => '200 KM',
-        '300km'     => '300 KM',
-        '450km'     => '450 KM',
-        '600km'     => '600 KM',
-        'unlimited' => 'UNLIMITED',
-        'no'        => 'NO',
+        'no_towing'    => 'NO TOWING',
+        '30km'         => '30 KM',
+        '50km'         => '50 KM',
+        '100km'        => '100 KM',
+        '150km'        => '150 KM',
+        '200km'        => '200 KM',
+        '300km'        => '300 KM',
+        '450km'        => '450 KM',
+        '600km'        => '600 KM',
+        'unlimited'    => 'UNLIMITED',
+        '3x_unlimited' => '3X UNLIMITED TOWING',
+        'no'           => 'NO',
     ];
 
     /** Towing per company for the comprehensive type (others use a fixed list). */
@@ -131,6 +132,7 @@ class QuoteTemplate extends Model
         'road_warrior'          => 'ROAD WARRIOR',
         'enhanced_road_warrior' => 'ENHANCED ROAD WARRIOR',
         'bike_warrior'          => 'BIKE WARRIOR',
+        'myrider'               => 'MYRIDER',
     ];
 
     public const COMPANY_PA = [
@@ -149,6 +151,29 @@ class QuoteTemplate extends Model
         'perils'      => 'Limited Special Perils Allowance RM1000',
         'towing_cost' => 'Breakdown/Emergency Towing Cost RM160',
         'none'        => 'None',
+    ];
+
+    /**
+     * Allianz's own Additional Benefits on 1st Party Motor -- a completely
+     * different list from every other company's (ADDITIONAL_BENEFITS above),
+     * not an extension of it. 'none' is deliberately the same key/label as
+     * the list above; display() and optionsFor() read from the union of both
+     * constants, so either company's stored keys resolve correctly.
+     */
+    public const ALLIANZ_ADDITIONAL_BENEFITS = [
+        'death_disablement' => 'DEATH / PERMANENT DISABLEMENT - AUTHORISED RIDER & PILLION SUM INSURED (RM)25,000',
+        'hospital_income'   => 'HOSPITAL INCOME - AUTHORISED RIDER & PILLION RM100 PER DAY / UP TO 60 DAYS',
+        'flood_relief'      => 'FLOOD RELIEF BENEFIT LIMIT RM1,000',
+        'special_perils'    => 'INCLUSION OF SPECIAL PERILS',
+        'none'              => 'None',
+    ];
+
+    /** 1st Party Motor's Rider Type -- a Yes/No-style field renamed and
+     *  reworked for this type only; every other company only ever offers
+     *  "All Rider", Allianz alone also offers "Single Rider". */
+    public const RIDER_TYPE_OPTIONS = [
+        'single' => 'SINGLE RIDER',
+        'all'    => 'ALL RIDER',
     ];
 
     /** @var array<string, array{label: string}> */
@@ -251,10 +276,49 @@ class QuoteTemplate extends Model
                 'title'     => 'First Party Comprehensive',
                 'companies' => $motor,
                 'ncd'       => self::NCD_MOTOR_OPTIONS,
-                'towing'    => ['no_towing', 'unlimited', '50km', '30km'],
-                // Allianz quotes its own towing here too. Its PA needs no override:
-                // this type sets no PA list, so COMPANY_PA already applies.
-                'company_towing' => ['ALLIANZ' => self::COMPANY_TOWING['ALLIANZ']],
+                // Towing is fully per-company on this type -- every insurer
+                // quotes a different list, not a shared type-wide one.
+                'company_towing' => [
+                    'ZURICH TAKAFUL'   => ['unlimited', 'no'],
+                    'ETIQA TAKAFUL'    => ['50km', '3x_unlimited'],
+                    'TAKAFUL MALAYSIA' => ['50km'],
+                    'TAKAFUL IKHLAS'   => ['no_towing'],
+                    'ALLIANZ'          => ['50km', '600km'],
+                ],
+                // Personal Accident: Zurich/Etiqa/Allianz only (field_companies
+                // below hides it for the other two), each with its own list.
+                'company_pa' => [
+                    'ZURICH TAKAFUL' => ['yes', 'no'],
+                    'ETIQA TAKAFUL'  => ['yes', 'no', 'myrider'],
+                    'ALLIANZ'        => ['yes', 'no', 'bike_warrior'],
+                ],
+                // Rider Type ("All Rider", relabelled): every company only
+                // ever offers "All Rider" except Allianz, who also offers
+                // "Single Rider" (the 'rider_type' default below is ['all']).
+                'company_rider_type' => [
+                    'ALLIANZ' => ['single', 'all'],
+                ],
+                // Additional Benefits: Zurich only (field_companies below
+                // hides it for Etiqa/Ikhlas/Malaysia); Allianz gets its own,
+                // different list (ALLIANZ_ADDITIONAL_BENEFITS).
+                'company_additional_benefits' => [
+                    'ALLIANZ' => array_keys(self::ALLIANZ_ADDITIONAL_BENEFITS),
+                ],
+                'field_options' => ['all_rider' => 'rider_type'],
+                'field_labels'  => ['all_rider' => 'Rider Type'],
+                'field_companies' => [
+                    'additional_benefits' => ['ZURICH TAKAFUL', 'ALLIANZ'],
+                    'personal_accident'   => ['ZURICH TAKAFUL', 'ETIQA TAKAFUL', 'ALLIANZ'],
+                ],
+                'field_defaults' => [
+                    'all_rider'           => ['*' => 'all'],
+                    'additional_benefits' => [
+                        'ZURICH TAKAFUL' => ['helmet', 'pa5500', 'perils', 'towing_cost'],
+                        'ALLIANZ'        => ['death_disablement', 'hospital_income', 'flood_relief', 'special_perils'],
+                    ],
+                ],
+                // Entered once, applies to every company on this type.
+                'merged_fields' => ['accident_assist'],
                 'sections'  => [
                     'Sebut Harga'        => ['sum_covered', 'value'],
                     'Insurance Benefits' => ['all_rider', 'accident_assist', 'ncd', 'additional_benefits'],
@@ -333,6 +397,37 @@ class QuoteTemplate extends Model
         return array_values(array_unique($keys));
     }
 
+    /**
+     * This type's own label for a field, if it has one (e.g. "All Rider"
+     * becomes "Rider Type" on 1st Party Motor only -- 3rd Party Motor keeps
+     * the registry default). Falls back to FIELDS' own label.
+     */
+    public static function fieldLabel(string $field, string $type): string
+    {
+        return self::typeConfig($type)['field_labels'][$field] ?? self::FIELDS[$field]['label'];
+    }
+
+    /**
+     * Companies this field applies to on this type, or null for "every
+     * company this type compares" (the default). Some fields only make sense
+     * for specific insurers (e.g. Additional Benefits and Personal Accident
+     * on 1st Party Motor) -- everyone else simply has no such row at all,
+     * not an empty/unanswered one.
+     *
+     * @return array<int, string>|null
+     */
+    public static function fieldCompanies(string $field, string $type): ?array
+    {
+        return self::typeConfig($type)['field_companies'][$field] ?? null;
+    }
+
+    public static function fieldAppliesTo(string $field, string $type, ?string $company): bool
+    {
+        $allowed = self::fieldCompanies($field, $type);
+
+        return $allowed === null || in_array($company, $allowed, true);
+    }
+
     // ── Options ───────────────────────────────────────────────────────────────
 
     /**
@@ -341,8 +436,11 @@ class QuoteTemplate extends Model
      */
     public static function optionsFor(string $field, string $type, ?string $company = null): array
     {
-        $source = self::FIELDS[$field]['options'] ?? null;
+        // A type can redirect a field to an entirely different option source
+        // -- 1st Party Motor's "Rider Type" is All Rider's field, relabelled
+        // and reworked with its own options, not an extension of yesno.
         $config = self::typeConfig($type);
+        $source = $config['field_options'][$field] ?? self::FIELDS[$field]['options'] ?? null;
 
         // Pull labels in the exact order the keys are listed (not the label map's).
         $ordered = fn (array $keys, array $labels) => array_reduce(
@@ -356,11 +454,11 @@ class QuoteTemplate extends Model
             'yesno'          => self::YESNO_OPTIONS,
             'roadtax_period' => self::ROADTAX_PERIOD_OPTIONS,
             'ncd'            => $config['ncd'] ?? self::NCD_OPTIONS,
-            'additional_benefits' => self::ADDITIONAL_BENEFITS,
             // A type may override a single company's list (company_* in the type
             // config), otherwise its own list for every company ('towing'),
             // otherwise the company's default. Allianz needs this: on 1st Party
-            // Motor its towing and PA differ from the other insurers on that type.
+            // Motor its towing, PA, Rider Type and Additional Benefits all
+            // differ from the other insurers on that type.
             'pa'             => $ordered(
                 $config['company_pa'][$company] ?? self::COMPANY_PA[$company] ?? [],
                 self::PA_OPTIONS
@@ -368,6 +466,14 @@ class QuoteTemplate extends Model
             'towing'         => $ordered(
                 $config['company_towing'][$company] ?? $config['towing'] ?? self::COMPANY_TOWING[$company] ?? [],
                 self::TOWING_OPTIONS
+            ),
+            'rider_type'     => $ordered(
+                $config['company_rider_type'][$company] ?? ['all'],
+                self::RIDER_TYPE_OPTIONS
+            ),
+            'additional_benefits' => $ordered(
+                $config['company_additional_benefits'][$company] ?? array_keys(self::ADDITIONAL_BENEFITS),
+                self::ADDITIONAL_BENEFITS + self::ALLIANZ_ADDITIONAL_BENEFITS
             ),
             default          => [],
         };
@@ -413,9 +519,17 @@ class QuoteTemplate extends Model
     /** Default company column for a type. */
     public static function defaultColumn(string $type, string $company): array
     {
-        $col = ['company' => $company];
+        $col       = ['company' => $company];
+        $overrides = self::typeConfig($type)['field_defaults'] ?? [];
         foreach (self::fieldKeys($type, 'company') as $field) {
-            $col[$field] = self::fieldDefault($field);
+            // A type can set its own default, per company ('ZURICH TAKAFUL'
+            // => [...]) or for every company at once ('*' => ...) -- e.g.
+            // 1st Party Motor's Rider Type defaults to "All Rider" for
+            // everyone via '*', while each company's Additional Benefits
+            // default (when it applies at all) is its own specific list.
+            $col[$field] = $overrides[$field][$company]
+                ?? $overrides[$field]['*']
+                ?? self::fieldDefault($field);
         }
 
         return $col;
@@ -493,7 +607,11 @@ class QuoteTemplate extends Model
         }
 
         if ($def['input'] === 'multiselect') {
-            $labels = array_map(fn ($k) => self::ADDITIONAL_BENEFITS[$k] ?? $k, array_values((array) $raw));
+            // Union, not a per-company lookup: whichever company's keys are
+            // stored (Zurich's or Allianz's own, different list), both
+            // resolve correctly regardless of which company this column is.
+            $labels = self::ADDITIONAL_BENEFITS + self::ALLIANZ_ADDITIONAL_BENEFITS;
+            $labels = array_map(fn ($k) => $labels[$k] ?? $k, array_values((array) $raw));
             $labels = array_filter($labels, fn ($l) => $l !== 'None');
 
             return $labels ?: ['-'];
@@ -527,7 +645,7 @@ class QuoteTemplate extends Model
                 $def    = self::FIELDS[$field];
                 $merged = $def['scope'] === 'company' && self::isMerged($field, $type);
                 $row = [
-                    'label'  => $def['label'],
+                    'label'  => self::fieldLabel($field, $type),
                     'scope'  => $def['scope'],
                     'input'  => $def['input'],
                     'merged' => $merged,
@@ -539,7 +657,16 @@ class QuoteTemplate extends Model
                     // form -- any one of them is the value to show.
                     $row['value'] = $this->display($field, $type, $columns[0] ?? [], $shared);
                 } else {
-                    $row['cells'] = array_map(fn ($col) => $this->display($field, $type, $col, $shared), $columns);
+                    // null for a company this field doesn't apply to at all
+                    // (e.g. Additional Benefits on 1st Party Motor exists only
+                    // for Zurich/Allianz) -- a blank cell, not an "unanswered"
+                    // dash, since the question was never asked.
+                    $row['cells'] = array_map(
+                        fn ($col) => self::fieldAppliesTo($field, $type, $col['company'] ?? null)
+                            ? $this->display($field, $type, $col, $shared)
+                            : null,
+                        $columns
+                    );
                 }
                 $renderedRows[] = $row;
             }
