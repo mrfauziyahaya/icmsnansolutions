@@ -13,6 +13,7 @@ class PaymentGatewayManager
         'ahapay'    => AhaPayGateway::class,
         'senangpay' => SenangPayGateway::class,
         'lendapay'  => LendaPayGateway::class,
+        'rhb'       => RhbPayGateway::class,
     ];
 
     public function __construct(private SiteManager $sites) {}

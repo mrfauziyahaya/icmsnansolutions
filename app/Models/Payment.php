@@ -69,6 +69,7 @@ class Payment extends Model
         'atome'     => 'Atome',
         'ahapay'    => 'AhaPay',
         'senangpay' => 'Grab PayLater',
+        'rhb'       => 'RHB Pay',
     ];
 
     public function purposeLabel(): string

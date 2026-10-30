@@ -131,6 +131,20 @@ return [
                         'webhook_secret'    => env('LENDAPAY_WEBHOOK_SECRET'),
                     ],
                 ],
+                // RHB Pay Assisted Host — RHB's page offers FPX, cards and DuitNow Pay.
+                'rhb' => [
+                    'label'  => 'RHB Pay — FPX / Kad / DuitNow',
+                    'icon'   => 'images/payment-icons/rhb-pay.png',
+                    'config' => [
+                        'collection_id'    => env('RHBPAY_COLLECTION_ID'),
+                        'app_key'          => env('RHBPAY_APP_KEY'),
+                        'request_key'      => env('RHBPAY_REQUEST_KEY'),
+                        'response_key'     => env('RHBPAY_RESPONSE_KEY'),
+                        'base_url'         => env('RHBPAY_BASE_URL', 'https://gw.rhbpayuat.rhbgroup.com'),
+                        // Optional static X-API-Key RHB adds to Direct Messages (arranged with RHB support).
+                        'callback_api_key' => env('RHBPAY_CALLBACK_API_KEY'),
+                    ],
+                ],
             ],
         ],
 
@@ -149,7 +163,7 @@ return [
                 // The Reniu landing page and its Terma & Syarat links.
                 'landing', 'legal.privacy', 'legal.refund', 'legal.delivery',
                 // Checkout + webhooks.
-                'pay.create', 'pay.store', 'pay.success', 'pay.failed', 'pay.webhook',
+                'pay.create', 'pay.store', 'pay.handoff', 'pay.success', 'pay.failed', 'pay.webhook',
             ],
 
             'reference_prefix' => 'RNU',
@@ -240,6 +254,18 @@ return [
                         'secret_access_key' => env('RENIU_LENDAPAY_SECRET_ACCESS_KEY'),
                         'base_url'          => env('RENIU_LENDAPAY_BASE_URL', 'https://localdev.directlending.com.my:8443/ecommerce/v1/e-commerce'),
                         'webhook_secret'    => env('RENIU_LENDAPAY_WEBHOOK_SECRET'),
+                    ],
+                ],
+                'rhb' => [
+                    'label'  => 'RHB Pay — FPX / Kad / DuitNow',
+                    'icon'   => 'images/payment-icons/rhb-pay.png',
+                    'config' => [
+                        'collection_id'    => env('RENIU_RHBPAY_COLLECTION_ID'),
+                        'app_key'          => env('RENIU_RHBPAY_APP_KEY'),
+                        'request_key'      => env('RENIU_RHBPAY_REQUEST_KEY'),
+                        'response_key'     => env('RENIU_RHBPAY_RESPONSE_KEY'),
+                        'base_url'         => env('RENIU_RHBPAY_BASE_URL', 'https://gw.rhbpayuat.rhbgroup.com'),
+                        'callback_api_key' => env('RENIU_RHBPAY_CALLBACK_API_KEY'),
                     ],
                 ],
             ],
