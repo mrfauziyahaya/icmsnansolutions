@@ -38,6 +38,7 @@ Route::get('/blog/{post:slug}', [\App\Http\Controllers\BlogController::class, 's
 // Public payment checkout — no auth required
 Route::get('/pay', [PaymentController::class, 'create'])->name('pay.create');
 Route::post('/pay', [PaymentController::class, 'store'])->name('pay.store');
+Route::get('/pay/handoff/{reference}', [PaymentController::class, 'handoff'])->middleware('signed:relative')->name('pay.handoff');
 Route::get('/pay/success', [PaymentController::class, 'success'])->name('pay.success');
 Route::get('/pay/failed', [PaymentController::class, 'failed'])->name('pay.failed');
 

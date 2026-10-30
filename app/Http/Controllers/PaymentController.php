@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Services\Payments\FormPostGateway;
 use App\Services\Payments\GatewayException;
 use App\Services\Payments\PaymentGatewayManager;
 use App\Services\TurnstileService;
@@ -103,6 +104,39 @@ class PaymentController extends Controller
         return redirect()->away($checkoutUrl);
     }
 
+    /**
+     * Entry point for gateways that must be entered by form POST (RHB Pay).
+     * The link is signed in createPayment(); the form — and its short-lived
+     * token — is built fresh here so a slow page load can't expire it.
+     */
+    public function handoff(string $reference)
+    {
+        $payment = Payment::where('reference', $reference)->firstOrFail();
+
+        if (! $payment->isPending()) {
+            return redirect()->route(
+                $payment->isPaid() ? 'pay.success' : 'pay.failed',
+                ['reference' => $payment->reference]
+            );
+        }
+
+        $driver = $this->gateways->driver($payment->gateway, $payment->site);
+        abort_unless($driver instanceof FormPostGateway, 404);
+
+        try {
+            $form = $driver->checkoutForm($payment);
+        } catch (GatewayException $e) {
+            $payment->update(['status' => 'failed', 'failure_reason' => $e->getMessage()]);
+            Log::error("Payment {$payment->reference} could not start: {$e->getMessage()}");
+
+            return redirect()->route('pay.create')->withErrors([
+                'gateway' => 'Kaedah pembayaran ini tidak dapat digunakan buat masa ini. Sila pilih yang lain.',
+            ]);
+        }
+
+        return view('pay.handoff', $form);
+    }
+
     public function success(Request $request)
     {
         $payment = $this->findByReference($request->query('reference'));
@@ -143,6 +177,13 @@ class PaymentController extends Controller
             $result = $this->gateways->driver($gateway, $site)->verifyCallback($request);
         } catch (GatewayException $e) {
             Log::error("Webhook [{$gateway}] rejected: {$e->getMessage()}");
+
+            // A payer is waiting on a browser return — send them to the result
+            // page, which confirms with the gateway rather than trusting this.
+            if ($this->isBrowserReturn($gateway, $request)) {
+                return redirect()->route('pay.failed', ['reference' => $request->input('rp_orderId')]);
+            }
+
             return response()->json(['error' => 'invalid'], 400);
         }
 
@@ -202,7 +243,23 @@ class PaymentController extends Controller
             return response('OK');
         }
 
+        if ($this->isBrowserReturn($gateway, $request)) {
+            return redirect()->route(
+                $payment->isPaid() ? 'pay.success' : 'pay.failed',
+                ['reference' => $payment->reference]
+            );
+        }
+
         return response()->json(['status' => 'ok']);
+    }
+
+    /**
+     * RHB Pay sends its browser return (Indirect Message) to the webhook as a
+     * form POST; its server-to-server Direct Message is JSON.
+     */
+    private function isBrowserReturn(string $gateway, Request $request): bool
+    {
+        return $gateway === 'rhb' && ! $request->isJson();
     }
 
     // ── Admin ────────────────────────────────────────────────────────────────
