@@ -19,14 +19,41 @@ class PaymentController extends Controller
 
     // ── Public checkout ──────────────────────────────────────────────────────
 
-    public function create()
+    public function create(Request $request)
     {
+        // Opening /pay?preview=<token> unlocks this browser, then drops the token
+        // from the URL so it can't leak through history or the Referer header.
+        $token = (string) config('services.payments.preview_token');
+        if ($token !== '' && hash_equals($token, (string) $request->query('preview', ''))) {
+            $request->session()->put('pay_preview', hash('sha256', $token));
+
+            return redirect()->route('pay.create');
+        }
+
         return view('pay.create', [
-            'options'   => $this->gateways->checkoutOptions(),
+            'options'   => $this->gateways->checkoutOptions(null, null, $this->previewGateways($request)),
             'minAmount' => (float) config('services.payments.min_amount'),
             'maxAmount' => (float) config('services.payments.max_amount'),
             'bnplMin'   => (float) config('services.payments.bnpl_min'),
         ]);
+    }
+
+    /**
+     * Hidden gateways this browser may use, for testing one before customers
+     * see it. Compared against the current token, so changing or removing
+     * PAYMENT_PREVIEW_TOKEN revokes every unlocked browser.
+     *
+     * @return array<int, string>
+     */
+    private function previewGateways(Request $request): array
+    {
+        $token = (string) config('services.payments.preview_token');
+
+        if ($token === '' || ! hash_equals(hash('sha256', $token), (string) $request->session()->get('pay_preview', ''))) {
+            return [];
+        }
+
+        return (array) config('services.payments.preview_gateways', []);
     }
 
     /**
@@ -64,7 +91,7 @@ class PaymentController extends Controller
         // Resolve the submitted option against what's actually available for this
         // amount; the client could have posted a hidden, unconfigured, or
         // BNPL-below-minimum option. A CHIP option also carries its method.
-        $option = $this->gateways->resolveOption($validated['gateway'], (float) $validated['amount']);
+        $option = $this->gateways->resolveOption($validated['gateway'], (float) $validated['amount'], null, $this->previewGateways($request));
         if (! $option) {
             return back()->withInput()->withErrors([
                 'gateway' => 'Kaedah pembayaran ini tidak tersedia untuk jumlah tersebut.',

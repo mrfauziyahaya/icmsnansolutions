@@ -59,6 +59,13 @@ return [
             'trim',
             explode(',', (string) env('PAYMENT_DISABLED_GATEWAYS', 'fiuu'))
         ))),
+        // Private test link: /pay?preview=<token> reveals these hidden gateways
+        // to that browser only. Leave the token empty to switch this off.
+        'preview_token'    => env('PAYMENT_PREVIEW_TOKEN'),
+        'preview_gateways' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('PAYMENT_PREVIEW_GATEWAYS', ''))
+        ))),
     ],
 
     'chip' => [
