@@ -67,9 +67,12 @@ class PaymentGatewayManager
      * Flat list of selectable checkout options for a site. A gateway with
      * several methods (CHIP → FPX / Card) yields one option per method.
      *
+     * $reveal lists hidden gateways to offer anyway (the private test link).
+     *
+     * @param  array<int, string>  $reveal
      * @return array<int, array{value: string, gateway: string, method: ?string, label: string, bnpl: bool, icon: ?string}>
      */
-    public function checkoutOptions(?float $amount = null, ?string $site = null): array
+    public function checkoutOptions(?float $amount = null, ?string $site = null, array $reveal = []): array
     {
         $site    = $site ?? $this->sites->key();
         $bnplMin = (float) config('services.payments.bnpl_min', 30);
@@ -82,7 +85,11 @@ class PaymentGatewayManager
             ?? config('services.payments.disabled', []));
 
         foreach ($this->sites->gateways($site) as $key => $definition) {
-            if (! isset(self::DRIVERS[$key]) || in_array($key, $disabled, true)) {
+            if (! isset(self::DRIVERS[$key])) {
+                continue;
+            }
+
+            if (in_array($key, $disabled, true) && ! in_array($key, $reveal, true)) {
                 continue;
             }
 
@@ -132,11 +139,12 @@ class PaymentGatewayManager
      * this amount on this site. Null when unknown or gated out, so the caller
      * can reject it.
      *
+     * @param  array<int, string>  $reveal
      * @return array{value: string, gateway: string, method: ?string, label: string, bnpl: bool}|null
      */
-    public function resolveOption(string $value, ?float $amount = null, ?string $site = null): ?array
+    public function resolveOption(string $value, ?float $amount = null, ?string $site = null, array $reveal = []): ?array
     {
-        foreach ($this->checkoutOptions($amount, $site) as $option) {
+        foreach ($this->checkoutOptions($amount, $site, $reveal) as $option) {
             if ($option['value'] === $value) {
                 return $option;
             }
