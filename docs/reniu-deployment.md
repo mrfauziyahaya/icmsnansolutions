@@ -34,12 +34,12 @@ Point the domain at the droplet:
 
 | Type | Host | Value |
 |---|---|---|
-| A | `@` | `139.59.218.52` |
-| A | `www` | `139.59.218.52` |
+| A | `@` | `146.190.95.190` |
+| A | `www` | `146.190.95.190` |
 
 Wait for propagation before continuing:
 ```bash
-dig +short A reniu.my       # must return 139.59.218.52
+dig +short A reniu.my       # must return 146.190.95.190
 ```
 
 ## 2. Apache vhost
@@ -54,9 +54,9 @@ sudo nano /etc/apache2/sites-available/reniu.my.conf
 <VirtualHost *:80>
     ServerName reniu.my
     ServerAlias www.reniu.my
-    DocumentRoot /var/www/Pojie/icms.nansolutions.com.my/public
+    DocumentRoot /var/www/icms.nansolutions.com.my/public
 
-    <Directory /var/www/Pojie/icms.nansolutions.com.my>
+    <Directory /var/www/icms.nansolutions.com.my>
         AllowOverride All
         Require all granted
     </Directory>
@@ -122,7 +122,7 @@ so you can roll them out one at a time.
 ## 5. Deploy
 
 ```bash
-cd /var/www/Pojie/icms.nansolutions.com.my
+cd /var/www/icms.nansolutions.com.my
 git pull origin main
 composer install --no-dev --optimize-autoloader     # composer.json changed (helpers autoload)
 php artisan migrate --path=database/migrations/2026_07_23_090000_add_site_to_payments.php --force
